@@ -19,7 +19,7 @@ foreach(TEST_FILE ${TEST_FILES})
     target_link_libraries(${TEST_NAME}
         PRIVATE
         ${COMMON_LIB_TARGET}
-        ${SCANNER_LIB_TARGET}
+        ${LEXER_LIB_TARGET}
         gtest
         gtest_main
         gmock
@@ -30,7 +30,7 @@ foreach(TEST_FILE ${TEST_FILES})
     # Add include directories if needed
     target_include_directories(${TEST_NAME}
         PRIVATE
-        ${CMAKE_SOURCE_DIR}/scanner/include
+        ${CMAKE_SOURCE_DIR}/lexer/include
     )
     
     # Discover tests

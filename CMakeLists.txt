@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(interpreter VERSION 1.0.0)
+project(compiler VERSION 1.0.0)
 
 #Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
@@ -39,7 +39,9 @@ message(STATUS "All required components successfully configured")
 
 #TARGET NAMES
 set(COMMON_LIB_TARGET ${PROJECT_NAME}-common) 
-
+set(LEXER_LIB_TARGET lexer)
+set(COMPILER_LIB_TARGET ${PROJECT_NAME})
+set(COMPILER_APP_TARGET ${PROJECT_NAME})
 
 if(ENABLE_TESTING)
     # Enable testing

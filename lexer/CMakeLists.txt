@@ -1,8 +1,7 @@
 # Add this at the top of your CMakeLists.txt file
 
 # Define a shared library target
-set(SCANNER_LIB_TARGET scanner)
-set(SCANNER_APP_TARGET scanner)
+set(LEXER_APP_TARGET lexer)
 
 # Collect all .cpp files in the src directory excluding main.cpp
 file(GLOB_RECURSE LIB_SRC_FILES CONFIGURE_DEPENDS
@@ -11,39 +10,39 @@ file(GLOB_RECURSE LIB_SRC_FILES CONFIGURE_DEPENDS
 )
 
 # Create the shared library
-add_library(${SCANNER_LIB_TARGET} SHARED
+add_library(${LEXER_LIB_TARGET} SHARED
     ${LIB_SRC_FILES}
 )
 
 # Set include directories for the library
-target_include_directories(${SCANNER_LIB_TARGET}
+target_include_directories(${LEXER_LIB_TARGET}
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/external>
 )
 
 # Link the library dependencies
-target_link_libraries(${SCANNER_LIB_TARGET}
+target_link_libraries(${LEXER_LIB_TARGET}
     PUBLIC
         ${COMMON_LIB_TARGET}
 )
 
 # Create the executable with just main.cpp
-add_executable(${SCANNER_APP_TARGET}
+add_executable(${LEXER_APP_TARGET}
     main.cpp
 )
 
 # Link the executable to the library
-target_link_libraries(${SCANNER_APP_TARGET}
+target_link_libraries(${LEXER_APP_TARGET}
     PRIVATE
         ${COMMON_LIB_TARGET}
-        ${SCANNER_LIB_TARGET}
+        ${LEXER_LIB_TARGET}
 )
 
 
 # For testing
 if(ENABLE_TESTING)
-    message(STATUS "Building tests for scanner.")
+    message(STATUS "Building tests for lexer.")
     # Add the tests directory
     add_subdirectory(tests)
 endif()

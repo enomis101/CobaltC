@@ -1,10 +1,10 @@
 #pragma once
 
 
-namespace scanner
+namespace lexer
 {
 
-class Scanner
+class Lexer
 {
 public:
     

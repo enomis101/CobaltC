@@ -2,10 +2,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Debug scanner",
+            "name": "Debug compiler",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/scanner/scanner",
+            "program": "${workspaceFolder}/build/compiler/cobaltc-compiler",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/build/",

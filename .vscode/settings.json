@@ -91,6 +91,7 @@
         "shared_mutex": "cpp",
         "typeindex": "cpp",
         "*.inc": "cpp",
-        ".clang-tidy": "yaml"
+        ".clang-tidy": "yaml",
+        "*.in": "cpp"
     }
 }

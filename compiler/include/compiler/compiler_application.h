@@ -13,6 +13,7 @@ public:
 
 class CompilerApplication {
 public:
+    CompilerApplication();
     void run(const std::string& input_file, const std::string& operation);
 
 private:

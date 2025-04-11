@@ -18,7 +18,7 @@ int main(int argc, char* argv[])
     CompilerApplication app;
     try {
         app.run(input_file, operation);
-    } catch (CompilerError e) {
+    } catch (CompilerError& e) {
         LOG_CRITICAL(LOG_CONTEXT, e.what());
         return 1;
     }

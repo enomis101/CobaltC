@@ -56,22 +56,26 @@ public:
     virtual void configure(const std::string& configFile) = 0;
 };
 
-// LogManager handles static instance and initialization
+
 class LogManager {
 public:
-    // Initialize with specific logger implementation
-    // Called once at application startup
-    static void initialize(const std::string& configFile);
 
-    // Get the logger instance
-    static std::shared_ptr<ILogger> logger();
+    // Get the singleton instance
+    static std::shared_ptr<ILogger> logger() {
+        static LogManager instance;  // Meyer's singleton - created once on first use
+        return instance.m_logger;
+    }
+
+    static void init(){
+        logger();
+    }
 
 private:
     // Private constructor - this is a static utility class
-    LogManager() = default;
+    LogManager();
 
     // Static instance holder
-    static std::shared_ptr<ILogger> s_instance;
+    std::shared_ptr<ILogger> m_logger;
 };
 
 // Helper macros for convenient logging

@@ -1,8 +1,3 @@
-# Add this at the top of your CMakeLists.txt file
-
-# Define a shared library target
-set(LEXER_APP_TARGET lexer)
-
 # Collect all .cpp files in the src directory excluding main.cpp
 file(GLOB_RECURSE LIB_SRC_FILES CONFIGURE_DEPENDS
     src/*.cpp
@@ -13,6 +8,9 @@ file(GLOB_RECURSE LIB_SRC_FILES CONFIGURE_DEPENDS
 add_library(${LEXER_LIB_TARGET} SHARED
     ${LIB_SRC_FILES}
 )
+
+string(REPLACE "-lib" "" LEXER_LIB_OUTPUT_NAME "${LEXER_LIB_TARGET}")
+set_target_properties(${LEXER_LIB_TARGET} PROPERTIES OUTPUT_NAME "${LEXER_LIB_OUTPUT_NAME}")
 
 # Set include directories for the library
 target_include_directories(${LEXER_LIB_TARGET}

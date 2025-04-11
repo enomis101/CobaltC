@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(compiler VERSION 1.0.0)
+project(cobaltc VERSION 1.0.0)
 
 #Set C++ standard
 set(CMAKE_CXX_STANDARD 20)
@@ -10,6 +10,11 @@ option(ENABLE_TESTING "Enables unit tests generation" OFF)
 #option(ENABLE_COVERAGE "Enable coverage reporting" OFF)
 #option(ENABLE_ADSB_BASE "Enable adsb-base decoding" ON)
 #option(ENABLE_ASAN "Enable Address Sanitizer" OFF)
+
+configure_file(
+  "${PROJECT_SOURCE_DIR}/common/cmake/build_options.h.in"
+  "${PROJECT_BINARY_DIR}/common/build_options.h"
+)
 
 message(STATUS "Current CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
 
@@ -38,10 +43,11 @@ endif()
 message(STATUS "All required components successfully configured")
 
 #TARGET NAMES
-set(COMMON_LIB_TARGET ${PROJECT_NAME}-common) 
-set(LEXER_LIB_TARGET lexer)
-set(COMPILER_LIB_TARGET ${PROJECT_NAME})
-set(COMPILER_APP_TARGET ${PROJECT_NAME})
+set(COMMON_LIB_TARGET ${PROJECT_NAME}-common-lib) 
+set(LEXER_LIB_TARGET ${PROJECT_NAME}-lexer-lib)
+set(LEXER_APP_TARGET ${PROJECT_NAME}-lexer)
+set(COMPILER_LIB_TARGET ${PROJECT_NAME}-compiler-lib)
+set(COMPILER_APP_TARGET ${PROJECT_NAME}-compiler)
 
 if(ENABLE_TESTING)
     # Enable testing
@@ -66,5 +72,10 @@ if(ENABLE_TESTING)
     endif()
 endif()
 
-
 add_subdirectory(common)
+add_subdirectory(lexer)
+add_subdirectory(compiler)
+
+# Set environment variables for the target when run from the build directory
+set_property(TARGET ${COMPILER_APP_TARGET} PROPERTY
+    ENVIRONMENT "LOG_CONFIG_PATH=${CMAKE_CURRENT_SOURCE_DIR}/configs/log-config.json")

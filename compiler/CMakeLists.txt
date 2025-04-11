@@ -14,6 +14,9 @@ add_library(${COMPILER_LIB_TARGET} SHARED
     ${LIB_SRC_FILES}
 )
 
+string(REPLACE "-lib" "" COMPILER_LIB_OUTPUT_NAME "${COMPILER_LIB_TARGET}")
+set_target_properties(${COMPILER_LIB_TARGET} PROPERTIES OUTPUT_NAME "${COMPILER_LIB_OUTPUT_NAME}")
+
 # Set include directories for the library
 target_include_directories(${COMPILER_LIB_TARGET}
     PUBLIC
@@ -52,3 +55,12 @@ if(ENABLE_TESTING)
     # Add the tests directory
     add_subdirectory(tests)
 endif()
+
+# Add a custom command to copy files during build
+add_custom_command(
+    TARGET ${COMPILER_APP_TARGET} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_SOURCE_DIR}/sources
+            ${CMAKE_CURRENT_BINARY_DIR}/
+    COMMENT "Copying resources to build directory"
+)

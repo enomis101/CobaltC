@@ -1,0 +1,6 @@
+// build_options.h.in
+#pragma once
+
+#cmakedefine ENABLE_TESTING
+
+#define DEFAULT_LOG_CONFIG "${CMAKE_SOURCE_DIR}/configs/log-config.json"

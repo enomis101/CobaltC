@@ -6,6 +6,18 @@
 #include <fstream>
 #include <sstream>
 #include <vector>
+#include "common/log/log.h"
+
+CompilerApplication::CompilerApplication()
+{
+    //Force init the logger
+    try{
+        logging::LogManager::init();
+    }
+    catch(std::exception& e){
+        throw CompilerError(e.what());
+    }
+}
 
 void CompilerApplication::run(const std::string& input_file, const std::string& operation)
 {
@@ -87,11 +99,16 @@ bool CompilerApplication::create_stub_assembly_file(const std::string& filename)
         return false;
     }
 
-    file << ".globl main" << std::endl;
+    file << "\t.file\t\"return_2.c\"" << std::endl;
+    file << "\t.text" << std::endl;
+    file << "\t.globl\tmain" << std::endl;
+    file << "\t.type\tmain, @function" << std::endl;
     file << "main:" << std::endl;
-    file << "movl" << std::endl;
-    file << "$2, %eax" << std::endl;
-    file << "ret" << std::endl;
+    file << "\tmovl\t$2, %eax" << std::endl;
+    file << "\tret" << std::endl;
+    file << "\t.size\tmain, .-main" << std::endl;
+    file << "\t.ident\t\"GCC: (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0\"" << std::endl;
+    file << "\t.section\t.note.GNU-stack,\"\",@progbits" << std::endl;
 
     file.close();
 

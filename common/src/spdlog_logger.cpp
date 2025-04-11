@@ -6,31 +6,20 @@
 #include <iostream>
 #include <spdlog/sinks/ostream_sink.h>
 #include <stdexcept>
+#include <cstdlib>
+#include "common/build_options.h"
 namespace logging {
 
-// Static instance holder in LogManager
-std::shared_ptr<ILogger> LogManager::s_instance = nullptr;
+LogManager::LogManager() {
+    // Get config path from environment or use default
+    const char* env_path = std::getenv("LOG_CONFIG_PATH");
 
-// LogManager static methods implementation
-void LogManager::initialize(const std::string& config_file)
-{
-    // if this flag is not set logger are automatically registered
-    // to the global registry, we want to manage them by ourselves
-    // spdlog::set_automatic_registration(false);
-    //  Create the SpdLogger implementation
-    if (!s_instance) {
-        s_instance = std::make_shared<SpdLogger>();
-        s_instance->configure(config_file);
-    }
-}
+    const std::string log_config_file_path = env_path ? env_path : DEFAULT_LOG_CONFIG;  // Env var or default
 
-std::shared_ptr<ILogger> LogManager::logger()
-{
-    if (!s_instance) {
-        throw std::runtime_error("logger not initialized");
-    }
-    return s_instance;
+    m_logger = std::make_shared<SpdLogger>();
+    m_logger->configure(log_config_file_path);
 }
+    
 
 // Utility functions implementation
 LogLevel log_level_from_string(const std::string& level)

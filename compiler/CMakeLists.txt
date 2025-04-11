@@ -33,6 +33,12 @@ add_executable(${COMPILER_APP_TARGET}
     main.cpp
 )
 
+target_include_directories(${COMPILER_APP_TARGET}
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/external>
+)
+
 # Link the executable to the library
 target_link_libraries(${COMPILER_APP_TARGET}
     PRIVATE

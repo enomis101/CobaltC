@@ -1,16 +1,9 @@
 #pragma once
 
+namespace lexer {
 
-namespace lexer
-{
-
-class Lexer
-{
+class Lexer {
 public:
-    
-
-    
 };
-
 
 }

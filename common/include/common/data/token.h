@@ -2,15 +2,12 @@
 #include <string>
 #include <variant>
 
-enum class TokenType{
+enum class TokenType {
 
 };
 
-class Token
-{
+class Token {
 public:
-
-
 private:
     TokenType m_type;
     std::string m_lexeme;

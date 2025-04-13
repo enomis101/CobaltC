@@ -1,10 +1,10 @@
 #pragma once
+#include <boost/regex.hpp>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <unordered_map>
-#include <boost/regex.hpp>
 #include <vector>
-#include <optional>
 
 enum class TokenType {
     IDENTIFIER,
@@ -27,20 +27,20 @@ public:
     TokenTable& operator=(const TokenTable&) = delete;
     TokenTable(TokenTable&&) = delete;
     TokenTable& operator=(TokenTable&&) = delete;
-    
+
     // Static method to access the singleton instance
     static TokenTable& instance();
 
     // Returns the length of the match at the beginning of input, or 0 if no match
     size_t search(std::string_view input) const;
-    
+
     // Determines the type of a lexeme (for token classification)
     std::optional<TokenType> match(std::string_view lexeme) const;
 
 private:
     // Private constructor - can only be called from getInstance()
     TokenTable();
-    
+
     // Data members
     std::unordered_map<std::string_view, TokenType> m_keywords;
     std::vector<std::pair<boost::regex, TokenType>> m_patterns;

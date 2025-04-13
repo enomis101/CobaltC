@@ -1,9 +1,9 @@
 #pragma once
-#include <string>
-#include <variant>
-#include <unordered_map>
-#include <stdexcept>
 #include "common/data/token_table.h"
+#include <stdexcept>
+#include <string>
+#include <unordered_map>
+#include <variant>
 
 class TokenError : public std::runtime_error {
 public:
@@ -16,7 +16,8 @@ public:
 class Token {
 public:
     Token(const std::string& lexeme, int line);
-    std::string to_string() const; 
+    std::string to_string() const;
+
 private:
     TokenType m_type;
     std::string m_lexeme;

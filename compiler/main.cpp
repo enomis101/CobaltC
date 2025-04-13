@@ -1,8 +1,8 @@
 #include "common/log/log.h"
 #include "compiler/compiler_application.h"
+#include <format>
 #include <iostream>
 #include <string>
-#include <format>
 
 constexpr const char* LOG_CONTEXT = "compiler";
 
@@ -16,12 +16,10 @@ int main(int argc, char* argv[])
 
     std::string input_file;
     std::string operation;
-    if(argc == 3)
-    {
+    if (argc == 3) {
         input_file = argv[2];
         operation = argv[1];
-    }
-    else{
+    } else {
         input_file = argv[1];
         operation = "";
     }

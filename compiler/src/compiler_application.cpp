@@ -1,4 +1,7 @@
 #include "compiler/compiler_application.h"
+#include "common/data/token.h"
+#include "common/log/log.h"
+#include "lexer/lexer.h"
 #include <algorithm>
 #include <cstdlib>
 #include <filesystem> // Requires C++17 or later
@@ -6,18 +9,13 @@
 #include <fstream>
 #include <sstream>
 #include <vector>
-#include "common/log/log.h"
-#include "lexer/lexer.h"
-#include "common/data/token.h"
-#include <format>
 
 CompilerApplication::CompilerApplication()
 {
-    //Force init the logger
-    try{
+    // Force init the logger
+    try {
         logging::LogManager::init();
-    }
-    catch(std::exception& e){
+    } catch (std::exception& e) {
         throw CompilerError(e.what());
     }
 }
@@ -41,25 +39,23 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
         throw CompilerError(std::format("Error: Failed preprocessing of file {}\n", input_file));
     }
 
-    std::vector<std::string> files_to_cleanup;
-    files_to_cleanup.push_back(preprocessed_output_file);
+    FileCleaner file_cleaner;
+    file_cleaner.push_back(preprocessed_output_file);
 
     std::vector<Token> tokens;
 
     // lexer
-    try{
+    try {
         Lexer lexer(preprocessed_output_file);
         tokens = lexer.tokenize();
-        if(logging::LogManager::logger()->is_enabled(LOG_CONTEXT, logging::LogLevel::DEBUG))
-        {
+        if (logging::LogManager::logger()->is_enabled(LOG_CONTEXT, logging::LogLevel::DEBUG)) {
             std::string token_list = "Token List:\n";
-            for(const Token& t : tokens){
+            for (const Token& t : tokens) {
                 token_list += t.to_string() + "\n";
             }
             LOG_DEBUG(LOG_CONTEXT, token_list);
         }
-    }
-    catch(std::exception& e){
+    } catch (std::exception& e) {
         throw CompilerError(std::format("Error: {}\n", e.what()));
     }
 
@@ -93,15 +89,13 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
         return;
     }
 
-    files_to_cleanup.push_back(assembly_file);
+    file_cleaner.push_back(assembly_file);
 
     std::string output_file = base_name;
     int assemble_and_link_result = assemble_and_link(assembly_file, output_file);
     if (assemble_and_link_result) {
         throw CompilerError(std::format("Failed to assemble and link assembly file {}\n", assembly_file));
     }
-
-    cleanup_files(files_to_cleanup);
 }
 
 // Function to get the base name of a file (without directory and extension)
@@ -158,6 +152,10 @@ int CompilerApplication::assemble_and_link(const std::string& assembly_file, con
     return std::system(command.c_str());
 }
 
-void CompilerApplication::cleanup_files(const std::vector<std::string>& files)
+void FileCleaner::cleanup_files()
 {
+    for (const auto& file : m_files) {
+        std::remove(file.c_str());
+    }
+    m_files.clear();
 }

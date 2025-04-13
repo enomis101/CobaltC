@@ -11,6 +11,16 @@ public:
     }
 };
 
+class FileCleaner {
+public:
+    ~FileCleaner() { cleanup_files(); }
+    void push_back(const std::string& file_name) { m_files.push_back(file_name); }
+
+private:
+    void cleanup_files();
+    std::vector<std::string> m_files;
+};
+
 class CompilerApplication {
 public:
     CompilerApplication();
@@ -21,8 +31,7 @@ private:
     std::string get_base_name(const std::string& file_path);
     int preprocess_file(const std::string& input_file, const std::string& output_file);
     int assemble_and_link(const std::string& input_file, const std::string& output_file);
-    void cleanup_files(const std::vector<std::string>& files);
-    bool create_stub_assembly_file(const std::string& filename);
 
+    bool create_stub_assembly_file(const std::string& filename);
     static constexpr const char* LOG_CONTEXT = "compiler";
 };

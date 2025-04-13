@@ -56,17 +56,17 @@ public:
     virtual void configure(const std::string& configFile) = 0;
 };
 
-
 class LogManager {
 public:
-
     // Get the singleton instance
-    static std::shared_ptr<ILogger> logger() {
-        static LogManager instance;  // Meyer's singleton - created once on first use
+    static std::shared_ptr<ILogger> logger()
+    {
+        static LogManager instance; // Meyer's singleton - created once on first use
         return instance.m_logger;
     }
 
-    static void init(){
+    static void init()
+    {
         logger();
     }
 

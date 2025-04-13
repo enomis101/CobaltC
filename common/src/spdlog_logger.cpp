@@ -1,25 +1,25 @@
 #include "common/log/spdlog_logger.h"
+#include "common/build_options.h"
 #include "common/log/log.h"
 #include "spdlog/async.h"
 #include <cassert>
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <spdlog/sinks/ostream_sink.h>
 #include <stdexcept>
-#include <cstdlib>
-#include "common/build_options.h"
 namespace logging {
 
-LogManager::LogManager() {
+LogManager::LogManager()
+{
     // Get config path from environment or use default
     const char* env_path = std::getenv("LOG_CONFIG_PATH");
 
-    const std::string log_config_file_path = env_path ? env_path : DEFAULT_LOG_CONFIG;  // Env var or default
+    const std::string log_config_file_path = env_path ? env_path : DEFAULT_LOG_CONFIG; // Env var or default
 
     m_logger = std::make_shared<SpdLogger>();
     m_logger->configure(log_config_file_path);
 }
-    
 
 // Utility functions implementation
 LogLevel log_level_from_string(const std::string& level)

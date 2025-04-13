@@ -2,8 +2,20 @@
 #include "common/data/token.h"
 #include <memory>
 #include "parser/parser_ast.h"
+#include <stdexcept>
+#include <vector>
+
+
 
 namespace parser{
+
+class ParserError : public std::runtime_error {
+public:
+    explicit ParserError(const std::string& message)
+        : std::runtime_error(message)
+    {
+    }
+};
 
 class Parser{
 public:
@@ -14,13 +26,15 @@ public:
 
 private:
     const std::vector<Token>& m_tokens;
-    
-    std::unique_ptr<Function> parse_function();
+
+    std::unique_ptr<FunctionDefinition> parse_function();
     std::unique_ptr<Statement> parse_statement();
     std::unique_ptr<Expression> parse_expression();
     //std::unique_ptr<Identifier> parse_identifier();
 
-    void expect(TokenType expected);
-    int i = 0;
+    const Token& expect(TokenType expected);
+    const Token& take_token();
+    bool has_tokens();
+    size_t i = 0;
 };
 }

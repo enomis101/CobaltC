@@ -2,6 +2,7 @@
 #include "common/data/token.h"
 #include "common/log/log.h"
 #include "lexer/lexer.h"
+#include "parser/parser.h"
 #include <algorithm>
 #include <cstdlib>
 #include <filesystem> // Requires C++17 or later
@@ -65,7 +66,17 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
     }
 
     // parser
-
+    try {
+        parser::Parser parser(tokens);
+        std::unique_ptr<parser::Program> program_ast = parser.parse_program();
+        if (logging::LogManager::logger()->is_enabled(LOG_CONTEXT, logging::LogLevel::DEBUG)) {
+            std::string debug_str = "Parsed Program\n";
+            LOG_DEBUG(LOG_CONTEXT, debug_str);
+        }
+    } catch (std::exception& e) {
+        throw CompilerError(std::format("Error: {}\n", e.what()));
+    }
+    
     if (operation == "--parse") {
         // Stop aftert parser
         return;

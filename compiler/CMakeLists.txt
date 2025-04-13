@@ -29,6 +29,7 @@ target_link_libraries(${COMPILER_LIB_TARGET}
     PUBLIC
         ${COMMON_LIB_TARGET}
         ${LEXER_LIB_TARGET}
+        ${PARSER_LIB_TARGET}
 )
 
 # Create the executable with just main.cpp

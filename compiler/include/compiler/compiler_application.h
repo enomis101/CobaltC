@@ -23,4 +23,6 @@ private:
     int assemble_and_link(const std::string& input_file, const std::string& output_file);
     void cleanup_files(const std::vector<std::string>& files);
     bool create_stub_assembly_file(const std::string& filename);
+
+    static constexpr const char* LOG_CONTEXT = "compiler";
 };

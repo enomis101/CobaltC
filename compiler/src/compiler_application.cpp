@@ -7,6 +7,9 @@
 #include <sstream>
 #include <vector>
 #include "common/log/log.h"
+#include "lexer/lexer.h"
+#include "common/data/token.h"
+#include <format>
 
 CompilerApplication::CompilerApplication()
 {
@@ -22,9 +25,9 @@ CompilerApplication::CompilerApplication()
 void CompilerApplication::run(const std::string& input_file, const std::string& operation)
 {
     // Check if operation is valid
-    std::vector<std::string> validOperations = { "--lex", "--parse", "--codegen", "-S", "" };
-    if (std::find(validOperations.begin(), validOperations.end(), operation) == validOperations.end()) {
-        throw CompilerError("Error: Invalid operation. Use --lex, --parse, --codegen, or -S\n");
+    std::vector<std::string> valid_operations = { "--lex", "--parse", "--codegen", "-S", "" };
+    if (std::find(valid_operations.begin(), valid_operations.end(), operation) == valid_operations.end()) {
+        throw CompilerError(std::format("Error: Invalid operation {} Use --lex, --parse, --codegen, or -S\n", operation));
     }
 
     // Check if input file has .c extension
@@ -35,13 +38,30 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
     std::string preprocessed_output_file = base_name + ".i";
     int result = preprocess_file(input_file, preprocessed_output_file);
     if (result != 0) {
-        throw CompilerError(std::format("Failed preprocessing of file {}\n", input_file));
+        throw CompilerError(std::format("Error: Failed preprocessing of file {}\n", input_file));
     }
 
     std::vector<std::string> files_to_cleanup;
     files_to_cleanup.push_back(preprocessed_output_file);
 
+    std::vector<Token> tokens;
+
     // lexer
+    try{
+        Lexer lexer(preprocessed_output_file);
+        tokens = lexer.tokenize();
+        if(logging::LogManager::logger()->is_enabled(LOG_CONTEXT, logging::LogLevel::DEBUG))
+        {
+            std::string token_list = "Token List:\n";
+            for(const Token& t : tokens){
+                token_list += t.to_string() + "\n";
+            }
+            LOG_DEBUG(LOG_CONTEXT, token_list);
+        }
+    }
+    catch(std::exception& e){
+        throw CompilerError(std::format("Error: {}\n", e.what()));
+    }
 
     if (operation == "--lex") {
         // Stop after lexer

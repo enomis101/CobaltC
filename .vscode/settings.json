@@ -1,11 +1,24 @@
 {
-    // Remove redundant older settings and keep only the newer ones
+    // Clang format and tidy settings
     "C_Cpp.clang_format_path": "/usr/bin/clang-format",
     "C_Cpp.clang_format_style": "file",
     "C_Cpp.codeAnalysis.clangTidy.enabled": true,
     "C_Cpp.codeAnalysis.clangTidy.path": "/usr/bin/clang-tidy",
     "C_Cpp.codeAnalysis.runAutomatically": true,
-    
+    // Add these settings to fix the Float128 issue
+    "C_Cpp.codeAnalysis.clangTidy.args": [
+        "--extra-arg=-D__FLOAT128__",
+        "--extra-arg=-D_Float128=double",
+        "--extra-arg=-D__float128=double",
+        "--extra-arg=-D__float128_t=double",
+        "--extra-arg=-std=c++20"
+    ],
+    "C_Cpp.default.cppStandard": "c++20",
+    // Exclude specific folders from code analysis
+    "C_Cpp.codeAnalysis.exclude": {
+        "**/build/**": true,
+        "**/external/**": true, 
+    },
     // Additional file associations preserved from original
     "files.associations": {
         "*.tcc": "cpp",

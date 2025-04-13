@@ -2,7 +2,7 @@
 
 # Default directories to process if no arguments are provided
 # You can modify this array with your preferred hardcoded directories
-DEFAULT_DIRS=("./common" "./lexer" "./compiler")
+DEFAULT_DIRS=("./common" "./lexer" "./parser" "./compiler")
 
 # Check if clang-format is installed
 if ! command -v clang-format &> /dev/null; then

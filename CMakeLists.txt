@@ -46,6 +46,8 @@ message(STATUS "All required components successfully configured")
 set(COMMON_LIB_TARGET ${PROJECT_NAME}-common-lib) 
 set(LEXER_LIB_TARGET ${PROJECT_NAME}-lexer-lib)
 set(LEXER_APP_TARGET ${PROJECT_NAME}-lexer)
+set(PARSER_LIB_TARGET ${PROJECT_NAME}-parser-lib)
+set(PARSER_APP_TARGET ${PROJECT_NAME}-parser)
 set(COMPILER_LIB_TARGET ${PROJECT_NAME}-compiler-lib)
 set(COMPILER_APP_TARGET ${PROJECT_NAME}-compiler)
 
@@ -74,6 +76,7 @@ endif()
 
 add_subdirectory(common)
 add_subdirectory(lexer)
+add_subdirectory(parser)
 add_subdirectory(compiler)
 
 # Set environment variables for the target when run from the build directory

@@ -33,7 +33,6 @@ private:
     // std::unique_ptr<Identifier> parse_identifier();
 
     const Token& expect(TokenType expected);
-    const Token& take_token();
     bool has_tokens();
     size_t i = 0;
 };

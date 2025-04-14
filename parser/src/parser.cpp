@@ -7,7 +7,7 @@ std::unique_ptr<Program> parser::Parser::parse_program()
 {
     std::unique_ptr<FunctionDefinition> fun = parse_function();
     if (has_tokens()) {
-        throw ParserError("Extra tokens left");
+        throw ParserError("Syntax Error: Extra tokens left");
     }
     return std::make_unique<Program>(std::move(fun));
 }
@@ -52,19 +52,14 @@ std::unique_ptr<Expression> parser::Parser::parse_expression()
 
 const Token& parser::Parser::expect(TokenType expected)
 {
-    const Token& actual = take_token();
+    if (i >= m_tokens.size()) {
+        throw ParserError(std::format("Syntax Error: Expected: {} , Found: None", Token::type_to_string(expected)));
+    }
+    const Token& actual = m_tokens[i++];
     if (actual.type() != expected) {
-        throw ParserError(std::format("Unexpected token {}", actual.to_string()));
+        throw ParserError(std::format("Syntax Error: Expected: {} , Found: {}", Token::type_to_string(expected), actual.to_string()));
     }
     return actual;
-}
-
-const Token& parser::Parser::take_token()
-{
-    if (i >= m_tokens.size()) {
-        throw ParserError("Tried to consume token when None remaining!");
-    }
-    return m_tokens[i++];
 }
 
 bool parser::Parser::has_tokens()

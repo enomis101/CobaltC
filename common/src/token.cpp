@@ -25,7 +25,7 @@ Token::Token(const std::string& lexeme, int line)
     }
 }
 
-std::string token_type_to_string(TokenType type)
+std::string Token::type_to_string(TokenType type)
 {
     switch (type) {
     case TokenType::IDENTIFIER:
@@ -56,7 +56,7 @@ std::string token_type_to_string(TokenType type)
 std::string Token::to_string() const
 {
     std::stringstream ss;
-    ss << "Token{type=" << token_type_to_string(m_type)
+    ss << "Token{type=" << type_to_string(m_type)
        << ", lexeme='" << m_lexeme << "'"
        << ", line=" << m_line;
 

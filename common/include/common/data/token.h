@@ -31,6 +31,7 @@ public:
 
     const std::string& lexeme() const { return m_lexeme; }
 
+    static std::string type_to_string(TokenType type);
 private:
     TokenType m_type;
     std::string m_lexeme;

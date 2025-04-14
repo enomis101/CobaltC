@@ -38,9 +38,6 @@ public:
         if (out_file.is_open()) {
             out_file << dot_content.str();
             out_file.close();
-            std::cout << "DOT file generated: " << filename << std::endl;
-        } else {
-            std::cerr << "Failed to open file: " << filename << std::endl;
         }
     }
 

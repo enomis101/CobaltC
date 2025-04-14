@@ -29,7 +29,7 @@ int main(int argc, char* argv[])
     try {
         app.run(input_file, operation);
     } catch (CompilerError& e) {
-        LOG_CRITICAL(LOG_CONTEXT, e.what());
+        LOG_CRITICAL(LOG_CONTEXT, std::format("{} for file: {}", e.what(), input_file));
         return 1;
     }
     return 0;

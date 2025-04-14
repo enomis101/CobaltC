@@ -17,18 +17,20 @@ class Token {
 public:
     Token(const std::string& lexeme, int line);
     std::string to_string() const;
-    TokenType type() const {return m_type;}
-    int line() const {return m_line;}
+    TokenType type() const { return m_type; }
+    int line() const { return m_line; }
 
     template<typename T>
-    T literal() const {
+    T literal() const
+    {
         if (!std::holds_alternative<T>(m_literal)) {
             throw TokenError("Bad Token" + to_string());
         }
         return std::get<T>(m_literal);
     }
 
-    const std::string& lexeme() const {return m_lexeme;}
+    const std::string& lexeme() const { return m_lexeme; }
+
 private:
     TokenType m_type;
     std::string m_lexeme;

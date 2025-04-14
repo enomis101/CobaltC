@@ -38,8 +38,11 @@ public:
 
 class ConstantExpression : public Expression {
 public:
-    ConstantExpression(int value) : value(value) {}
-    
+    ConstantExpression(int value)
+        : value(value)
+    {
+    }
+
     void accept(Visitor& visitor) override
     {
         visitor.visit(*this);
@@ -50,8 +53,11 @@ public:
 
 class Identifier : public AST {
 public:
-    Identifier(const std::string& name) : name(name) {}
-    
+    Identifier(const std::string& name)
+        : name(name)
+    {
+    }
+
     void accept(Visitor& visitor) override
     {
         visitor.visit(*this);
@@ -67,8 +73,11 @@ public:
 
 class ReturnStatement : public Statement {
 public:
-    ReturnStatement(std::unique_ptr<Expression> expr) : expression(std::move(expr)) {}
-    
+    ReturnStatement(std::unique_ptr<Expression> expr)
+        : expression(std::move(expr))
+    {
+    }
+
     void accept(Visitor& visitor) override
     {
         visitor.visit(*this);
@@ -84,9 +93,12 @@ public:
 
 class Function : public FunctionDefinition {
 public:
-    Function(std::unique_ptr<Identifier> name, std::unique_ptr<Statement> body) 
-        : name(std::move(name)), body(std::move(body)) {}
-    
+    Function(std::unique_ptr<Identifier> name, std::unique_ptr<Statement> body)
+        : name(std::move(name))
+        , body(std::move(body))
+    {
+    }
+
     void accept(Visitor& visitor) override
     {
         visitor.visit(*this);
@@ -97,8 +109,11 @@ public:
 
 class Program : public AST {
 public:
-    Program(std::unique_ptr<FunctionDefinition> func) : function(std::move(func)) {}
-    
+    Program(std::unique_ptr<FunctionDefinition> func)
+        : function(std::move(func))
+    {
+    }
+
     void accept(Visitor& visitor) override
     {
         visitor.visit(*this);

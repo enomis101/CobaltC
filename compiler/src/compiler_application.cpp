@@ -3,6 +3,7 @@
 #include "common/log/log.h"
 #include "lexer/lexer.h"
 #include "parser/parser.h"
+#include "parser/parser_printer.h"
 #include <algorithm>
 #include <cstdlib>
 #include <filesystem> // Requires C++17 or later
@@ -72,11 +73,13 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
         if (logging::LogManager::logger()->is_enabled(LOG_CONTEXT, logging::LogLevel::DEBUG)) {
             std::string debug_str = "Parsed Program\n";
             LOG_DEBUG(LOG_CONTEXT, debug_str);
+            parser::PrinterVisitor printer;
+            printer.generate_dot_file("ast.dot", *(program_ast.get()));
         }
     } catch (std::exception& e) {
         throw CompilerError(std::format("Error: {}\n", e.what()));
     }
-    
+
     if (operation == "--parse") {
         // Stop aftert parser
         return;

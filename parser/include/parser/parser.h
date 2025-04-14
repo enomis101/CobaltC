@@ -1,13 +1,11 @@
 #pragma once
 #include "common/data/token.h"
-#include <memory>
 #include "parser/parser_ast.h"
+#include <memory>
 #include <stdexcept>
 #include <vector>
 
-
-
-namespace parser{
+namespace parser {
 
 class ParserError : public std::runtime_error {
 public:
@@ -17,10 +15,12 @@ public:
     }
 };
 
-class Parser{
+class Parser {
 public:
     Parser(const std::vector<Token>& tokens)
-        : m_tokens{tokens}{}
+        : m_tokens { tokens }
+    {
+    }
 
     std::unique_ptr<Program> parse_program();
 
@@ -30,7 +30,7 @@ private:
     std::unique_ptr<FunctionDefinition> parse_function();
     std::unique_ptr<Statement> parse_statement();
     std::unique_ptr<Expression> parse_expression();
-    //std::unique_ptr<Identifier> parse_identifier();
+    // std::unique_ptr<Identifier> parse_identifier();
 
     const Token& expect(TokenType expected);
     const Token& take_token();

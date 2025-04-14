@@ -3,6 +3,7 @@
 #include <format>
 #include <fstream>
 #include <string>
+#include <sstream>
 
 namespace fs = std::filesystem;
 
@@ -12,19 +13,23 @@ Lexer::Lexer(const std::string& file_path)
 {
     // Check if file exists
     if (!fs::exists(file_path)) {
-        throw LexerError(std::format("Lexer Error file {} does not exist!", file_path));
+        throw LexerError(std::format("File not found: '{}' - Please check the path and try again", file_path));
     }
 
     // Check file extension
     std::string extension = fs::path(file_path).extension().string();
-    if (extension != ".i") {
-        throw LexerError(std::format("Lexer Error file has wrong extension. Expected: {}  Got: {}", file_extension, extension));
+    if (extension != file_extension) {
+        throw LexerError(std::format(
+            "Invalid file extension: Expected '{}' but got '{}' - Preprocessed files must have '{}' extension", 
+            file_extension, extension, file_extension));
     }
 
     // Open the file
     std::ifstream file(file_path, std::ios::binary);
     if (!file.is_open()) {
-        throw LexerError(std::format("Lexer Error failed to open file {}", file_path));
+        throw LexerError(std::format(
+            "Failed to open file '{}' - Check file permissions and if the file is in use", 
+            file_path));
     }
 
     // Read the file content to string
@@ -32,8 +37,10 @@ Lexer::Lexer(const std::string& file_path)
     m_file_content.resize(file.tellg());
     file.seekg(0, std::ios::beg);
     file.read(&m_file_content[0], m_file_content.size());
-    if (m_file_content.size() == 0) {
-        throw LexerError(std::format("Lexer Error empty file {}", file_path));
+    if (m_file_content.empty()) {
+        throw LexerError(std::format(
+            "Empty file: '{}' - Input file contains no content to tokenize", 
+            file_path));
     }
 }
 
@@ -43,33 +50,70 @@ std::vector<Token> Lexer::tokenize()
     std::vector<Token> res;
     size_t i = 0;
     TokenTable& tb = TokenTable::instance();
-    size_t num_lines = 1;
+    size_t line_num = 1;
+    size_t col_num = 1;
+    size_t line_start = 0; // Track start of current line
+    
     while (i < input.size()) {
-        if (input[i] == ' ') {
+        // Skip whitespace but track line numbers and columns
+        if (input[i] == ' ' || input[i] == '\t') {
             i++;
+            col_num++;
             continue;
         }
 
         if (input[i] == '\n') {
             i++;
-            num_lines++;
+            line_num++;
+            col_num = 1;
+            line_start = i;
             continue;
         }
 
         std::string_view curr_str(input.begin() + i, input.end());
         size_t search_res = tb.search(curr_str);
         if (search_res == 0) {
-            throw LexerError(std::format("Lexer error at line: {}, no match found!", num_lines));
+            // Create a context snippet showing the error location
+            std::string line_snippet;
+            size_t snippet_start = line_start;
+            size_t snippet_end = i;
+            
+            // Find end of the current line
+            while (snippet_end < input.size() && input[snippet_end] != '\n') {
+                snippet_end++;
+            }
+
+            // Extract the line for context
+            line_snippet = input.substr(snippet_start, snippet_end - snippet_start);
+            
+            // Create pointer to the error position
+            std::string error_pointer(col_num - 1, ' ');
+            error_pointer += "^";
+            
+            throw LexerError(std::format(
+                "Lexical error at line {} column {}:\n"
+                "{}\n"
+                "{}\n"
+                "Unrecognized token starting with '{}'",
+                line_num, col_num, 
+                line_snippet,
+                error_pointer,
+                input[i]));
         }
 
         std::string lexeme = input.substr(i, search_res);
         try {
-            Token t(lexeme, num_lines);
+            Token t(lexeme, line_num);
             res.push_back(t);
         } catch (const TokenError& e) {
-            throw LexerError(std::format("Lexer error constructing token: {}", e.what()));
+            throw LexerError(std::format(
+                "Failed to create token at line {} column {}:\n"
+                "Lexeme: '{}'\n"
+                "Error: {}",
+                line_num, col_num, lexeme, e.what()));
         }
         i += search_res;
+        col_num += search_res;
     }
     return res;
 }

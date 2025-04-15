@@ -130,8 +130,19 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
     // Code generation stage
     LOG_INFO(LOG_CONTEXT, "Starting assembly generation stage");
 
-    asmgen::AssemblyGenerator assembly_generator;
-    std::unique_ptr<asmgen::AsmGenAST> asmgen_parser = assembly_generator.generate(parser_ast.get());
+    std::unique_ptr<asmgen::AsmGenAST> asmgen_parser;
+    try{
+        asmgen::AssemblyGenerator assembly_generator;
+        asmgen_parser = assembly_generator.generate(parser_ast.get());
+    } catch (const asmgen::AsmGenError& e) {
+        throw CompilerError(std::format("Parser error: {}", e.what()));
+    } catch (const std::exception& e) {
+        throw CompilerError(std::format(
+            "Unexpected error during parsing stage: {}\n"
+            "This may indicate a bug in the compiler - please report this issue",
+            e.what()));
+    }
+
 
     if (operation == "--codegen") {
         LOG_INFO(LOG_CONTEXT, "Code generation operation completed successfully");

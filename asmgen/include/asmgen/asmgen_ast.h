@@ -5,11 +5,11 @@
 
 namespace asmgen {
 
-// Abstract base class for all AST nodes
-class AST {
+// Abstract base class for all AsmGenAST nodes
+class AsmGenAST {
 public:
-    virtual ~AST() = default;
-    virtual void accept(class Visitor& visitor) = 0;
+    virtual ~AsmGenAST() = default;
+    virtual void accept(class AsmGenVisitor& visitor) = 0;
 };
 
 // Forward declaration of node types
@@ -21,8 +21,8 @@ class MovInstruction;
 class Function;
 class Program;
 
-// Visitor interface
-class Visitor {
+// AsmGenVisitor interface
+class AsmGenVisitor {
 public:
     virtual void visit(Identifier& node) = 0;
     virtual void visit(ImmediateValue& node) = 0;
@@ -31,11 +31,11 @@ public:
     virtual void visit(MovInstruction& node) = 0;
     virtual void visit(Function& node) = 0;
     virtual void visit(Program& node) = 0;
-    virtual ~Visitor() = default;
+    virtual ~AsmGenVisitor() = default;
 };
 
 // Abstract class for all expressions
-class Operand : public AST {
+class Operand : public AsmGenAST {
 public:
     virtual ~Operand() = default;
 };
@@ -47,7 +47,7 @@ public:
     {
     }
 
-    void accept(Visitor& visitor) override
+    void accept(AsmGenVisitor& visitor) override
     {
         visitor.visit(*this);
     }
@@ -57,20 +57,20 @@ public:
 
 class Register : public Operand {
 public:
-    void accept(Visitor& visitor) override
+    void accept(AsmGenVisitor& visitor) override
     {
         visitor.visit(*this);
     }
 };
 
-class Identifier : public AST {
+class Identifier : public AsmGenAST {
 public:
     Identifier(const std::string& name)
         : name(name)
     {
     }
 
-    void accept(Visitor& visitor) override
+    void accept(AsmGenVisitor& visitor) override
     {
         visitor.visit(*this);
     }
@@ -78,7 +78,7 @@ public:
     std::string name;
 };
 
-class Instruction : public AST {
+class Instruction : public AsmGenAST {
 public:
     virtual ~Instruction() = default;
 };
@@ -86,7 +86,7 @@ public:
 class ReturnInstruction : public Instruction {
 public:
 
-    void accept(Visitor& visitor) override
+    void accept(AsmGenVisitor& visitor) override
     {
         visitor.visit(*this);
     }
@@ -100,7 +100,7 @@ public:
         , dst(std::move(d))
     {
     }
-    void accept(Visitor& visitor) override
+    void accept(AsmGenVisitor& visitor) override
     {
         visitor.visit(*this);
     }
@@ -109,7 +109,7 @@ public:
 
 };
 
-class Function : public AST {
+class Function : public AsmGenAST {
 public:
     Function(std::unique_ptr<Identifier> n,  std::vector<std::unique_ptr<Instruction>> i)
         : name(std::move(n))
@@ -117,7 +117,7 @@ public:
     {
     }
 
-    void accept(Visitor& visitor) override
+    void accept(AsmGenVisitor& visitor) override
     {
         visitor.visit(*this);
     }
@@ -126,14 +126,14 @@ public:
     std::vector<std::unique_ptr<Instruction>> instructions;
 };
 
-class Program : public AST {
+class Program : public AsmGenAST {
 public:
     Program(std::unique_ptr<Function> func)
         : function(std::move(func))
     {
     }
 
-    void accept(Visitor& visitor) override
+    void accept(AsmGenVisitor& visitor) override
     {
         visitor.visit(*this);
     }

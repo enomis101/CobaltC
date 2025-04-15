@@ -4,61 +4,32 @@
 
 using namespace asmgen;
 
-PrinterVisitor::PrinterVisitor()
+AsmGenVisitor::AsmGenVisitor()
     : m_node_count(0)
 {
 }
 
-void PrinterVisitor::generate_dot_file(const std::string& filename, AST& ast)
-{
-    // Reset state for new file generation
-    m_node_count = 0;
-    m_node_ids.clear();
-    m_dot_content.str("");
-
-    // Start DOT file with digraph definition
-    m_dot_content << "digraph AST {\n";
-    m_dot_content << "  node [shape=box, fontname=\"Arial\", fontsize=10];\n";
-
-    // Visit the AST to build the DOT representation
-    ast.accept(*this);
-
-    // Close the digraph
-    m_dot_content << "}\n";
-
-    // Write to file
-    std::ofstream out_file(filename);
-    if (out_file.is_open()) {
-        out_file << m_dot_content.str();
-        out_file.close();
-    }
-}
-
-void PrinterVisitor::visit(Identifier& node)
+void AsmGenVisitor::visit(parser::Identifier& node)
 {
     int id = get_node_id(&node);
     m_dot_content << "  node" << id << " [label=\"Identifier\\nname: " << node.name << "\"];\n";
 }
 
-void PrinterVisitor::visit(ConstantExpression& node)
+void AsmGenVisitor::visit(parser::ConstantExpression& node)
 {
     int id = get_node_id(&node);
     m_dot_content << "  node" << id << " [label=\"ConstantExpression\\nvalue: " << node.value << "\"];\n";
 }
 
-void PrinterVisitor::visit(ReturnStatement& node)
+void AsmGenVisitor::visit(parser::ReturnStatement& node)
 {
-    int id = get_node_id(&node);
-    m_dot_content << "  node" << id << " [label=\"ReturnStatement\"];\n";
-
-    if (node.expression) {
-        node.expression->accept(*this);
-        m_dot_content << "  node" << id << " -> node" << get_node_id(node.expression.get())
-                      << " [label=\"expression\"];\n";
+    if (!node.expression) {
+        throw AsmGenError("Invalid parser::ReturnStatement node found during Assembly Generation");
     }
+    node.expression->accept(*this);
 }
 
-void PrinterVisitor::visit(Function& node)
+void AsmGenVisitor::visit(parser::Function& node)
 {
     int id = get_node_id(&node);
     m_dot_content << "  node" << id << " [label=\"Function\"];\n";
@@ -74,24 +45,30 @@ void PrinterVisitor::visit(Function& node)
         m_dot_content << "  node" << id << " -> node" << get_node_id(node.body.get())
                       << " [label=\"body\"];\n";
     }
+
+    if (!node.body) {
+        throw AsmGenError("Invalid parser::Function node found during Assembly Generation");
+    }
+    node.body->accept(*this);
+
+    std::unique_ptr<Instruction> instruction = consume_result<Instruction>();
+    return std::make_unique<Function>(std::move(instruction));
 }
 
-void PrinterVisitor::visit(Program& node)
+void AsmGenVisitor::visit(parser::Program& node)
 {
-    int id = get_node_id(&node);
-    m_dot_content << "  node" << id << " [label=\"Program\", color=blue, style=filled, fillcolor=lightblue];\n";
-
-    if (node.function) {
-        node.function->accept(*this);
-        m_dot_content << "  node" << id << " -> node" << get_node_id(node.function.get())
-                      << " [label=\"function\"];\n";
+    if (!node.function) {
+        throw AsmGenError("Invalid parser::Program node found during Assembly Generation");
     }
+    node.function->accept(*this);
+    std::unique_ptr<Function> function = consume_result<Function>();
+    return std::make_unique<Program(std::move(function));
 }
 
-int PrinterVisitor::get_node_id(const AST* node)
-{
-    if (m_node_ids.find(node) == m_node_ids.end()) {
-        m_node_ids[node] = m_node_count++;
-    }
-    return m_node_ids[node];
+std::unique_ptr<AsmGenAST> AsmGenVisitor::generate(parser::ParserAST* ast) {
+    ast->accept(*this);
+    
+
+    std::unique_ptr<Program> program = consume_result<Program>();
+    return std::move(program);
 }

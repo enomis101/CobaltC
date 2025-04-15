@@ -5,11 +5,11 @@
 
 namespace parser {
 
-// Abstract base class for all AST nodes
-class AST {
+// Abstract base class for all ParserAST nodes
+class ParserAST {
 public:
-    virtual ~AST() = default;
-    virtual void accept(class Visitor& visitor) = 0;
+    virtual ~ParserAST() = default;
+    virtual void accept(class ParserVisitor& visitor) = 0;
 };
 
 // Forward declaration of node types
@@ -19,19 +19,19 @@ class ReturnStatement;
 class Function;
 class Program;
 
-// Visitor interface
-class Visitor {
+// ParserVisitor interface
+class ParserVisitor {
 public:
     virtual void visit(Identifier& node) = 0;
     virtual void visit(ConstantExpression& node) = 0;
     virtual void visit(ReturnStatement& node) = 0;
     virtual void visit(Function& node) = 0;
     virtual void visit(Program& node) = 0;
-    virtual ~Visitor() = default;
+    virtual ~ParserVisitor() = default;
 };
 
 // Abstract class for all expressions
-class Expression : public AST {
+class Expression : public ParserAST {
 public:
     virtual ~Expression() = default;
 };
@@ -43,7 +43,7 @@ public:
     {
     }
 
-    void accept(Visitor& visitor) override
+    void accept(ParserVisitor& visitor) override
     {
         visitor.visit(*this);
     }
@@ -51,14 +51,14 @@ public:
     int value;
 };
 
-class Identifier : public AST {
+class Identifier : public ParserAST {
 public:
     Identifier(const std::string& name)
         : name(name)
     {
     }
 
-    void accept(Visitor& visitor) override
+    void accept(ParserVisitor& visitor) override
     {
         visitor.visit(*this);
     }
@@ -66,7 +66,7 @@ public:
     std::string name;
 };
 
-class Statement : public AST {
+class Statement : public ParserAST {
 public:
     virtual ~Statement() = default;
 };
@@ -78,7 +78,7 @@ public:
     {
     }
 
-    void accept(Visitor& visitor) override
+    void accept(ParserVisitor& visitor) override
     {
         visitor.visit(*this);
     }
@@ -86,7 +86,7 @@ public:
     std::unique_ptr<Expression> expression;
 };
 
-class FunctionDefinition : public AST {
+class FunctionDefinition : public ParserAST {
 public:
     virtual ~FunctionDefinition() = default;
 };
@@ -99,7 +99,7 @@ public:
     {
     }
 
-    void accept(Visitor& visitor) override
+    void accept(ParserVisitor& visitor) override
     {
         visitor.visit(*this);
     }
@@ -107,14 +107,14 @@ public:
     std::unique_ptr<Statement> body;
 };
 
-class Program : public AST {
+class Program : public ParserAST {
 public:
     Program(std::unique_ptr<FunctionDefinition> func)
         : function(std::move(func))
     {
     }
 
-    void accept(Visitor& visitor) override
+    void accept(ParserVisitor& visitor) override
     {
         visitor.visit(*this);
     }

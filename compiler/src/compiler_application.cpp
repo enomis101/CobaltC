@@ -20,7 +20,7 @@ CompilerApplication::CompilerApplication()
     } catch (const std::exception& e) {
         throw CompilerError(std::format(
             "Failed to initialize logging system: {}\n"
-            "Please check that the logging configuration file exists and is valid.", 
+            "Please check that the logging configuration file exists and is valid.",
             e.what()));
     }
 }
@@ -40,23 +40,23 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
     if (input_file.length() < 3 || input_file.substr(input_file.length() - 2) != ".c") {
         throw CompilerError(std::format(
             "Invalid source file: '{}'\n"
-            "Input file must have a .c extension", 
+            "Input file must have a .c extension",
             input_file));
     }
-    
+
     LOG_INFO(LOG_CONTEXT, std::format("Starting compilation of '{}'", input_file));
-    
+
     // Preprocessing stage
     std::string base_name = get_base_name(input_file);
     std::string preprocessed_output_file = base_name + ".i";
-    
+
     LOG_INFO(LOG_CONTEXT, std::format("Preprocessing '{}' to '{}'", input_file, preprocessed_output_file));
-    
+
     int result = preprocess_file(input_file, preprocessed_output_file);
     if (result != 0) {
         throw CompilerError(std::format(
             "Preprocessing failed for file '{}' with error code {}\n"
-            "Check that the input file exists and contains valid C code", 
+            "Check that the input file exists and contains valid C code",
             input_file, result));
     }
 
@@ -68,12 +68,12 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
     // Lexing stage
     try {
         LOG_INFO(LOG_CONTEXT, std::format("Lexing file '{}'", preprocessed_output_file));
-        
+
         Lexer lexer(preprocessed_output_file);
         tokens = lexer.tokenize();
-        
+
         LOG_INFO(LOG_CONTEXT, std::format("Lexing successful: {} tokens generated", tokens.size()));
-        
+
         if (logging::LogManager::logger()->is_enabled(LOG_CONTEXT, logging::LogLevel::DEBUG)) {
             std::string token_list = "Token List:\n";
             for (const Token& t : tokens) {
@@ -86,7 +86,7 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
     } catch (const std::exception& e) {
         throw CompilerError(std::format(
             "Unexpected error during lexing stage: {}\n"
-            "This may indicate a bug in the compiler - please report this issue", 
+            "This may indicate a bug in the compiler - please report this issue",
             e.what()));
     }
 
@@ -98,12 +98,12 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
     // Parsing stage
     try {
         LOG_INFO(LOG_CONTEXT, "Starting parsing stage");
-        
+
         parser::Parser parser(tokens);
         std::unique_ptr<parser::Program> program_ast = parser.parse_program();
-        
+
         LOG_INFO(LOG_CONTEXT, "Parsing successful");
-        
+
         if (logging::LogManager::logger()->is_enabled(LOG_CONTEXT, logging::LogLevel::DEBUG)) {
             std::string debug_str = "Parsed Program\n";
             LOG_DEBUG(LOG_CONTEXT, debug_str);
@@ -116,7 +116,7 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
     } catch (const std::exception& e) {
         throw CompilerError(std::format(
             "Unexpected error during parsing stage: {}\n"
-            "This may indicate a bug in the compiler - please report this issue", 
+            "This may indicate a bug in the compiler - please report this issue",
             e.what()));
     }
 
@@ -136,11 +136,11 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
     // Assembly generation
     std::string assembly_file = base_name + ".s";
     LOG_INFO(LOG_CONTEXT, std::format("Generating assembly file '{}'", assembly_file));
-    
+
     if (!create_stub_assembly_file(assembly_file)) {
         throw CompilerError(std::format(
             "Failed to create assembly file '{}'\n"
-            "Check file permissions and disk space", 
+            "Check file permissions and disk space",
             assembly_file));
     }
 
@@ -154,15 +154,15 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
     // Assembly and linking stage
     std::string output_file = base_name;
     LOG_INFO(LOG_CONTEXT, std::format("Assembling and linking '{}' to '{}'", assembly_file, output_file));
-    
+
     int assemble_and_link_result = assemble_and_link(assembly_file, output_file);
     if (assemble_and_link_result) {
         throw CompilerError(std::format(
             "Failed to assemble and link file '{}' to '{}' with error code {}\n"
-            "Ensure GCC is installed and accessible in your PATH", 
+            "Ensure GCC is installed and accessible in your PATH",
             assembly_file, output_file, assemble_and_link_result));
     }
-    
+
     LOG_INFO(LOG_CONTEXT, std::format("Compilation successful: Generated executable '{}'", output_file));
 }
 
@@ -194,7 +194,7 @@ bool CompilerApplication::create_stub_assembly_file(const std::string& filename)
     file << "\t.section\t.note.GNU-stack,\"\",@progbits" << std::endl;
 
     file.close();
-    
+
     LOG_DEBUG(LOG_CONTEXT, std::format("Created assembly file '{}'", filename));
     return true;
 }
@@ -206,14 +206,14 @@ int CompilerApplication::preprocess_file(const std::string& input_file, const st
     command += " " + input_file + " -o " + output_file;
 
     LOG_DEBUG(LOG_CONTEXT, std::format("Preprocessing command: {}", command));
-    
+
     // Execute the command
     int result = std::system(command.c_str());
-    
+
     if (result != 0) {
         LOG_ERROR(LOG_CONTEXT, std::format("Preprocessing failed with error code {}", result));
     }
-    
+
     return result;
 }
 
@@ -224,14 +224,14 @@ int CompilerApplication::assemble_and_link(const std::string& assembly_file, con
     command += " " + assembly_file + " -o " + output_file;
 
     LOG_DEBUG(LOG_CONTEXT, std::format("Assembling and linking command: {}", command));
-    
+
     // Execute the command
     int result = std::system(command.c_str());
-    
+
     if (result != 0) {
         LOG_ERROR(LOG_CONTEXT, std::format("Assembling and linking failed with error code {}", result));
     }
-    
+
     return result;
 }
 

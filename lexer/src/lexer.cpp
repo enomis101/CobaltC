@@ -2,8 +2,8 @@
 #include <filesystem>
 #include <format>
 #include <fstream>
-#include <string>
 #include <sstream>
+#include <string>
 
 namespace fs = std::filesystem;
 
@@ -20,7 +20,7 @@ Lexer::Lexer(const std::string& file_path)
     std::string extension = fs::path(file_path).extension().string();
     if (extension != file_extension) {
         throw LexerError(std::format(
-            "Invalid file extension: Expected '{}' but got '{}' - Preprocessed files must have '{}' extension", 
+            "Invalid file extension: Expected '{}' but got '{}' - Preprocessed files must have '{}' extension",
             file_extension, extension, file_extension));
     }
 
@@ -28,7 +28,7 @@ Lexer::Lexer(const std::string& file_path)
     std::ifstream file(file_path, std::ios::binary);
     if (!file.is_open()) {
         throw LexerError(std::format(
-            "Failed to open file '{}' - Check file permissions and if the file is in use", 
+            "Failed to open file '{}' - Check file permissions and if the file is in use",
             file_path));
     }
 
@@ -39,7 +39,7 @@ Lexer::Lexer(const std::string& file_path)
     file.read(&m_file_content[0], m_file_content.size());
     if (m_file_content.empty()) {
         throw LexerError(std::format(
-            "Empty file: '{}' - Input file contains no content to tokenize", 
+            "Empty file: '{}' - Input file contains no content to tokenize",
             file_path));
     }
 }
@@ -53,7 +53,7 @@ std::vector<Token> Lexer::tokenize()
     size_t line_num = 1;
     size_t col_num = 1;
     size_t line_start = 0; // Track start of current line
-    
+
     while (i < input.size()) {
         // Skip whitespace but track line numbers and columns
         if (input[i] == ' ' || input[i] == '\t') {
@@ -77,7 +77,7 @@ std::vector<Token> Lexer::tokenize()
             std::string line_snippet;
             size_t snippet_start = line_start;
             size_t snippet_end = i;
-            
+
             // Find end of the current line
             while (snippet_end < input.size() && input[snippet_end] != '\n') {
                 snippet_end++;
@@ -85,17 +85,17 @@ std::vector<Token> Lexer::tokenize()
 
             // Extract the line for context
             line_snippet = input.substr(snippet_start, snippet_end - snippet_start);
-            
+
             // Create pointer to the error position
             std::string error_pointer(col_num - 1, ' ');
             error_pointer += "^";
-            
+
             throw LexerError(std::format(
                 "Lexical error at line {} column {}:\n"
                 "{}\n"
                 "{}\n"
                 "Unrecognized token starting with '{}'",
-                line_num, col_num, 
+                line_num, col_num,
                 line_snippet,
                 error_pointer,
                 input[i]));

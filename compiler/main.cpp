@@ -1,17 +1,19 @@
 #include "common/log/log.h"
 #include "compiler/compiler_application.h"
 #include <format>
+#include <iomanip>
 #include <iostream>
 #include <string>
-#include <iomanip>
 
 constexpr const char* LOG_CONTEXT = "compiler";
 
-void print_error(const std::string& message) {
+void print_error(const std::string& message)
+{
     std::cerr << "\n\033[1;31mERROR\033[0m: " << message << std::endl;
 }
 
-void print_usage(const char* program_name) {
+void print_usage(const char* program_name)
+{
     std::cerr << "\nUsage: " << program_name << " INPUT_FILE.c [--operation]" << std::endl;
     std::cerr << "\nOperations:" << std::endl;
     std::cerr << "  --lex      Stop after lexical analysis" << std::endl;
@@ -35,13 +37,13 @@ int main(int argc, char* argv[])
 
     std::string input_file;
     std::string operation;
-    
+
     // Parse command line arguments
     if (argc == 3) {
         // The command format is: program OPERATION INPUT_FILE
         operation = argv[1];
         input_file = argv[2];
-        
+
         // Check if the operation starts with '-' or '--'
         if (operation[0] != '-') {
             // Might be reversed order
@@ -53,22 +55,21 @@ int main(int argc, char* argv[])
         operation = "";
     }
 
-    LOG_DEBUG(LOG_CONTEXT, std::format("Starting compiler with input file: '{}', operation: '{}'", 
-                                      input_file, operation.empty() ? "full compilation" : operation));
+    LOG_DEBUG(LOG_CONTEXT, std::format("Starting compiler with input file: '{}', operation: '{}'", input_file, operation.empty() ? "full compilation" : operation));
 
     try {
         CompilerApplication app;
-        
+
         // Display compilation start message
-        std::cout << std::format("Compiling '{}'{}\n", 
-                               input_file, 
-                               operation.empty() ? "" : std::format(" with operation: {}", operation));
-        
+        std::cout << std::format("Compiling '{}'{}\n",
+            input_file,
+            operation.empty() ? "" : std::format(" with operation: {}", operation));
+
         app.run(input_file, operation);
-        
+
         // Display compilation success message
         std::cout << std::format("Successfully completed operation on '{}'\n", input_file);
-        
+
     } catch (const CompilerError& e) {
         print_error(e.what());
         LOG_CRITICAL(LOG_CONTEXT, std::format("Compilation failed: {} for file: {}", e.what(), input_file));
@@ -78,6 +79,6 @@ int main(int argc, char* argv[])
         LOG_CRITICAL(LOG_CONTEXT, std::format("Unexpected error: {} for file: {}", e.what(), input_file));
         return 1;
     }
-    
+
     return 0;
 }

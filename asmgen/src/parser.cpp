@@ -25,17 +25,17 @@ std::unique_ptr<Program> parser::Parser::parse_program()
 std::unique_ptr<FunctionDefinition> parser::Parser::parse_function()
 {
     std::unique_ptr<FunctionDefinition> res;
-
+    
     try {
         // Track the function we're trying to parse
         std::string function_name = "unknown";
-
+        
         expect(TokenType::INT_KW);
         const Token& identifier_token = expect(TokenType::IDENTIFIER);
         function_name = identifier_token.lexeme();
-
+        
         std::unique_ptr<Identifier> identifier = std::make_unique<Identifier>(function_name);
-
+        
         expect(TokenType::OPEN_PAREN);
         expect(TokenType::VOID_KW);
         expect(TokenType::CLOSE_PAREN);
@@ -91,13 +91,13 @@ const Token& parser::Parser::expect(TokenType expected)
             "Unexpected end of file. Expected: {}",
             Token::type_to_string(expected)));
     }
-
+    
     const Token& actual = m_tokens[i++];
     if (actual.type() != expected) {
         throw ParserError(std::format(
             "Syntax error at line {}: Expected '{}' but found '{}'",
-            actual.line(),
-            Token::type_to_string(expected),
+            actual.line(), 
+            Token::type_to_string(expected), 
             actual.lexeme()));
     }
     return actual;

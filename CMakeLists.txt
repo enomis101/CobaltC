@@ -79,6 +79,7 @@ endif()
 add_subdirectory(common)
 add_subdirectory(lexer)
 add_subdirectory(parser)
+add_subdirectory(asmgen)
 add_subdirectory(compiler)
 
 # Set environment variables for the target when run from the build directory

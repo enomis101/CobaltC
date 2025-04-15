@@ -1,4 +1,5 @@
 #include "compiler/compiler_application.h"
+#include "asmgen/asmgen_builder.h"
 #include "common/data/token.h"
 #include "common/log/log.h"
 #include "lexer/lexer.h"
@@ -95,12 +96,13 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
         return;
     }
 
+    std::unique_ptr<parser::ParserAST> parser_ast;
     // Parsing stage
     try {
         LOG_INFO(LOG_CONTEXT, "Starting parsing stage");
 
         parser::Parser parser(tokens);
-        std::unique_ptr<parser::Program> program_ast = parser.parse_program();
+        parser_ast = parser.parse_program();
 
         LOG_INFO(LOG_CONTEXT, "Parsing successful");
 
@@ -108,7 +110,7 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
             std::string debug_str = "Parsed Program\n";
             LOG_DEBUG(LOG_CONTEXT, debug_str);
             parser::PrinterVisitor printer;
-            printer.generate_dot_file("ast.dot", *(program_ast.get()));
+            printer.generate_dot_file("ast.dot", *(parser_ast.get()));
             LOG_DEBUG(LOG_CONTEXT, "Generated AST visualization in 'ast.dot'");
         }
     } catch (const parser::ParserError& e) {
@@ -126,7 +128,10 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
     }
 
     // Code generation stage
-    LOG_INFO(LOG_CONTEXT, "Starting code generation stage");
+    LOG_INFO(LOG_CONTEXT, "Starting assembly generation stage");
+
+    asmgen::AssemblyGenerator assembly_generator;
+    std::unique_ptr<asmgen::AsmGenAST> asmgen_parser = assembly_generator.generate(parser_ast.get());
 
     if (operation == "--codegen") {
         LOG_INFO(LOG_CONTEXT, "Code generation operation completed successfully");

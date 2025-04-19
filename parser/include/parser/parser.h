@@ -22,7 +22,7 @@ public:
     {
     }
 
-    std::unique_ptr<Program> parse_program();
+    std::shared_ptr<Program> parse_program();
 
 private:
     const std::vector<Token>& m_tokens;

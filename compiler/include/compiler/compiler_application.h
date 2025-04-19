@@ -28,7 +28,6 @@ public:
 
 private:
     // Function to get the base name of a file (without directory and extension)
-    std::string get_base_name(const std::string& file_path);
     int preprocess_file(const std::string& input_file, const std::string& output_file);
     int assemble_and_link(const std::string& input_file, const std::string& output_file);
 

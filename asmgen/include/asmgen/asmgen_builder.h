@@ -17,9 +17,9 @@ public:
 //Generate an AsmGenAST from a ParserAST
 class AssemblyGenerator : public parser::ParserVisitor {
 public:
-    AssemblyGenerator();
+    AssemblyGenerator(std::shared_ptr<parser::ParserAST> ast);
 
-    std::unique_ptr<AsmGenAST> generate(parser::ParserAST* ast);
+    std::unique_ptr<AsmGenAST> generate();
 private:
 
     // Implementation of visitor interface methods
@@ -31,6 +31,7 @@ private:
     
     std::unique_ptr<AsmGenAST> m_result;
     std::vector<std::unique_ptr<Instruction>> m_instructions_result;
+    std::shared_ptr<parser::ParserAST> m_ast;
 
     template<typename T>
     std::unique_ptr<T> consume_result() {

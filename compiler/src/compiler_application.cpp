@@ -12,6 +12,7 @@
 #include <fstream>
 #include <sstream>
 #include <vector>
+#include "asmgen/code_emitter.h"
 
 CompilerApplication::CompilerApplication()
 {
@@ -48,8 +49,11 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
     LOG_INFO(LOG_CONTEXT, std::format("Starting compilation of '{}'", input_file));
 
     // Preprocessing stage
-    std::string base_name = get_base_name(input_file);
-    std::string preprocessed_output_file = base_name + ".i";
+    std::filesystem::path file_path(input_file);
+    std::filesystem::path parent_path = file_path.parent_path();
+    std::string base_name = file_path.stem().string();
+
+    std::string preprocessed_output_file = parent_path / (base_name + ".i");
 
     LOG_INFO(LOG_CONTEXT, std::format("Preprocessing '{}' to '{}'", input_file, preprocessed_output_file));
 
@@ -96,7 +100,7 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
         return;
     }
 
-    std::unique_ptr<parser::ParserAST> parser_ast;
+    std::shared_ptr<parser::ParserAST> parser_ast;
     // Parsing stage
     try {
         LOG_INFO(LOG_CONTEXT, "Starting parsing stage");
@@ -130,19 +134,18 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
     // Code generation stage
     LOG_INFO(LOG_CONTEXT, "Starting assembly generation stage");
 
-    std::unique_ptr<asmgen::AsmGenAST> asmgen_parser;
+    std::shared_ptr<asmgen::AsmGenAST> asmgen_ast;
     try{
-        asmgen::AssemblyGenerator assembly_generator;
-        asmgen_parser = assembly_generator.generate(parser_ast.get());
+        asmgen::AssemblyGenerator assembly_generator(parser_ast);
+        asmgen_ast = assembly_generator.generate();
     } catch (const asmgen::AsmGenError& e) {
-        throw CompilerError(std::format("Parser error: {}", e.what()));
+        throw CompilerError(std::format("AssemblyGeneration: {}", e.what()));
     } catch (const std::exception& e) {
         throw CompilerError(std::format(
-            "Unexpected error during parsing stage: {}\n"
+            "Unexpected error during assembly generation stage: {}\n"
             "This may indicate a bug in the compiler - please report this issue",
             e.what()));
     }
-
 
     if (operation == "--codegen") {
         LOG_INFO(LOG_CONTEXT, "Code generation operation completed successfully");
@@ -150,14 +153,19 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
     }
 
     // Assembly generation
-    std::string assembly_file = base_name + ".s";
+    std::string assembly_file = parent_path / (base_name + ".s");
     LOG_INFO(LOG_CONTEXT, std::format("Generating assembly file '{}'", assembly_file));
 
-    if (!create_stub_assembly_file(assembly_file)) {
+    try{
+        asmgen::CodeEmitter code_emitter(assembly_file, asmgen_ast);
+        code_emitter.emit_code();
+    } catch (const asmgen::CodeEmitterError& e) {
+        throw CompilerError(std::format("CodeEmitter error: {}", e.what()));
+    } catch (const std::exception& e) {
         throw CompilerError(std::format(
-            "Failed to create assembly file '{}'\n"
-            "Check file permissions and disk space",
-            assembly_file));
+            "Unexpected error during code emission stage: {}\n"
+            "This may indicate a bug in the compiler - please report this issue",
+            e.what()));
     }
 
     if (operation == "-S") {
@@ -168,7 +176,7 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
     file_cleaner.push_back(assembly_file);
 
     // Assembly and linking stage
-    std::string output_file = base_name;
+    std::string output_file = parent_path / base_name;
     LOG_INFO(LOG_CONTEXT, std::format("Assembling and linking '{}' to '{}'", assembly_file, output_file));
 
     int assemble_and_link_result = assemble_and_link(assembly_file, output_file);
@@ -182,13 +190,7 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
     LOG_INFO(LOG_CONTEXT, std::format("Compilation successful: Generated executable '{}'", output_file));
 }
 
-// Function to get the base name of a file (without directory and extension)
-std::string CompilerApplication::get_base_name(const std::string& file_path)
-{
-    namespace fs = std::filesystem;
-    fs::path path(file_path);
-    return path.stem().string();
-}
+
 
 bool CompilerApplication::create_stub_assembly_file(const std::string& filename)
 {

@@ -6,8 +6,12 @@
 
 using namespace asmgen;
 
-AssemblyGenerator::AssemblyGenerator()
+AssemblyGenerator::AssemblyGenerator(std::shared_ptr<parser::ParserAST> ast)
+    : m_ast{ast}
 {
+    if(!m_ast || !dynamic_cast<parser::Program*>(m_ast.get())){
+        throw AsmGenError("AssemblyGenerator: Invalid AST");
+    }
 }
 
 void AssemblyGenerator::visit(parser::Identifier& node)
@@ -69,9 +73,9 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::consume_instruction
     return res;
 }
 
-std::unique_ptr<AsmGenAST> AssemblyGenerator::generate(parser::ParserAST* ast)
+std::unique_ptr<AsmGenAST> AssemblyGenerator::generate()
 {
-    ast->accept(*this);
+    m_ast->accept(*this);
 
     std::unique_ptr<Program> program = consume_result<Program>();
     return std::move(program);

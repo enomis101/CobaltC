@@ -5,7 +5,7 @@
 
 using namespace parser;
 
-std::unique_ptr<Program> parser::Parser::parse_program()
+std::shared_ptr<Program> parser::Parser::parse_program()
 {
     try {
         std::unique_ptr<FunctionDefinition> fun = parse_function();
@@ -15,7 +15,7 @@ std::unique_ptr<Program> parser::Parser::parse_program()
                 "Unexpected token after program end at line {}: '{}'",
                 extra_token.line(), extra_token.lexeme()));
         }
-        return std::make_unique<Program>(std::move(fun));
+        return std::make_shared<Program>(std::move(fun));
     } catch (const ParserError& e) {
         // Re-throw with additional context
         throw ParserError(std::format("Failed to parse program: {}", e.what()));

@@ -45,7 +45,8 @@ void AssemblyGenerator::visit(parser::Function& node)
         throw AsmGenError("Invalid parser::Function node found during Assembly Generation");
     }
     node.body->accept(*this);
-    m_result = std::make_unique<Function>(std::move(identifier), std::move(m_instructions_result));
+    std::vector<std::unique_ptr<Instruction>> instructions_result = consume_instructions_result();
+    m_result = std::make_unique<Function>(std::move(identifier), std::move(instructions_result));
 }
 
 void AssemblyGenerator::visit(parser::Program& node)
@@ -58,9 +59,19 @@ void AssemblyGenerator::visit(parser::Program& node)
     m_result = std::make_unique<Program>(std::move(function));
 }
 
-std::unique_ptr<AsmGenAST> AssemblyGenerator::generate(parser::ParserAST* ast) {
+std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::consume_instructions_result()
+{
+    if(m_instructions_result.empty()){
+        throw AsmGenError("Expected instructions result found empty");
+    }
+    std::vector<std::unique_ptr<Instruction>> res =  std::move(m_instructions_result);
+    m_instructions_result.clear();
+    return res;
+}
+
+std::unique_ptr<AsmGenAST> AssemblyGenerator::generate(parser::ParserAST* ast)
+{
     ast->accept(*this);
-    
 
     std::unique_ptr<Program> program = consume_result<Program>();
     return std::move(program);

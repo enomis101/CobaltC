@@ -49,7 +49,7 @@ private:
         return std::unique_ptr<T>(static_cast<T*>(m_result.release()));
     }
 
-    std::vector<std::unique_ptr<Instruction>> consume_instructions();
+    std::vector<std::unique_ptr<Instruction>> consume_instructions_result();
 };
 
 } // namespace asmgen

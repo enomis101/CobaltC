@@ -109,7 +109,7 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
         parser_ast = parser.parse_program();
 
         LOG_INFO(LOG_CONTEXT, "Parsing successful");
-
+        
         if (logging::LogManager::logger()->is_enabled(LOG_CONTEXT, logging::LogLevel::DEBUG)) {
             std::string debug_str = "Parsed Program\n";
             LOG_DEBUG(LOG_CONTEXT, debug_str);

@@ -130,12 +130,7 @@ public:
     std::unique_ptr<Expression> expression;
 };
 
-class FunctionDefinition : public ParserAST {
-public:
-    virtual ~FunctionDefinition() = default;
-};
-
-class Function : public FunctionDefinition {
+class Function : public ParserAST {
 public:
     Function(std::unique_ptr<Identifier> name, std::unique_ptr<Statement> body)
         : name(std::move(name))
@@ -153,7 +148,7 @@ public:
 
 class Program : public ParserAST {
 public:
-    Program(std::unique_ptr<FunctionDefinition> func)
+    Program(std::unique_ptr<Function> func)
         : function(std::move(func))
     {
     }
@@ -162,7 +157,7 @@ public:
     {
         visitor.visit(*this);
     }
-    std::unique_ptr<FunctionDefinition> function;
+    std::unique_ptr<Function> function;
 };
 
 }

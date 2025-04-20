@@ -16,7 +16,10 @@ enum class TokenType {
     CLOSE_PAREN,
     OPEN_BRACE,
     CLOSE_BRACE,
-    SEMICOLON
+    SEMICOLON,
+    MINUS,
+    DECREMENT,
+    COMPLEMENT
     // Add other types as needed
 };
 
@@ -45,4 +48,5 @@ private:
     std::unordered_map<std::string_view, TokenType> m_keywords;
     std::vector<std::pair<boost::regex, TokenType>> m_patterns;
     std::unordered_map<char, TokenType> m_single_char_tokens;
+    std::unordered_map<std::string_view, TokenType> m_double_char_tokens;
 };

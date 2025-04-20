@@ -14,9 +14,18 @@ size_t TokenTable::search(std::string_view input) const
 
     char first_char = input[0];
 
-    if (m_single_char_tokens.contains(first_char))
-        return 1;
+    // Check for double character tokens if input has at least 2 characters
+    if (input.size() >= 2) {
+        std::string_view double_char = input.substr(0, 2);
+        if (m_double_char_tokens.contains(double_char)) {
+            return 2;
+        }
+    }
 
+    if (m_single_char_tokens.contains(first_char)){
+        return 1;
+    }
+        
     for (const auto& p : m_patterns) {
         const boost::regex& pattern = p.first;
         boost::match_results<std::string_view::const_iterator> matches;
@@ -38,11 +47,17 @@ std::optional<TokenType> TokenTable::match(std::string_view lexeme) const
     if (lexeme.size() <= 0)
         return res;
 
-    // Check for single char tokens first
     if (lexeme.size() == 1) {
         char single_char = lexeme[0];
         if (m_single_char_tokens.contains(single_char)) {
             res = m_single_char_tokens.at(single_char);
+            return res;
+        }
+    }
+
+    if (lexeme.size() == 2) {
+        if (m_double_char_tokens.contains(lexeme)) {
+            res = m_double_char_tokens.at(lexeme);
             return res;
         }
     }
@@ -78,7 +93,13 @@ TokenTable::TokenTable()
         { ')', TokenType::CLOSE_PAREN },
         { '{', TokenType::OPEN_BRACE },
         { '}', TokenType::CLOSE_BRACE },
-        { ';', TokenType::SEMICOLON }
+        { ';', TokenType::SEMICOLON },
+        { '-', TokenType::MINUS},
+        { '~', TokenType::COMPLEMENT}
+    };
+
+    m_double_char_tokens = {
+        { "--", TokenType::DECREMENT }
     };
 
     // Initialize regex patterns

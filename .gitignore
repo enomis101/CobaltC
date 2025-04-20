@@ -1,6 +1,7 @@
 /build/**
 /logs/**
 /outputs/*
+/debug/*
 
 # Prerequisites
 *.d

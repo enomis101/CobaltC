@@ -5,7 +5,7 @@
 
 using namespace parser;
 
-std::shared_ptr<Program> parser::Parser::parse_program()
+std::shared_ptr<Program> Parser::parse_program()
 {
     try {
         std::unique_ptr<FunctionDefinition> fun = parse_function();
@@ -22,7 +22,7 @@ std::shared_ptr<Program> parser::Parser::parse_program()
     }
 }
 
-std::unique_ptr<FunctionDefinition> parser::Parser::parse_function()
+std::unique_ptr<FunctionDefinition> Parser::parse_function()
 {
     std::unique_ptr<FunctionDefinition> res;
 
@@ -51,7 +51,7 @@ std::unique_ptr<FunctionDefinition> parser::Parser::parse_function()
     }
 }
 
-std::unique_ptr<Statement> parser::Parser::parse_statement()
+std::unique_ptr<Statement> Parser::parse_statement()
 {
     std::unique_ptr<Statement> res;
 
@@ -67,14 +67,30 @@ std::unique_ptr<Statement> parser::Parser::parse_statement()
     }
 }
 
-std::unique_ptr<Expression> parser::Parser::parse_expression()
+std::unique_ptr<Expression> Parser::parse_expression()
 {
     std::unique_ptr<Expression> res;
 
     try {
-        const Token& curr = expect(TokenType::CONSTANT);
-        res = std::make_unique<ConstantExpression>(curr.literal<int>());
-        return res;
+        const Token& next_token = peek();
+        if (next_token.type() == TokenType::CONSTANT) {
+            take_token();
+            res = std::make_unique<ConstantExpression>(next_token.literal<int>());
+            return res;
+        } else if (next_token.type() == TokenType::MINUS || next_token.type() == TokenType::COMPLEMENT) {
+            std::unique_ptr<UnaryOperator> op = parse_unary_operator();
+            std::unique_ptr<Expression> expr = parse_expression();
+            res = std::make_unique<UnaryExpression>(std::move(op), std::move(expr));
+            return res;
+        } else if (next_token.type() == TokenType::OPEN_PAREN) {
+            take_token();
+            res = parse_expression();
+            expect(TokenType::CLOSE_PAREN);
+            return res;
+        } else {
+            throw ParserError("Malformed expression");
+        }
+
     } catch (const ParserError& e) {
         // Re-throw with expression context
         throw ParserError(std::format("In expression: {}", e.what()));
@@ -84,9 +100,26 @@ std::unique_ptr<Expression> parser::Parser::parse_expression()
     }
 }
 
-const Token& parser::Parser::expect(TokenType expected)
+std::unique_ptr<UnaryOperator> Parser::parse_unary_operator()
 {
-    if (i >= m_tokens.size()) {
+    std::unique_ptr<UnaryOperator> res;
+    const Token& next_token = peek();
+    if (next_token.type() == TokenType::MINUS) {
+        take_token();
+        res = std::make_unique<NegateOperator>();
+        return res;
+    } else if (next_token.type() == TokenType::COMPLEMENT) {
+        take_token();
+        res = std::make_unique<ComplementOperator>();
+        return res;
+    } else {
+        throw ParserError(std::format("In UnaryOperator: got {}", Token::type_to_string(next_token.type())));
+    }
+}
+
+const Token& Parser::expect(TokenType expected)
+{
+    if (!has_tokens()) {
         throw ParserError(std::format(
             "Unexpected end of file. Expected: {}",
             Token::type_to_string(expected)));
@@ -103,7 +136,20 @@ const Token& parser::Parser::expect(TokenType expected)
     return actual;
 }
 
-bool parser::Parser::has_tokens()
+const Token& Parser::peek()
+{
+    if (!has_tokens()) {
+        throw ParserError("Unexpected end of file. Trying to peek.");
+    }
+    return m_tokens[i];
+}
+
+void Parser::take_token()
+{
+    i++;
+}
+
+bool Parser::has_tokens()
 {
     return i < m_tokens.size();
 }

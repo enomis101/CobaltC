@@ -22,10 +22,10 @@ size_t TokenTable::search(std::string_view input) const
         }
     }
 
-    if (m_single_char_tokens.contains(first_char)){
+    if (m_single_char_tokens.contains(first_char)) {
         return 1;
     }
-        
+
     for (const auto& p : m_patterns) {
         const boost::regex& pattern = p.first;
         boost::match_results<std::string_view::const_iterator> matches;
@@ -94,8 +94,8 @@ TokenTable::TokenTable()
         { '{', TokenType::OPEN_BRACE },
         { '}', TokenType::CLOSE_BRACE },
         { ';', TokenType::SEMICOLON },
-        { '-', TokenType::MINUS},
-        { '~', TokenType::COMPLEMENT}
+        { '-', TokenType::MINUS },
+        { '~', TokenType::COMPLEMENT }
     };
 
     m_double_char_tokens = {

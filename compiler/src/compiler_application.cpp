@@ -1,5 +1,6 @@
 #include "compiler/compiler_application.h"
 #include "asmgen/asmgen_builder.h"
+#include "asmgen/code_emitter.h"
 #include "common/data/token.h"
 #include "common/log/log.h"
 #include "lexer/lexer.h"
@@ -12,7 +13,6 @@
 #include <fstream>
 #include <sstream>
 #include <vector>
-#include "asmgen/code_emitter.h"
 
 CompilerApplication::CompilerApplication()
 {
@@ -109,12 +109,13 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
         parser_ast = parser.parse_program();
 
         LOG_INFO(LOG_CONTEXT, "Parsing successful");
-        
+
         if (logging::LogManager::logger()->is_enabled(LOG_CONTEXT, logging::LogLevel::DEBUG)) {
             std::string debug_str = "Parsed Program\n";
             LOG_DEBUG(LOG_CONTEXT, debug_str);
             parser::PrinterVisitor printer;
-            printer.generate_dot_file("ast.dot", *(parser_ast.get()));
+            std::string base_name = file_path.stem().string();
+            printer.generate_dot_file("debug/" + base_name + ".dot", *(parser_ast.get()));
             LOG_DEBUG(LOG_CONTEXT, "Generated AST visualization in 'ast.dot'");
         }
     } catch (const parser::ParserError& e) {
@@ -135,7 +136,7 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
     LOG_INFO(LOG_CONTEXT, "Starting assembly generation stage");
 
     std::shared_ptr<asmgen::AsmGenAST> asmgen_ast;
-    try{
+    try {
         asmgen::AssemblyGenerator assembly_generator(parser_ast);
         asmgen_ast = assembly_generator.generate();
     } catch (const asmgen::AsmGenError& e) {
@@ -156,7 +157,7 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
     std::string assembly_file = parent_path / (base_name + ".s");
     LOG_INFO(LOG_CONTEXT, std::format("Generating assembly file '{}'", assembly_file));
 
-    try{
+    try {
         asmgen::CodeEmitter code_emitter(assembly_file, asmgen_ast);
         code_emitter.emit_code();
     } catch (const asmgen::CodeEmitterError& e) {
@@ -189,8 +190,6 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
 
     LOG_INFO(LOG_CONTEXT, std::format("Compilation successful: Generated executable '{}'", output_file));
 }
-
-
 
 bool CompilerApplication::create_stub_assembly_file(const std::string& filename)
 {

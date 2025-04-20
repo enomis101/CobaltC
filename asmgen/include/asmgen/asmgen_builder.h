@@ -24,6 +24,9 @@ private:
 
     // Implementation of visitor interface methods
     void visit(parser::Identifier& node) override;
+    void visit(parser::ComplementOperator& node) override;
+    void visit(parser::NegateOperator& node) override;
+    void visit(parser::UnaryExpression& node) override;
     void visit(parser::ConstantExpression& node) override;
     void visit(parser::ReturnStatement& node) override;
     void visit(parser::Function& node) override;

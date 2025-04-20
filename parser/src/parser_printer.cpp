@@ -40,6 +40,36 @@ void PrinterVisitor::visit(Identifier& node)
     m_dot_content << "  node" << id << " [label=\"Identifier\\nname: " << node.name << "\"];\n";
 }
 
+void PrinterVisitor::visit(ComplementOperator& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"ComplementOperator\"];\n";
+}
+
+void PrinterVisitor::visit(NegateOperator& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"NegateOperator\"];\n";
+}
+
+void PrinterVisitor::visit(UnaryExpression& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"UnaryExpression\"];\n";
+
+    if (node.unary_operator) {
+        node.unary_operator->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.unary_operator.get())
+                      << " [label=\"unary_operator\"];\n";
+    }
+
+    if (node.expression) {
+        node.expression->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.expression.get())
+                      << " [label=\"expression\"];\n";
+    }
+}
+
 void PrinterVisitor::visit(ConstantExpression& node)
 {
     int id = get_node_id(&node);

@@ -30,9 +30,13 @@ private:
     std::unique_ptr<FunctionDefinition> parse_function();
     std::unique_ptr<Statement> parse_statement();
     std::unique_ptr<Expression> parse_expression();
+    std::unique_ptr<UnaryOperator> parse_unary_operator();
+
     // std::unique_ptr<Identifier> parse_identifier();
 
     const Token& expect(TokenType expected);
+    const Token& peek();
+    void take_token();
     bool has_tokens();
     size_t i = 0;
 };

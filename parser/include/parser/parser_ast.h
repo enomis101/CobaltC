@@ -14,6 +14,9 @@ public:
 
 // Forward declaration of node types
 class Identifier;
+class ComplementOperator;
+class NegateOperator;
+class UnaryExpression;
 class ConstantExpression;
 class ReturnStatement;
 class Function;
@@ -23,11 +26,35 @@ class Program;
 class ParserVisitor {
 public:
     virtual void visit(Identifier& node) = 0;
+    virtual void visit(ComplementOperator& node) = 0;
+    virtual void visit(NegateOperator& node) = 0;
+    virtual void visit(UnaryExpression& node) = 0;
     virtual void visit(ConstantExpression& node) = 0;
     virtual void visit(ReturnStatement& node) = 0;
     virtual void visit(Function& node) = 0;
     virtual void visit(Program& node) = 0;
     virtual ~ParserVisitor() = default;
+};
+
+class UnaryOperator : public ParserAST {
+public:
+    virtual ~UnaryOperator() = default;
+};
+
+class ComplementOperator : public UnaryOperator {
+public:
+    void accept(ParserVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+};
+
+class NegateOperator : public UnaryOperator {
+public:
+    void accept(ParserVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
 };
 
 // Abstract class for all expressions
@@ -49,6 +76,23 @@ public:
     }
 
     int value;
+};
+
+class UnaryExpression : public Expression {
+public:
+    UnaryExpression(std::unique_ptr<UnaryOperator> op, std::unique_ptr<Expression> expr)
+        : unary_operator(std::move(op))
+        , expression(std::move(expr))
+    {
+    }
+
+    void accept(ParserVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    std::unique_ptr<UnaryOperator> unary_operator;
+    std::unique_ptr<Expression> expression;
 };
 
 class Identifier : public ParserAST {

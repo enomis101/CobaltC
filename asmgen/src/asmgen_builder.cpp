@@ -19,6 +19,18 @@ void AssemblyGenerator::visit(parser::Identifier& node)
     m_result = std::make_unique<Identifier>(node.name);
 }
 
+void AssemblyGenerator::visit(parser::ComplementOperator& node) 
+{
+}
+
+void AssemblyGenerator::visit(parser::NegateOperator& node) 
+{
+}
+
+void AssemblyGenerator::visit(parser::UnaryExpression& node) 
+{
+}
+
 void AssemblyGenerator::visit(parser::ConstantExpression& node)
 {
     m_result = std::make_unique<ImmediateValue>(node.value);

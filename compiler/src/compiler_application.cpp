@@ -6,6 +6,8 @@
 #include "lexer/lexer.h"
 #include "parser/parser.h"
 #include "parser/parser_printer.h"
+#include "tacky/tacky_generator.h"
+#include "tacky/tacky_printer.h"
 #include <algorithm>
 #include <cstdlib>
 #include <filesystem> // Requires C++17 or later
@@ -13,8 +15,6 @@
 #include <fstream>
 #include <sstream>
 #include <vector>
-#include "tacky/tacky_generator.h"
-#include "tacky/tacky_printer.h"
 
 CompilerApplication::CompilerApplication()
 {
@@ -162,7 +162,7 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
         LOG_INFO(LOG_CONTEXT, "Tacky generation operation completed successfully");
         return;
     }
-        
+
     // Code generation stage
     LOG_INFO(LOG_CONTEXT, "Starting assembly generation stage");
 

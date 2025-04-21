@@ -93,11 +93,10 @@ void PrinterVisitor::visit(Function& node)
     int id = get_node_id(&node);
     m_dot_content << "  node" << id << " [label=\"Function\"];\n";
 
-    if (node.name) {
-        node.name->accept(*this);
-        m_dot_content << "  node" << id << " -> node" << get_node_id(node.name.get())
-                      << " [label=\"name\"];\n";
-    }
+
+    node.name.accept(*this);
+    m_dot_content << "  node" << id << " -> node" << get_node_id(&node.name)
+                    << " [label=\"name\"];\n";
 
     if (node.body) {
         node.body->accept(*this);

@@ -13,6 +13,7 @@ public:
     void generate_dot_file(const std::string& filename, TackyAST& ast);
 
     // Implementation of visitor interface methods
+    void visit(Identifier& node) override;
     void visit(ComplementOperator& node) override;
     void visit(NegateOperator& node) override;
     void visit(Constant& node) override;

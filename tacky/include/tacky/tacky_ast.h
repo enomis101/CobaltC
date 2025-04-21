@@ -13,6 +13,7 @@ public:
 };
 
 // Forward declaration of node types
+class Identifier;
 class ComplementOperator;
 class NegateOperator;
 class Constant;
@@ -25,6 +26,7 @@ class Program;
 // TackyVisitor interface
 class TackyVisitor {
 public:
+    virtual void visit(Identifier& node) = 0;
     virtual void visit(ComplementOperator& node) = 0;
     virtual void visit(NegateOperator& node) = 0;
     virtual void visit(Constant& node) = 0;
@@ -34,6 +36,21 @@ public:
     virtual void visit(Function& node) = 0;
     virtual void visit(Program& node) = 0;
     virtual ~TackyVisitor() = default;
+};
+
+class Identifier : public TackyAST {
+public:
+    explicit Identifier(const std::string& name)
+        : name(name)
+    {
+    }
+
+    void accept(TackyVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    std::string name;
 };
 
 class UnaryOperator : public TackyAST {
@@ -89,7 +106,7 @@ public:
         visitor.visit(*this);
     }
 
-    std::string identifier;
+    Identifier identifier;
 };
 
 
@@ -146,7 +163,7 @@ public:
         visitor.visit(*this);
     }
 
-    std::string name;
+    Identifier name;
     std::vector<std::unique_ptr<Instruction>> body;
 };
 

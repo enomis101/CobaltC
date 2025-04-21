@@ -37,7 +37,7 @@ public:
     virtual ~AssemblyVisitor() = default;
 };
 
-enum class RegisterName{
+enum class RegisterName {
     AX,
     R10
 };
@@ -64,8 +64,6 @@ public:
     std::string name;
 };
 
-    
-
 class UnaryOperator : public AssemblyAST {
 public:
     virtual ~UnaryOperator() = default;
@@ -73,7 +71,6 @@ public:
 
 class NotOperator : public UnaryOperator {
 public:
-
     void accept(AssemblyVisitor& visitor) override
     {
         visitor.visit(*this);
@@ -82,7 +79,6 @@ public:
 
 class NegOperator : public UnaryOperator {
 public:
-
     void accept(AssemblyVisitor& visitor) override
     {
         visitor.visit(*this);
@@ -113,7 +109,9 @@ public:
 class Register : public Operand {
 public:
     Register(RegisterName r)
-        : reg{r}{}
+        : reg { r }
+    {
+    }
 
     void accept(AssemblyVisitor& visitor) override
     {
@@ -125,21 +123,25 @@ public:
 
 class PseudoRegister : public Operand {
 public:
-    PseudoRegister(std::unique_ptr<Identifier> id)
-        : identifier(std::move(id)){}
+    PseudoRegister(const std::string& id)
+        : identifier { id }
+    {
+    }
 
     void accept(AssemblyVisitor& visitor) override
     {
         visitor.visit(*this);
     }
 
-    std::unique_ptr<Identifier> identifier;
+    Identifier identifier;
 };
 
 class StackAddress : public Operand {
 public:
     StackAddress(int off)
-        : offset(off){}
+        : offset(off)
+    {
+    }
 
     void accept(AssemblyVisitor& visitor) override
     {
@@ -148,7 +150,6 @@ public:
 
     int offset;
 };
-    
 
 class Instruction : public AssemblyAST {
 public:
@@ -157,7 +158,6 @@ public:
 
 class ReturnInstruction : public Instruction {
 public:
-
     void accept(AssemblyVisitor& visitor) override
     {
         visitor.visit(*this);
@@ -166,7 +166,6 @@ public:
 
 class MovInstruction : public Instruction {
 public:
-
     MovInstruction(std::unique_ptr<Operand> s, std::unique_ptr<Operand> d)
         : src(std::move(s))
         , dst(std::move(d))
@@ -178,12 +177,10 @@ public:
     }
     std::unique_ptr<Operand> src;
     std::unique_ptr<Operand> dst;
-
 };
 
 class UnaryInstruction : public Instruction {
 public:
-
     UnaryInstruction(std::unique_ptr<UnaryOperator> u_op, std::unique_ptr<Operand> op)
         : unary_operator(std::move(u_op))
         , operand(std::move(op))
@@ -196,7 +193,6 @@ public:
 
     std::unique_ptr<UnaryOperator> unary_operator;
     std::unique_ptr<Operand> operand;
-
 };
 
 class AllocateStackInstruction : public Instruction {
@@ -216,8 +212,8 @@ public:
 
 class Function : public AssemblyAST {
 public:
-    Function(std::unique_ptr<Identifier> n,  std::vector<std::unique_ptr<Instruction>> i)
-        : name(std::move(n))
+    Function(const std::string& n, std::vector<std::unique_ptr<Instruction>> i)
+        : name { n }
         , instructions(std::move(i))
     {
     }
@@ -227,7 +223,7 @@ public:
         visitor.visit(*this);
     }
 
-    std::unique_ptr<Identifier> name;
+    Identifier name;
     std::vector<std::unique_ptr<Instruction>> instructions;
 };
 
@@ -245,4 +241,4 @@ public:
     std::unique_ptr<Function> function;
 };
 
-}   //assembly namespace
+} // assembly namespace

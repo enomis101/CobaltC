@@ -60,7 +60,6 @@ public:
 
 class ComplementOperator : public UnaryOperator {
 public:
-
     void accept(TackyVisitor& visitor) override
     {
         visitor.visit(*this);
@@ -69,7 +68,6 @@ public:
 
 class NegateOperator : public UnaryOperator {
 public:
-
     void accept(TackyVisitor& visitor) override
     {
         visitor.visit(*this);
@@ -84,7 +82,7 @@ public:
 class Constant : public Value {
 public:
     Constant(int value)
-            : value(value)
+        : value(value)
     {
     }
 
@@ -99,7 +97,9 @@ public:
 class TemporaryVariable : public Value {
 public:
     TemporaryVariable(const std::string& id)
-        :identifier{id}{}
+        : identifier { id }
+    {
+    }
 
     void accept(TackyVisitor& visitor) override
     {
@@ -109,7 +109,6 @@ public:
     Identifier identifier;
 };
 
-
 class Instruction : public TackyAST {
 public:
     virtual ~Instruction() = default;
@@ -118,8 +117,9 @@ public:
 class ReturnInstruction : public Instruction {
 public:
     ReturnInstruction(std::unique_ptr<Value> v)
-    :value{std::move(v)}{}
-
+        : value { std::move(v) }
+    {
+    }
 
     void accept(TackyVisitor& visitor) override
     {
@@ -131,7 +131,6 @@ public:
 
 class UnaryInstruction : public Instruction {
 public:
-
     UnaryInstruction(std::unique_ptr<UnaryOperator> op, std::unique_ptr<Value> src, std::unique_ptr<Value> dst)
         : unary_operator(std::move(op))
         , source(std::move(src))
@@ -147,13 +146,12 @@ public:
     std::unique_ptr<UnaryOperator> unary_operator;
     std::unique_ptr<Value> source;
     std::unique_ptr<Value> destination;
-
 };
 
 class Function : public TackyAST {
 public:
-    Function(const std::string& n,  std::vector<std::unique_ptr<Instruction>> b)
-        : name{n}
+    Function(const std::string& n, std::vector<std::unique_ptr<Instruction>> b)
+        : name { n }
         , body(std::move(b))
     {
     }

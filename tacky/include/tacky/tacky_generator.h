@@ -5,7 +5,6 @@
 #include <vector>
 namespace tacky {
 
-
 class TackyGeneratorError : public std::runtime_error {
 public:
     explicit TackyGeneratorError(const std::string& message)
@@ -14,14 +13,14 @@ public:
     }
 };
 
-//Generate an TackyAST from a ParserAST
+// Generate an TackyAST from a ParserAST
 class TackyGenerator {
 public:
     TackyGenerator(std::shared_ptr<parser::ParserAST> ast);
 
     std::shared_ptr<TackyAST> generate();
-private:
 
+private:
     std::unique_ptr<UnaryOperator> transform_unary_operator(parser::UnaryOperator& function);
     std::unique_ptr<Value> transform_expression(parser::Expression& expression, std::vector<std::unique_ptr<Instruction>>& instructions);
     std::vector<std::unique_ptr<Instruction>> transform_statement(parser::Statement& statement);

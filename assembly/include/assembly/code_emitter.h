@@ -1,11 +1,11 @@
 #pragma once
 #include "asmgen/asmgen_ast.h"
-#include <memory>
-#include <string>
-#include <stdexcept>
 #include <fstream>
+#include <memory>
+#include <stdexcept>
+#include <string>
 
-namespace asmgen{
+namespace asmgen {
 
 class CodeEmitterError : public std::runtime_error {
 public:
@@ -15,10 +15,11 @@ public:
     }
 };
 
-class CodeEmitter : public AsmGenVisitor{
+class CodeEmitter : public AsmGenVisitor {
 public:
     CodeEmitter(const std::string& output_file, std::shared_ptr<AsmGenAST> ast);
     void emit_code();
+
 private:
     void visit(Identifier& node) override;
     void visit(ImmediateValue& node) override;

@@ -27,9 +27,9 @@ private:
     // Get or assign a unique ID for each node
     int get_node_id(const TackyAST* node);
 
-    int m_node_count;                                     // Counter for generating unique node IDs
+    int m_node_count;                                    // Counter for generating unique node IDs
     std::unordered_map<const TackyAST*, int> m_node_ids; // Maps TackyAST nodes to their unique IDs
-    std::stringstream m_dot_content;                      // Buffer for dot file content
+    std::stringstream m_dot_content;                     // Buffer for dot file content
 };
 
 } // namespace tacky

@@ -2,13 +2,12 @@
 #include <fstream>
 #include <string>
 
-
 using namespace tacky;
 
 TackyGenerator::TackyGenerator(std::shared_ptr<parser::ParserAST> ast)
-    : m_ast{ast}
+    : m_ast { ast }
 {
-    if(!m_ast || !dynamic_cast<parser::Program*>(m_ast.get())){
+    if (!m_ast || !dynamic_cast<parser::Program*>(m_ast.get())) {
         throw TackyGeneratorError("TackyGenerator: Invalid AST");
     }
 }
@@ -20,25 +19,20 @@ std::shared_ptr<TackyAST> TackyGenerator::generate()
 
 std::unique_ptr<UnaryOperator> TackyGenerator::transform_unary_operator(parser::UnaryOperator& unary_operator)
 {
-    if(dynamic_cast<parser::NegateOperator*>(&unary_operator))
-    {
+    if (dynamic_cast<parser::NegateOperator*>(&unary_operator)) {
         return std::make_unique<NegateOperator>();
-    }
-    else if(dynamic_cast<parser::ComplementOperator*>(&unary_operator)){
+    } else if (dynamic_cast<parser::ComplementOperator*>(&unary_operator)) {
         return std::make_unique<ComplementOperator>();
-    }
-    else{
+    } else {
         throw TackyGeneratorError("TackyGenerator: Invalid or Unsuppored UnaryOperator");
     }
 }
 
 std::unique_ptr<Value> TackyGenerator::transform_expression(parser::Expression& expression, std::vector<std::unique_ptr<Instruction>>& instructions)
 {
-    if(parser::ConstantExpression* constant_expression = dynamic_cast<parser::ConstantExpression*>(&expression))
-    {
+    if (parser::ConstantExpression* constant_expression = dynamic_cast<parser::ConstantExpression*>(&expression)) {
         return std::make_unique<Constant>(constant_expression->value);
-    }
-    else if(parser::UnaryExpression* unary_expression = dynamic_cast<parser::UnaryExpression*>(&expression)){
+    } else if (parser::UnaryExpression* unary_expression = dynamic_cast<parser::UnaryExpression*>(&expression)) {
         std::unique_ptr<Value> src = transform_expression(*unary_expression->expression, instructions);
         std::string dst_name = make_temporary();
         std::unique_ptr<TemporaryVariable> dst = std::make_unique<TemporaryVariable>(dst_name);
@@ -46,8 +40,7 @@ std::unique_ptr<Value> TackyGenerator::transform_expression(parser::Expression& 
         std::unique_ptr<UnaryOperator> op = transform_unary_operator(*(unary_expression->unary_operator.get()));
         instructions.emplace_back(std::make_unique<UnaryInstruction>(std::move(op), std::move(src), std::move(dst)));
         return dst_copy;
-    }
-    else{
+    } else {
         throw TackyGeneratorError("TackyGenerator: Invalid or Unsuppored Expression");
     }
 }
@@ -55,12 +48,10 @@ std::unique_ptr<Value> TackyGenerator::transform_expression(parser::Expression& 
 std::vector<std::unique_ptr<Instruction>> TackyGenerator::transform_statement(parser::Statement& statement)
 {
     std::vector<std::unique_ptr<Instruction>> res;
-    if(parser::ReturnStatement* return_statement = dynamic_cast<parser::ReturnStatement*>(&statement))
-    {
+    if (parser::ReturnStatement* return_statement = dynamic_cast<parser::ReturnStatement*>(&statement)) {
         std::unique_ptr<Value> value = transform_expression(*(return_statement->expression.get()), res);
         res.emplace_back(std::make_unique<ReturnInstruction>(std::move(value)));
-    }
-    else{
+    } else {
         throw TackyGeneratorError("TackyGenerator: Invalid or Unsuppored Statement");
     }
     return res;
@@ -77,7 +68,8 @@ std::unique_ptr<Program> TackyGenerator::transform_program(parser::Program& prog
     return std::make_unique<Program>(transform_function(*(program.function.get())));
 }
 
-void TackyGenerator::reset_counter(){
+void TackyGenerator::reset_counter()
+{
     m_temporary_counter = 0;
 }
 

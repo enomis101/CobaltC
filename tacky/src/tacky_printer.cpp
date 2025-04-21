@@ -62,7 +62,7 @@ void PrinterVisitor::visit(TemporaryVariable& node)
 {
     int id = get_node_id(&node);
     m_dot_content << "  node" << id << " [label=\"TemporaryVariable\"];\n";
-    
+
     // Visit the contained identifier
     node.identifier.accept(*this);
     m_dot_content << "  node" << id << " -> node" << get_node_id(&node.identifier)

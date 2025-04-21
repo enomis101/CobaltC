@@ -24,6 +24,7 @@ target_link_libraries(${ASSEMBLY_LIB_TARGET}
     PUBLIC
         ${COMMON_LIB_TARGET}
         ${PARSER_LIB_TARGET}
+        ${TACKY_LIB_TARGET}
 )
 
 # Create the executable with just main.cpp

@@ -20,11 +20,11 @@ std::shared_ptr<TackyAST> TackyGenerator::generate()
 
 std::unique_ptr<UnaryOperator> TackyGenerator::transform_unary_operator(parser::UnaryOperator& unary_operator)
 {
-    if(parser::NegateOperator* negate = dynamic_cast<parser::NegateOperator*>(&unary_operator))
+    if(dynamic_cast<parser::NegateOperator*>(&unary_operator))
     {
         return std::make_unique<NegateOperator>();
     }
-    else if(parser::ComplementOperator* complement = dynamic_cast<parser::ComplementOperator*>(&unary_operator)){
+    else if(dynamic_cast<parser::ComplementOperator*>(&unary_operator)){
         return std::make_unique<ComplementOperator>();
     }
     else{

@@ -30,6 +30,7 @@ target_link_libraries(${COMPILER_LIB_TARGET}
         ${COMMON_LIB_TARGET}
         ${LEXER_LIB_TARGET}
         ${PARSER_LIB_TARGET}
+        ${TACKY_LIB_TARGET}
         ${ASMGEN_LIB_TARGET}
 )
 

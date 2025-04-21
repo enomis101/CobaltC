@@ -18,6 +18,7 @@ void print_usage(const char* program_name)
     std::cerr << "\nOperations:" << std::endl;
     std::cerr << "  --lex      Stop after lexical analysis" << std::endl;
     std::cerr << "  --parse    Stop after parsing" << std::endl;
+    std::cerr << "  --tacky    Stop after tacky generation" << std::endl;
     std::cerr << "  --codegen  Stop after code generation" << std::endl;
     std::cerr << "  -S         Stop after assembly generation" << std::endl;
     std::cerr << "  No option  Perform full compilation" << std::endl;
@@ -71,11 +72,9 @@ int main(int argc, char* argv[])
         std::cout << std::format("Successfully completed operation on '{}'\n", input_file);
 
     } catch (const CompilerError& e) {
-        print_error(e.what());
         LOG_CRITICAL(LOG_CONTEXT, std::format("Compilation failed: {} for file: {}", e.what(), input_file));
         return 1;
     } catch (const std::exception& e) {
-        print_error(std::format("Unexpected error: {}", e.what()));
         LOG_CRITICAL(LOG_CONTEXT, std::format("Unexpected error: {} for file: {}", e.what(), input_file));
         return 1;
     }

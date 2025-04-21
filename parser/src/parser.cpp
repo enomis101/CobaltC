@@ -8,7 +8,7 @@ using namespace parser;
 std::shared_ptr<Program> Parser::parse_program()
 {
     try {
-        std::unique_ptr<FunctionDefinition> fun = parse_function();
+        std::unique_ptr<Function> fun = parse_function();
         if (has_tokens()) {
             const Token& extra_token = m_tokens[i];
             throw ParserError(std::format(
@@ -22,9 +22,9 @@ std::shared_ptr<Program> Parser::parse_program()
     }
 }
 
-std::unique_ptr<FunctionDefinition> Parser::parse_function()
+std::unique_ptr<Function> Parser::parse_function()
 {
-    std::unique_ptr<FunctionDefinition> res;
+    std::unique_ptr<Function> res;
 
     try {
         // Track the function we're trying to parse

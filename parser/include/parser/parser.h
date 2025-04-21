@@ -27,7 +27,7 @@ public:
 private:
     const std::vector<Token>& m_tokens;
 
-    std::unique_ptr<FunctionDefinition> parse_function();
+    std::unique_ptr<Function> parse_function();
     std::unique_ptr<Statement> parse_statement();
     std::unique_ptr<Expression> parse_expression();
     std::unique_ptr<UnaryOperator> parse_unary_operator();

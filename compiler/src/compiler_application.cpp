@@ -13,6 +13,8 @@
 #include <fstream>
 #include <sstream>
 #include <vector>
+#include "tacky/tacky_generator.h"
+#include "tacky/tacky_printer.h"
 
 CompilerApplication::CompilerApplication()
 {
@@ -30,11 +32,11 @@ CompilerApplication::CompilerApplication()
 void CompilerApplication::run(const std::string& input_file, const std::string& operation)
 {
     // Check if operation is valid
-    std::vector<std::string> valid_operations = { "--lex", "--parse", "--codegen", "-S", "" };
+    std::vector<std::string> valid_operations = { "--lex", "--parse", "--tacky", "--codegen", "-S", "" };
     if (std::find(valid_operations.begin(), valid_operations.end(), operation) == valid_operations.end()) {
         throw CompilerError(std::format(
             "Invalid operation: '{}'\n"
-            "Valid operations are: --lex, --parse, --codegen, -S, or no operation for full compilation",
+            "Valid operations are: --lex, --parse, --tacky, --codegen, -S, or no operation for full compilation",
             operation));
     }
 
@@ -115,7 +117,7 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
             LOG_DEBUG(LOG_CONTEXT, debug_str);
             parser::PrinterVisitor printer;
             std::string base_name = file_path.stem().string();
-            printer.generate_dot_file("debug/" + base_name + ".dot", *(parser_ast.get()));
+            printer.generate_dot_file("debug/" + base_name + "_parserAST.dot", *(parser_ast.get()));
             LOG_DEBUG(LOG_CONTEXT, "Generated AST visualization in 'ast.dot'");
         }
     } catch (const parser::ParserError& e) {
@@ -132,6 +134,35 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
         return;
     }
 
+    // Code generation stage
+    LOG_INFO(LOG_CONTEXT, "Starting tacky generation stage");
+
+    std::shared_ptr<tacky::TackyAST> tacky_ast;
+    try {
+        tacky::TackyGenerator tacky_generator(parser_ast);
+        tacky_ast = tacky_generator.generate();
+        if (logging::LogManager::logger()->is_enabled(LOG_CONTEXT, logging::LogLevel::DEBUG)) {
+            std::string debug_str = "Parsed Program\n";
+            LOG_DEBUG(LOG_CONTEXT, debug_str);
+            tacky::PrinterVisitor printer;
+            std::string base_name = file_path.stem().string();
+            printer.generate_dot_file("debug/" + base_name + "_tackyAST.dot", *(tacky_ast.get()));
+            LOG_DEBUG(LOG_CONTEXT, "Generated AST visualization in 'ast.dot'");
+        }
+    } catch (const tacky::TackyGeneratorError& e) {
+        throw CompilerError(std::format("TackyGenerator: {}", e.what()));
+    } catch (const std::exception& e) {
+        throw CompilerError(std::format(
+            "Unexpected error during tacky generation stage: {}\n"
+            "This may indicate a bug in the compiler - please report this issue",
+            e.what()));
+    }
+
+    if (operation == "--tacky") {
+        LOG_INFO(LOG_CONTEXT, "Tacky generation operation completed successfully");
+        return;
+    }
+        
     // Code generation stage
     LOG_INFO(LOG_CONTEXT, "Starting assembly generation stage");
 

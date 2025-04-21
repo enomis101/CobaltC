@@ -52,10 +52,39 @@ void PrinterVisitor::visit(NegateOperator& node)
     m_dot_content << "  node" << id << " [label=\"NegateOperator\"];\n";
 }
 
-void PrinterVisitor::visit(UnaryExpression& node)
+void PrinterVisitor::visit(Constant& node)
 {
     int id = get_node_id(&node);
-    m_dot_content << "  node" << id << " [label=\"UnaryExpression\"];\n";
+    m_dot_content << "  node" << id << " [label=\"Constant\\nvalue: " << node.value << "\"];\n";
+}
+
+void PrinterVisitor::visit(TemporaryVariable& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"TemporaryVariable\"];\n";
+    
+    // Visit the contained identifier
+    node.identifier.accept(*this);
+    m_dot_content << "  node" << id << " -> node" << get_node_id(&node.identifier)
+                  << " [label=\"identifier\"];\n";
+}
+
+void PrinterVisitor::visit(ReturnInstruction& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"ReturnInstruction\"];\n";
+
+    if (node.value) {
+        node.value->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.value.get())
+                      << " [label=\"value\"];\n";
+    }
+}
+
+void PrinterVisitor::visit(UnaryInstruction& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"UnaryInstruction\"];\n";
 
     if (node.unary_operator) {
         node.unary_operator->accept(*this);
@@ -63,28 +92,16 @@ void PrinterVisitor::visit(UnaryExpression& node)
                       << " [label=\"unary_operator\"];\n";
     }
 
-    if (node.expression) {
-        node.expression->accept(*this);
-        m_dot_content << "  node" << id << " -> node" << get_node_id(node.expression.get())
-                      << " [label=\"expression\"];\n";
+    if (node.source) {
+        node.source->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.source.get())
+                      << " [label=\"source\"];\n";
     }
-}
 
-void PrinterVisitor::visit(ConstantExpression& node)
-{
-    int id = get_node_id(&node);
-    m_dot_content << "  node" << id << " [label=\"ConstantExpression\\nvalue: " << node.value << "\"];\n";
-}
-
-void PrinterVisitor::visit(ReturnStatement& node)
-{
-    int id = get_node_id(&node);
-    m_dot_content << "  node" << id << " [label=\"ReturnStatement\"];\n";
-
-    if (node.expression) {
-        node.expression->accept(*this);
-        m_dot_content << "  node" << id << " -> node" << get_node_id(node.expression.get())
-                      << " [label=\"expression\"];\n";
+    if (node.destination) {
+        node.destination->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.destination.get())
+                      << " [label=\"destination\"];\n";
     }
 }
 
@@ -93,15 +110,18 @@ void PrinterVisitor::visit(Function& node)
     int id = get_node_id(&node);
     m_dot_content << "  node" << id << " [label=\"Function\"];\n";
 
-
+    // Process the name identifier
     node.name.accept(*this);
     m_dot_content << "  node" << id << " -> node" << get_node_id(&node.name)
-                    << " [label=\"name\"];\n";
+                  << " [label=\"name\"];\n";
 
-    if (node.body) {
-        node.body->accept(*this);
-        m_dot_content << "  node" << id << " -> node" << get_node_id(node.body.get())
-                      << " [label=\"body\"];\n";
+    // Process the instruction vector
+    for (size_t i = 0; i < node.body.size(); ++i) {
+        if (node.body[i]) {
+            node.body[i]->accept(*this);
+            m_dot_content << "  node" << id << " -> node" << get_node_id(node.body[i].get())
+                          << " [label=\"body[" << i << "]\"];\n";
+        }
     }
 }
 

@@ -1,6 +1,6 @@
 #include "compiler/compiler_application.h"
-#include "asmgen/asmgen_builder.h"
-#include "asmgen/code_emitter.h"
+#include "assembly/assembly_generator.h"
+#include "assembly/code_emitter.h"
 #include "common/data/token.h"
 #include "common/log/log.h"
 #include "lexer/lexer.h"
@@ -166,11 +166,11 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
     // Code generation stage
     LOG_INFO(LOG_CONTEXT, "Starting assembly generation stage");
 
-    std::shared_ptr<asmgen::AsmGenAST> asmgen_ast;
+    std::shared_ptr<assembly::AssemblyAST> assembly_ast;
     try {
-        asmgen::AssemblyGenerator assembly_generator(parser_ast);
-        asmgen_ast = assembly_generator.generate();
-    } catch (const asmgen::AsmGenError& e) {
+        assembly::AssemblyGenerator assembly_generator(parser_ast);
+        assembly_ast = assembly_generator.generate();
+    } catch (const assembly::AssemblyGeneratorError& e) {
         throw CompilerError(std::format("AssemblyGeneration: {}", e.what()));
     } catch (const std::exception& e) {
         throw CompilerError(std::format(
@@ -189,9 +189,9 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
     LOG_INFO(LOG_CONTEXT, std::format("Generating assembly file '{}'", assembly_file));
 
     try {
-        asmgen::CodeEmitter code_emitter(assembly_file, asmgen_ast);
+        assembly::CodeEmitter code_emitter(assembly_file, assembly_ast);
         code_emitter.emit_code();
-    } catch (const asmgen::CodeEmitterError& e) {
+    } catch (const assembly::CodeEmitterError& e) {
         throw CompilerError(std::format("CodeEmitter error: {}", e.what()));
     } catch (const std::exception& e) {
         throw CompilerError(std::format(

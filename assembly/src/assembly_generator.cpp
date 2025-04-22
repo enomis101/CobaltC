@@ -5,6 +5,86 @@
 
 using namespace assembly;
 
+PseudoRegisterReplaceStep::PseudoRegisterReplaceStep(std::shared_ptr<AssemblyAST> ast)
+    : m_ast{ast}
+{
+    if (!m_ast || !dynamic_cast<Program*>(m_ast.get())) {
+        throw AssemblyGeneratorError("PseudoRegisterReplaceStep: Invalid AST");
+    }
+}
+
+void PseudoRegisterReplaceStep::replace()
+{
+    m_stack_offsets.clear();
+}
+
+void PseudoRegisterReplaceStep::visit(Identifier& node)
+{
+
+}
+
+void PseudoRegisterReplaceStep::visit(ImmediateValue& node)
+{
+
+}
+
+void PseudoRegisterReplaceStep::visit(Register& node)
+{
+
+}
+
+void PseudoRegisterReplaceStep::visit(PseudoRegister& node)
+{
+
+}
+
+void PseudoRegisterReplaceStep::visit(StackAddress& node)
+{
+
+}
+
+void PseudoRegisterReplaceStep::visit(NotOperator& node)
+{
+
+}
+
+void PseudoRegisterReplaceStep::visit(NegOperator& node)
+{
+
+}
+
+void PseudoRegisterReplaceStep::visit(ReturnInstruction& node)
+{
+
+}
+
+void PseudoRegisterReplaceStep::visit(MovInstruction& node)
+{
+
+}
+
+void PseudoRegisterReplaceStep::visit(UnaryInstruction& node)
+{
+
+}
+
+void PseudoRegisterReplaceStep::visit(AllocateStackInstruction& node)
+{
+
+}
+
+void PseudoRegisterReplaceStep::visit(Function& node)
+{
+
+}
+
+void PseudoRegisterReplaceStep::visit(Program& node)
+{
+
+}
+
+
+
 AssemblyGenerator::AssemblyGenerator(std::shared_ptr<tacky::TackyAST> ast)
     : m_ast { ast }
 {
@@ -13,9 +93,9 @@ AssemblyGenerator::AssemblyGenerator(std::shared_ptr<tacky::TackyAST> ast)
     }
 }
 
-std::unique_ptr<AssemblyAST> AssemblyGenerator::generate()
+std::shared_ptr<AssemblyAST> AssemblyGenerator::generate()
 {
-    return transform_program(*dynamic_cast<tacky::Program*>(m_ast.get()));
+    std::shared_ptr<AssemblyAST> m_stage1_ast = transform_program(*dynamic_cast<tacky::Program*>(m_ast.get()));
 }
 
 std::unique_ptr<Operand> AssemblyGenerator::transform_operand(tacky::Value& val)

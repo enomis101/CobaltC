@@ -6,84 +6,102 @@
 using namespace assembly;
 
 PseudoRegisterReplaceStep::PseudoRegisterReplaceStep(std::shared_ptr<AssemblyAST> ast)
-    : m_ast{ast}
+    : m_ast { ast }
 {
     if (!m_ast || !dynamic_cast<Program*>(m_ast.get())) {
         throw AssemblyGeneratorError("PseudoRegisterReplaceStep: Invalid AST");
     }
 }
 
-void PseudoRegisterReplaceStep::replace()
+int PseudoRegisterReplaceStep::replace()
 {
     m_stack_offsets.clear();
-}
-
-void PseudoRegisterReplaceStep::visit(Identifier& node)
-{
-
-}
-
-void PseudoRegisterReplaceStep::visit(ImmediateValue& node)
-{
-
-}
-
-void PseudoRegisterReplaceStep::visit(Register& node)
-{
-
-}
-
-void PseudoRegisterReplaceStep::visit(PseudoRegister& node)
-{
-
-}
-
-void PseudoRegisterReplaceStep::visit(StackAddress& node)
-{
-
-}
-
-void PseudoRegisterReplaceStep::visit(NotOperator& node)
-{
-
-}
-
-void PseudoRegisterReplaceStep::visit(NegOperator& node)
-{
-
-}
-
-void PseudoRegisterReplaceStep::visit(ReturnInstruction& node)
-{
-
+    m_ast->accept(*this);
+    return m_stack_offsets.size() * -4;
 }
 
 void PseudoRegisterReplaceStep::visit(MovInstruction& node)
 {
-
+    check_and_replace(node.source);
+    check_and_replace(node.destination);
 }
 
 void PseudoRegisterReplaceStep::visit(UnaryInstruction& node)
 {
-
-}
-
-void PseudoRegisterReplaceStep::visit(AllocateStackInstruction& node)
-{
-
+    check_and_replace(node.operand);
 }
 
 void PseudoRegisterReplaceStep::visit(Function& node)
 {
-
+    for (auto& i : node.instructions) {
+        i->accept(*this);
+    }
 }
 
 void PseudoRegisterReplaceStep::visit(Program& node)
 {
-
+    node.function->accept(*this);
 }
 
+void PseudoRegisterReplaceStep::check_and_replace(std::unique_ptr<Operand>& op)
+{
+    if (PseudoRegister* reg = dynamic_cast<PseudoRegister*>(op.get())) {
+        int offset = get_offset(reg->identifier.name);
 
+        std::unique_ptr<Operand> stack = std::make_unique<StackAddress>(offset);
+        op = std::move(stack);
+    }
+}
+
+int PseudoRegisterReplaceStep::get_offset(const std::string& name)
+{
+    if (!m_stack_offsets.contains(name)) {
+        m_stack_offsets[name] = m_stack_offsets.size() + 1;
+    }
+
+    return m_stack_offsets[name] * -4;
+}
+
+FixUpInstructionsStep::FixUpInstructionsStep(std::shared_ptr<AssemblyAST> ast, int stack_offset)
+    : m_ast { ast }
+    , m_stack_offset { stack_offset }
+{
+    if (!m_ast || !dynamic_cast<Program*>(m_ast.get())) {
+        throw AssemblyGeneratorError("FixUpInstructionsStep: Invalid AST");
+    }
+}
+
+void FixUpInstructionsStep::fixup()
+{
+    m_ast->accept(*this);
+}
+
+void FixUpInstructionsStep::visit(Function& node)
+{
+    std::vector<std::unique_ptr<Instruction>> tmp_instructions = std::move(node.instructions);
+    node.instructions.clear();
+
+    node.instructions.emplace_back(std::make_unique<AllocateStackInstruction>(m_stack_offset));
+    for (auto& i : tmp_instructions) {
+        if (MovInstruction* mov = dynamic_cast<MovInstruction*>(i.get())) {
+            StackAddress* source = dynamic_cast<StackAddress*>(mov->source.get());
+            StackAddress* destination = dynamic_cast<StackAddress*>(mov->destination.get());
+            if (source && destination) {
+                // Invalid mov instruction, replace it with two mov instructions
+                node.instructions.emplace_back(std::make_unique<MovInstruction>(std::move(mov->source), std::make_unique<Register>(RegisterName::R10)));
+                node.instructions.emplace_back(std::make_unique<MovInstruction>(std::make_unique<Register>(RegisterName::R10), std::move(mov->destination)));
+                i.release();
+                continue;
+            }
+        }
+        node.instructions.push_back(std::move(i));
+    }
+}
+
+void FixUpInstructionsStep::visit(Program& node)
+{
+    node.function->accept(*this);
+}
 
 AssemblyGenerator::AssemblyGenerator(std::shared_ptr<tacky::TackyAST> ast)
     : m_ast { ast }
@@ -95,7 +113,13 @@ AssemblyGenerator::AssemblyGenerator(std::shared_ptr<tacky::TackyAST> ast)
 
 std::shared_ptr<AssemblyAST> AssemblyGenerator::generate()
 {
-    std::shared_ptr<AssemblyAST> m_stage1_ast = transform_program(*dynamic_cast<tacky::Program*>(m_ast.get()));
+    std::shared_ptr<AssemblyAST> m_assembly_ast = transform_program(*dynamic_cast<tacky::Program*>(m_ast.get()));
+
+    PseudoRegisterReplaceStep step1(m_assembly_ast);
+    int offset = step1.replace();
+    FixUpInstructionsStep step2(m_assembly_ast, offset);
+    step2.fixup();
+    return m_assembly_ast;
 }
 
 std::unique_ptr<Operand> AssemblyGenerator::transform_operand(tacky::Value& val)

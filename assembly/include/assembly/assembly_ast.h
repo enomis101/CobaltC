@@ -166,17 +166,17 @@ public:
 
 class MovInstruction : public Instruction {
 public:
-    MovInstruction(std::unique_ptr<Operand> s, std::unique_ptr<Operand> d)
-        : src(std::move(s))
-        , dst(std::move(d))
+    MovInstruction(std::unique_ptr<Operand> src, std::unique_ptr<Operand> dst)
+        : source(std::move(src))
+        , destination(std::move(dst))
     {
     }
     void accept(AssemblyVisitor& visitor) override
     {
         visitor.visit(*this);
     }
-    std::unique_ptr<Operand> src;
-    std::unique_ptr<Operand> dst;
+    std::unique_ptr<Operand> source;
+    std::unique_ptr<Operand> destination;
 };
 
 class UnaryInstruction : public Instruction {

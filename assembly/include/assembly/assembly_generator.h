@@ -14,29 +14,59 @@ public:
     }
 };
 
-class PseudoRegisterReplaceStep : public AssemblyVisitor{
+class PseudoRegisterReplaceStep : public AssemblyVisitor {
 public:
     PseudoRegisterReplaceStep(std::shared_ptr<AssemblyAST> ast);
 
-    void replace();
+    int replace();
+
 private:
-    //Assembly Visitor Interface
-    void visit(Identifier& node) override;
-    void visit(ImmediateValue& node) override;
-    void visit(Register& node) override;
-    void visit(PseudoRegister& node) override;
-    void visit(StackAddress& node) override;
-    void visit(NotOperator& node) override;
-    void visit(NegOperator& node) override;
-    void visit(ReturnInstruction& node) override;
+    // Assembly Visitor Interface
+    void visit(Identifier& node) override { }
+    void visit(ImmediateValue& node) override { }
+    void visit(Register& node) override { }
+    void visit(PseudoRegister& node) override { }
+    void visit(StackAddress& node) override { }
+    void visit(NotOperator& node) override { }
+    void visit(NegOperator& node) override { }
+    void visit(ReturnInstruction& node) override { }
     void visit(MovInstruction& node) override;
     void visit(UnaryInstruction& node) override;
-    void visit(AllocateStackInstruction& node) override;
+    void visit(AllocateStackInstruction& node) override { }
+    void visit(Function& node) override;
+    void visit(Program& node) override;
+
+    int get_offset(const std::string& name);
+    void check_and_replace(std::unique_ptr<Operand>& op);
+
+    std::shared_ptr<AssemblyAST> m_ast;
+    std::unordered_map<std::string, int> m_stack_offsets;
+};
+
+class FixUpInstructionsStep : public AssemblyVisitor {
+public:
+    FixUpInstructionsStep(std::shared_ptr<AssemblyAST> ast, int stack_offset);
+
+    void fixup();
+
+private:
+    // Assembly Visitor Interface
+    void visit(Identifier& node) override { }
+    void visit(ImmediateValue& node) override { }
+    void visit(Register& node) override { }
+    void visit(PseudoRegister& node) override { }
+    void visit(StackAddress& node) override { }
+    void visit(NotOperator& node) override { }
+    void visit(NegOperator& node) override { }
+    void visit(ReturnInstruction& node) override { }
+    void visit(MovInstruction& node) override { }
+    void visit(UnaryInstruction& node) override { }
+    void visit(AllocateStackInstruction& node) override { }
     void visit(Function& node) override;
     void visit(Program& node) override;
 
     std::shared_ptr<AssemblyAST> m_ast;
-    std::unordered_map<std::string, int> m_stack_offsets;
+    int m_stack_offset;
 };
 
 // Generate an AssemblyAST from a TackyAST

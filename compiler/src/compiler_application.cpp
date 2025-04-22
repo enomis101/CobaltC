@@ -168,7 +168,7 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
 
     std::shared_ptr<assembly::AssemblyAST> assembly_ast;
     try {
-        assembly::AssemblyGenerator assembly_generator(parser_ast);
+        assembly::AssemblyGenerator assembly_generator(tacky_ast);
         assembly_ast = assembly_generator.generate();
     } catch (const assembly::AssemblyGeneratorError& e) {
         throw CompilerError(std::format("AssemblyGeneration: {}", e.what()));

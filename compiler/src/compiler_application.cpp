@@ -1,5 +1,6 @@
 #include "compiler/compiler_application.h"
 #include "assembly/assembly_generator.h"
+#include "assembly/assembly_printer.h"
 #include "assembly/code_emitter.h"
 #include "common/data/token.h"
 #include "common/log/log.h"
@@ -170,6 +171,14 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
     try {
         assembly::AssemblyGenerator assembly_generator(tacky_ast);
         assembly_ast = assembly_generator.generate();
+        if (logging::LogManager::logger()->is_enabled(LOG_CONTEXT, logging::LogLevel::DEBUG)) {
+            std::string debug_str = "Parsed Program\n";
+            LOG_DEBUG(LOG_CONTEXT, debug_str);
+            assembly::PrinterVisitor printer;
+            std::string base_name = file_path.stem().string();
+            printer.generate_dot_file("debug/" + base_name + "_assemblyAST.dot", *(assembly_ast.get()));
+            LOG_DEBUG(LOG_CONTEXT, "Generated AssemblyAST visualization in 'ast.dot'");
+        }
     } catch (const assembly::AssemblyGeneratorError& e) {
         throw CompilerError(std::format("AssemblyGeneration: {}", e.what()));
     } catch (const std::exception& e) {

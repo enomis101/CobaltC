@@ -54,8 +54,14 @@ void PrinterVisitor::visit(Register& node)
     case RegisterName::AX:
         reg_name = "AX";
         break;
+    case RegisterName::DX:
+        reg_name = "DX";
+        break;
     case RegisterName::R10:
         reg_name = "R10";
+        break;
+    case RegisterName::R11:
+        reg_name = "R11";
         break;
     }
     m_dot_content << "  node" << id << " [label=\"Register\\nname: " << reg_name << "\"];\n";
@@ -76,24 +82,6 @@ void PrinterVisitor::visit(StackAddress& node)
 {
     int id = get_node_id(&node);
     m_dot_content << "  node" << id << " [label=\"StackAddress\\noffset: " << node.offset << "\"];\n";
-}
-
-void PrinterVisitor::visit(NotOperator& node)
-{
-    int id = get_node_id(&node);
-    m_dot_content << "  node" << id << " [label=\"NotOperator\"];\n";
-}
-
-void PrinterVisitor::visit(NegOperator& node)
-{
-    int id = get_node_id(&node);
-    m_dot_content << "  node" << id << " [label=\"NegOperator\"];\n";
-}
-
-void PrinterVisitor::visit(ReturnInstruction& node)
-{
-    int id = get_node_id(&node);
-    m_dot_content << "  node" << id << " [label=\"ReturnInstruction\"];\n";
 }
 
 void PrinterVisitor::visit(MovInstruction& node)
@@ -131,6 +119,43 @@ void PrinterVisitor::visit(UnaryInstruction& node)
                       << " [label=\"operand\"];\n";
     }
 }
+
+void PrinterVisitor::visit(BinaryInstruction& node) 
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"BinaryInstruction\"];\n";
+
+    if (node.binary_operator) {
+        node.binary_operator->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.binary_operator.get())
+                      << " [label=\"binary_operator\"];\n";
+    }
+
+    if (node.source) {
+        node.source->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.source.get())
+                      << " [label=\"source\"];\n";
+    }
+
+    if (node.destination) {
+        node.destination->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.destination.get())
+                      << " [label=\"destination\"];\n";
+    }
+}
+
+void PrinterVisitor::visit(IdivInstruction& node) 
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"IdivInstruction\"];\n";
+
+    if (node.operand) {
+        node.operand->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.operand.get())
+                      << " [label=\"operand\"];\n";
+    }
+}
+
 
 void PrinterVisitor::visit(AllocateStackInstruction& node)
 {

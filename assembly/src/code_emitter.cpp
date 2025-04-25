@@ -59,8 +59,16 @@ void CodeEmitter::visit(Register& node)
         *m_file_stream << "%eax";
         break;
     }
+    case RegisterName::DX: {
+        *m_file_stream << "%edx";
+        break;
+    }
     case RegisterName::R10: {
         *m_file_stream << "%r10d";
+        break;
+    }
+    case RegisterName::R11: {
+        *m_file_stream << "%r11d";
         break;
     }
     default:
@@ -83,6 +91,22 @@ void CodeEmitter::visit(NegOperator& node)
 {
     *m_file_stream << "negl";
 }
+
+void CodeEmitter::visit(AddOperator& node)
+{
+    *m_file_stream << "addl";
+}
+
+void CodeEmitter::visit(SubOperator& node)
+{
+    *m_file_stream << "subl";
+}
+
+void CodeEmitter::visit(MultOperator& node)
+{
+    *m_file_stream << "imull";
+}
+    
 
 void CodeEmitter::visit(ReturnInstruction& node)
 {
@@ -108,6 +132,31 @@ void CodeEmitter::visit(UnaryInstruction& node)
     node.operand->accept(*this);
     *m_file_stream << "\n";
 }
+
+
+void CodeEmitter::visit(BinaryInstruction& node)
+{
+    *m_file_stream << "\t";
+    node.binary_operator->accept(*this);
+    *m_file_stream << "\t";
+    node.source->accept(*this);
+    *m_file_stream << ",\t";
+    node.destination->accept(*this);
+    *m_file_stream << "\n";
+}
+
+void CodeEmitter::visit(IdivInstruction& node)
+{
+    *m_file_stream << "\tidivl\t";
+    node.operand->accept(*this);
+    *m_file_stream << "\n";
+}
+
+void CodeEmitter::visit(CdqInstruction& node)
+{
+    *m_file_stream << "\tcdq\n";
+}
+
 
 void CodeEmitter::visit(AllocateStackInstruction& node)
 {

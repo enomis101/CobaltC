@@ -28,6 +28,23 @@ std::unique_ptr<UnaryOperator> TackyGenerator::transform_unary_operator(parser::
     }
 }
 
+std::unique_ptr<BinaryOperator> TackyGenerator::transform_binary_operator(parser::BinaryOperator& binary_operator)
+{
+    if (dynamic_cast<parser::AddOperator*>(&binary_operator)) {
+        return std::make_unique<AddOperator>();
+    } else if (dynamic_cast<parser::SubtractOperator*>(&binary_operator)) {
+        return std::make_unique<SubtractOperator>();
+    } else if (dynamic_cast<parser::MultiplyOperator*>(&binary_operator)) {
+        return std::make_unique<MultiplyOperator>();
+    } else if (dynamic_cast<parser::DivideOperator*>(&binary_operator)) {
+        return std::make_unique<DivideOperator>();
+    } else if (dynamic_cast<parser::RemainderOperator*>(&binary_operator)) {
+        return std::make_unique<RemainderOperator>();
+    } else {
+        throw TackyGeneratorError("TackyGenerator: Invalid or Unsuppored BinaryOperator");
+    }
+}
+
 std::unique_ptr<Value> TackyGenerator::transform_expression(parser::Expression& expression, std::vector<std::unique_ptr<Instruction>>& instructions)
 {
     if (parser::ConstantExpression* constant_expression = dynamic_cast<parser::ConstantExpression*>(&expression)) {
@@ -39,6 +56,15 @@ std::unique_ptr<Value> TackyGenerator::transform_expression(parser::Expression& 
         std::unique_ptr<Value> dst_copy = std::make_unique<TemporaryVariable>(*dst);
         std::unique_ptr<UnaryOperator> op = transform_unary_operator(*(unary_expression->unary_operator.get()));
         instructions.emplace_back(std::make_unique<UnaryInstruction>(std::move(op), std::move(src), std::move(dst)));
+        return dst_copy;
+    } else if (parser::BinaryExpression* binary_expression = dynamic_cast<parser::BinaryExpression*>(&expression)) {
+        std::unique_ptr<Value> src1 = transform_expression(*binary_expression->left_expression, instructions);
+        std::unique_ptr<Value> src2 = transform_expression(*binary_expression->right_expression, instructions);
+        std::string dst_name = make_temporary();
+        std::unique_ptr<TemporaryVariable> dst = std::make_unique<TemporaryVariable>(dst_name);
+        std::unique_ptr<Value> dst_copy = std::make_unique<TemporaryVariable>(*dst);
+        std::unique_ptr<BinaryOperator> op = transform_binary_operator(*(binary_expression->binary_operator.get()));
+        instructions.emplace_back(std::make_unique<BinaryInstruction>(std::move(op), std::move(src1), std::move(src2), std::move(dst)));
         return dst_copy;
     } else {
         throw TackyGeneratorError("TackyGenerator: Invalid or Unsuppored Expression");

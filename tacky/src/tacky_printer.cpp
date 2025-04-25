@@ -40,18 +40,6 @@ void PrinterVisitor::visit(Identifier& node)
     m_dot_content << "  node" << id << " [label=\"Identifier\\nname: " << node.name << "\"];\n";
 }
 
-void PrinterVisitor::visit(ComplementOperator& node)
-{
-    int id = get_node_id(&node);
-    m_dot_content << "  node" << id << " [label=\"ComplementOperator\"];\n";
-}
-
-void PrinterVisitor::visit(NegateOperator& node)
-{
-    int id = get_node_id(&node);
-    m_dot_content << "  node" << id << " [label=\"NegateOperator\"];\n";
-}
-
 void PrinterVisitor::visit(Constant& node)
 {
     int id = get_node_id(&node);
@@ -96,6 +84,36 @@ void PrinterVisitor::visit(UnaryInstruction& node)
         node.source->accept(*this);
         m_dot_content << "  node" << id << " -> node" << get_node_id(node.source.get())
                       << " [label=\"source\"];\n";
+    }
+
+    if (node.destination) {
+        node.destination->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.destination.get())
+                      << " [label=\"destination\"];\n";
+    }
+}
+
+void PrinterVisitor::visit(BinaryInstruction& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"BinaryInstruction\"];\n";
+
+    if (node.binary_operator) {
+        node.binary_operator->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.binary_operator.get())
+                      << " [label=\"binary_operator\"];\n";
+    }
+
+    if (node.source1) {
+        node.source1->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.source1.get())
+                      << " [label=\"source1\"];\n";
+    }
+
+    if (node.source2) {
+        node.source2->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.source2.get())
+                      << " [label=\"source2\"];\n";
     }
 
     if (node.destination) {

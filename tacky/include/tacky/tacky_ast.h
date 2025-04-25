@@ -16,10 +16,16 @@ public:
 class Identifier;
 class ComplementOperator;
 class NegateOperator;
+class AddOperator;
+class SubtractOperator;
+class MultiplyOperator;
+class DivideOperator;
+class RemainderOperator;
 class Constant;
 class TemporaryVariable;
 class ReturnInstruction;
 class UnaryInstruction;
+class BinaryInstruction;
 class Function;
 class Program;
 
@@ -29,10 +35,16 @@ public:
     virtual void visit(Identifier& node) = 0;
     virtual void visit(ComplementOperator& node) = 0;
     virtual void visit(NegateOperator& node) = 0;
+    virtual void visit(AddOperator& node) = 0;
+    virtual void visit(SubtractOperator& node) = 0;
+    virtual void visit(MultiplyOperator& node) = 0;
+    virtual void visit(DivideOperator& node) = 0;
+    virtual void visit(RemainderOperator& node) = 0;
     virtual void visit(Constant& node) = 0;
     virtual void visit(TemporaryVariable& node) = 0;
     virtual void visit(ReturnInstruction& node) = 0;
     virtual void visit(UnaryInstruction& node) = 0;
+    virtual void visit(BinaryInstruction& node) = 0;
     virtual void visit(Function& node) = 0;
     virtual void visit(Program& node) = 0;
     virtual ~TackyVisitor() = default;
@@ -67,6 +79,52 @@ public:
 };
 
 class NegateOperator : public UnaryOperator {
+public:
+    void accept(TackyVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+};
+
+// BINARY_OPERATOR
+class BinaryOperator : public TackyAST {
+public:
+    virtual ~BinaryOperator() = default;
+};
+
+class AddOperator : public BinaryOperator {
+public:
+    void accept(TackyVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+};
+
+class SubtractOperator : public BinaryOperator {
+public:
+    void accept(TackyVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+};
+
+class MultiplyOperator : public BinaryOperator {
+public:
+    void accept(TackyVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+};
+
+class DivideOperator : public BinaryOperator {
+public:
+    void accept(TackyVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+};
+
+class RemainderOperator : public BinaryOperator {
 public:
     void accept(TackyVisitor& visitor) override
     {
@@ -145,6 +203,27 @@ public:
 
     std::unique_ptr<UnaryOperator> unary_operator;
     std::unique_ptr<Value> source;
+    std::unique_ptr<Value> destination;
+};
+
+class BinaryInstruction : public Instruction {
+public:
+    BinaryInstruction(std::unique_ptr<BinaryOperator> op, std::unique_ptr<Value> src1, std::unique_ptr<Value> src2, std::unique_ptr<Value> dst)
+        : binary_operator(std::move(op))
+        , source1(std::move(src1))
+        , source2(std::move(src2))
+        , destination(std::move(dst))
+    {
+    }
+
+    void accept(TackyVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    std::unique_ptr<BinaryOperator> binary_operator;
+    std::unique_ptr<Value> source1;
+    std::unique_ptr<Value> source2;
     std::unique_ptr<Value> destination;
 };
 

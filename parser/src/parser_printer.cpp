@@ -40,48 +40,6 @@ void PrinterVisitor::visit(Identifier& node)
     m_dot_content << "  node" << id << " [label=\"Identifier\\nname: " << node.name << "\"];\n";
 }
 
-void PrinterVisitor::visit(ComplementOperator& node)
-{
-    int id = get_node_id(&node);
-    m_dot_content << "  node" << id << " [label=\"ComplementOperator\"];\n";
-}
-
-void PrinterVisitor::visit(NegateOperator& node)
-{
-    int id = get_node_id(&node);
-    m_dot_content << "  node" << id << " [label=\"NegateOperator\"];\n";
-}
-
-void PrinterVisitor::visit(AddOperator& node)
-{
-    int id = get_node_id(&node);
-    m_dot_content << "  node" << id << " [label=\"AddOperator\"];\n";
-}
-
-void PrinterVisitor::visit(SubtractOperator& node)
-{
-    int id = get_node_id(&node);
-    m_dot_content << "  node" << id << " [label=\"SubtractOperator\"];\n";
-}
-
-void PrinterVisitor::visit(MultiplyOperator& node)
-{
-    int id = get_node_id(&node);
-    m_dot_content << "  node" << id << " [label=\"MultiplyOperator\"];\n";
-}
-
-void PrinterVisitor::visit(DivideOperator& node)
-{
-    int id = get_node_id(&node);
-    m_dot_content << "  node" << id << " [label=\"DivideOperator\"];\n";
-}
-
-void PrinterVisitor::visit(RemainderOperator& node)
-{
-    int id = get_node_id(&node);
-    m_dot_content << "  node" << id << " [label=\"RemainderOperator\"];\n";
-}
-
 void PrinterVisitor::visit(UnaryExpression& node)
 {
     int id = get_node_id(&node);
@@ -108,7 +66,7 @@ void PrinterVisitor::visit(BinaryExpression& node)
     if (node.binary_operator) {
         node.binary_operator->accept(*this);
         m_dot_content << "  node" << id << " -> node" << get_node_id(node.binary_operator.get())
-                      << " [label=\"unary_operator\"];\n";
+                      << " [label=\"binary_operator\"];\n";
     }
 
     if (node.left_expression) {

@@ -67,7 +67,39 @@ std::unique_ptr<Statement> Parser::parse_statement()
     }
 }
 
-std::unique_ptr<Expression> Parser::parse_expression()
+// Implement precedence climbing
+std::unique_ptr<Expression> Parser::parse_expression(int min_prec)
+{
+    std::unique_ptr<Expression> left;
+
+    try {
+        left = parse_factor();
+        if (!has_tokens())
+            return left;
+
+        const Token* next_token = &peek();
+        while (next_token && TokenTable::is_binary_operator(next_token->type()) && precedence(*next_token) >= min_prec) {
+
+            std::unique_ptr<BinaryOperator> op = parse_binary_operator();
+            std::unique_ptr<Expression> right = parse_expression(precedence(*next_token) + 1);
+            left = std::make_unique<BinaryExpression>(std::move(op), std::move(left), std::move(right));
+            if (has_tokens()) {
+                next_token = &peek();
+            } else {
+                next_token = nullptr;
+            }
+        }
+        return left;
+    } catch (const ParserError& e) {
+        // Re-throw with expression context
+        throw ParserError(std::format("In factor: {}", e.what()));
+    } catch (const TokenError& e) {
+        // Handle errors from token.literal<int>()
+        throw ParserError(std::format("Invalid constant expression: {}", e.what()));
+    }
+}
+
+std::unique_ptr<Expression> Parser::parse_factor()
 {
     std::unique_ptr<Expression> res;
 
@@ -77,9 +109,9 @@ std::unique_ptr<Expression> Parser::parse_expression()
             take_token();
             res = std::make_unique<ConstantExpression>(next_token.literal<int>());
             return res;
-        } else if (next_token.type() == TokenType::MINUS || next_token.type() == TokenType::COMPLEMENT) {
+        } else if (TokenTable::is_unary_operator(next_token.type())) {
             std::unique_ptr<UnaryOperator> op = parse_unary_operator();
-            std::unique_ptr<Expression> expr = parse_expression();
+            std::unique_ptr<Expression> expr = parse_factor();
             res = std::make_unique<UnaryExpression>(std::move(op), std::move(expr));
             return res;
         } else if (next_token.type() == TokenType::OPEN_PAREN) {
@@ -88,12 +120,12 @@ std::unique_ptr<Expression> Parser::parse_expression()
             expect(TokenType::CLOSE_PAREN);
             return res;
         } else {
-            throw ParserError("Malformed expression");
+            throw ParserError("Malformed Factor");
         }
 
     } catch (const ParserError& e) {
         // Re-throw with expression context
-        throw ParserError(std::format("In expression: {}", e.what()));
+        throw ParserError(std::format("In factor: {}", e.what()));
     } catch (const TokenError& e) {
         // Handle errors from token.literal<int>()
         throw ParserError(std::format("Invalid constant expression: {}", e.what()));
@@ -115,6 +147,32 @@ std::unique_ptr<UnaryOperator> Parser::parse_unary_operator()
     } else {
         throw ParserError(std::format("In UnaryOperator: got {}", Token::type_to_string(next_token.type())));
     }
+}
+
+std::unique_ptr<BinaryOperator> Parser::parse_binary_operator()
+{
+    std::unique_ptr<UnaryOperator> res;
+    const Token& next_token = peek();
+    switch (next_token.type()) {
+    case TokenType::ASTERISK:
+        take_token();
+        return std::make_unique<MultiplyOperator>();
+    case TokenType::FORWARD_SLASH:
+        take_token();
+        return std::make_unique<DivideOperator>();
+    case TokenType::PERCENT:
+        take_token();
+        return std::make_unique<RemainderOperator>();
+    case TokenType::PLUS:
+        take_token();
+        return std::make_unique<AddOperator>();
+    case TokenType::MINUS:
+        take_token();
+        return std::make_unique<SubtractOperator>();
+    default:
+        break;
+    }
+    throw ParserError(std::format("In BinaryOperator: got {}", Token::type_to_string(next_token.type())));
 }
 
 const Token& Parser::expect(TokenType expected)
@@ -142,6 +200,24 @@ const Token& Parser::peek()
         throw ParserError("Unexpected end of file. Trying to peek.");
     }
     return m_tokens[i];
+}
+
+int Parser::precedence(const Token& token)
+{
+    switch (token.type()) {
+    case TokenType::ASTERISK:
+    case TokenType::FORWARD_SLASH:
+    case TokenType::PERCENT: {
+        return 50;
+    }
+    case TokenType::PLUS:
+    case TokenType::MINUS: {
+        return 45;
+    }
+    default: {
+        return 0;
+    }
+    }
 }
 
 void Parser::take_token()

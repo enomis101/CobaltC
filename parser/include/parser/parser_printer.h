@@ -16,7 +16,13 @@ public:
     void visit(Identifier& node) override;
     void visit(ComplementOperator& node) override;
     void visit(NegateOperator& node) override;
+    void visit(AddOperator& node) override;
+    void visit(SubtractOperator& node) override;
+    void visit(MultiplyOperator& node) override;
+    void visit(DivideOperator& node) override;
+    void visit(RemainderOperator& node) override;
     void visit(UnaryExpression& node) override;
+    void visit(BinaryExpression& node) override;
     void visit(ConstantExpression& node) override;
     void visit(ReturnStatement& node) override;
     void visit(Function& node) override;

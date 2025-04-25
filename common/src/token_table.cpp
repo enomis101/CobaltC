@@ -78,6 +78,34 @@ std::optional<TokenType> TokenTable::match(std::string_view lexeme) const
     return res;
 }
 
+bool TokenTable::is_binary_operator(TokenType type)
+{
+    switch (type) {
+    case TokenType::PLUS:
+    case TokenType::MINUS:
+    case TokenType::ASTERISK:
+    case TokenType::FORWARD_SLASH:
+    case TokenType::PERCENT:
+        // Add other binary operators as needed
+        return true;
+    default:
+        return false;
+    }
+}
+
+bool TokenTable::is_unary_operator(TokenType type)
+{
+    switch (type) {
+    case TokenType::MINUS:
+    case TokenType::COMPLEMENT:
+    case TokenType::DECREMENT:
+        // Add other unary operators as needed
+        return true;
+    default:
+        return false;
+    }
+}
+
 TokenTable::TokenTable()
 {
     // Initialize keywords
@@ -96,10 +124,10 @@ TokenTable::TokenTable()
         { ';', TokenType::SEMICOLON },
         { '-', TokenType::MINUS },
         { '~', TokenType::COMPLEMENT },
-        { '+', TokenType::PLUS},
-        { '*', TokenType::ASTERISK},
-        { '/', TokenType::FORWARD_SLASH},
-        { '%', TokenType::PERCENT}
+        { '+', TokenType::PLUS },
+        { '*', TokenType::ASTERISK },
+        { '/', TokenType::FORWARD_SLASH },
+        { '%', TokenType::PERCENT }
     };
 
     m_double_char_tokens = {

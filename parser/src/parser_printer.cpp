@@ -52,6 +52,36 @@ void PrinterVisitor::visit(NegateOperator& node)
     m_dot_content << "  node" << id << " [label=\"NegateOperator\"];\n";
 }
 
+void PrinterVisitor::visit(AddOperator& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"AddOperator\"];\n";
+}
+
+void PrinterVisitor::visit(SubtractOperator& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"SubtractOperator\"];\n";
+}
+
+void PrinterVisitor::visit(MultiplyOperator& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"MultiplyOperator\"];\n";
+}
+
+void PrinterVisitor::visit(DivideOperator& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"DivideOperator\"];\n";
+}
+
+void PrinterVisitor::visit(RemainderOperator& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"RemainderOperator\"];\n";
+}
+
 void PrinterVisitor::visit(UnaryExpression& node)
 {
     int id = get_node_id(&node);
@@ -67,6 +97,30 @@ void PrinterVisitor::visit(UnaryExpression& node)
         node.expression->accept(*this);
         m_dot_content << "  node" << id << " -> node" << get_node_id(node.expression.get())
                       << " [label=\"expression\"];\n";
+    }
+}
+
+void PrinterVisitor::visit(BinaryExpression& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"BinaryExpression\"];\n";
+
+    if (node.binary_operator) {
+        node.binary_operator->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.binary_operator.get())
+                      << " [label=\"unary_operator\"];\n";
+    }
+
+    if (node.left_expression) {
+        node.left_expression->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.left_expression.get())
+                      << " [label=\"left_expression\"];\n";
+    }
+
+    if (node.right_expression) {
+        node.right_expression->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.right_expression.get())
+                      << " [label=\"right_expression\"];\n";
     }
 }
 

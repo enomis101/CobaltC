@@ -19,7 +19,11 @@ enum class TokenType {
     SEMICOLON,
     MINUS,
     DECREMENT,
-    COMPLEMENT
+    COMPLEMENT,
+    PLUS,
+    ASTERISK,
+    FORWARD_SLASH,
+    PERCENT
     // Add other types as needed
 };
 

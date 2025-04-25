@@ -95,7 +95,11 @@ TokenTable::TokenTable()
         { '}', TokenType::CLOSE_BRACE },
         { ';', TokenType::SEMICOLON },
         { '-', TokenType::MINUS },
-        { '~', TokenType::COMPLEMENT }
+        { '~', TokenType::COMPLEMENT },
+        { '+', TokenType::PLUS},
+        { '*', TokenType::ASTERISK},
+        { '/', TokenType::FORWARD_SLASH},
+        { '%', TokenType::PERCENT}
     };
 
     m_double_char_tokens = {

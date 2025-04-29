@@ -18,11 +18,11 @@ public:
     void visit(Register& node) override;
     void visit(PseudoRegister& node) override;
     void visit(StackAddress& node) override;
-    void visit(NotOperator& node)  { visit_simple_node(node); }
-    void visit(NegOperator& node)  { visit_simple_node(node); }
-    void visit(AddOperator& node)  { visit_simple_node(node); }
-    void visit(SubOperator& node)  { visit_simple_node(node); }
-    void visit(MultOperator& node)  { visit_simple_node(node); }
+    void visit(NotOperator& node) { visit_simple_node(node); }
+    void visit(NegOperator& node) { visit_simple_node(node); }
+    void visit(AddOperator& node) { visit_simple_node(node); }
+    void visit(SubOperator& node) { visit_simple_node(node); }
+    void visit(MultOperator& node) { visit_simple_node(node); }
     void visit(ReturnInstruction& node) { visit_simple_node(node); }
     void visit(MovInstruction& node) override;
     void visit(UnaryInstruction& node) override;

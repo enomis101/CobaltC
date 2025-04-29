@@ -87,7 +87,6 @@ void FixUpInstructionsStep::fixup()
     m_ast->accept(*this);
 }
 
-
 void FixUpInstructionsStep::visit(Function& node)
 {
     std::vector<std::unique_ptr<Instruction>> tmp_instructions = std::move(node.instructions);
@@ -97,30 +96,28 @@ void FixUpInstructionsStep::visit(Function& node)
     for (auto& i : tmp_instructions) {
         if (dynamic_cast<MovInstruction*>(i.get())) {
             fixup_double_stack_address_instruction<MovInstruction>(i, node.instructions);
-        }
-        else if(BinaryInstruction* binary_instruction = dynamic_cast<BinaryInstruction*>(i.get())){
-            if(dynamic_cast<AddOperator*>(binary_instruction->binary_operator.get()) || dynamic_cast<SubOperator*>(binary_instruction->binary_operator.get())){
+        } else if (BinaryInstruction* binary_instruction = dynamic_cast<BinaryInstruction*>(i.get())) {
+            if (dynamic_cast<AddOperator*>(binary_instruction->binary_operator.get()) || dynamic_cast<SubOperator*>(binary_instruction->binary_operator.get())) {
                 fixup_double_stack_address_instruction<BinaryInstruction>(i, node.instructions);
-            } else if(dynamic_cast<MultOperator*>(binary_instruction->binary_operator.get())){
-                //imul cant use memory addresses as its destination
+            } else if (dynamic_cast<MultOperator*>(binary_instruction->binary_operator.get())) {
+                // imul cant use memory addresses as its destination
                 std::unique_ptr<Operand> destination_copy = binary_instruction->destination->clone();
-                //Load destination into R11 register
+                // Load destination into R11 register
                 node.instructions.emplace_back(std::make_unique<MovInstruction>(std::move(binary_instruction->destination), std::make_unique<Register>(RegisterName::R11)));
                 binary_instruction->destination = std::make_unique<Register>(RegisterName::R11);
                 node.instructions.emplace_back(std::move(i));
                 node.instructions.emplace_back(std::make_unique<MovInstruction>(std::make_unique<Register>(RegisterName::R11), std::move(destination_copy)));
-            }
-            else{
+            } else {
                 node.instructions.push_back(std::move(i));
             }
-        } else if(IdivInstruction* div_instruction = dynamic_cast<IdivInstruction*>(i.get())){
-            //idiv cant operate on immediate values:
-            if(dynamic_cast<ImmediateValue*>(div_instruction->operand.get())){
+        } else if (IdivInstruction* div_instruction = dynamic_cast<IdivInstruction*>(i.get())) {
+            // idiv cant operate on immediate values:
+            if (dynamic_cast<ImmediateValue*>(div_instruction->operand.get())) {
                 node.instructions.emplace_back(std::make_unique<MovInstruction>(std::move(div_instruction->operand), std::make_unique<Register>(RegisterName::R10)));
                 div_instruction->operand = std::make_unique<Register>(RegisterName::R10);
             }
             node.instructions.emplace_back(std::move(i));
-        } else{
+        } else {
             node.instructions.emplace_back(std::move(i));
         }
     }

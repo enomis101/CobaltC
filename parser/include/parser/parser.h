@@ -31,8 +31,8 @@ private:
     std::unique_ptr<Statement> parse_statement();
     std::unique_ptr<Expression> parse_expression(int min_prec = 0);
     std::unique_ptr<Expression> parse_factor();
-    std::unique_ptr<UnaryOperator> parse_unary_operator();
-    std::unique_ptr<BinaryOperator> parse_binary_operator();
+    UnaryOperator parse_unary_operator();
+    BinaryOperator parse_binary_operator();
 
     // std::unique_ptr<Identifier> parse_identifier();
 

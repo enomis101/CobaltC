@@ -21,22 +21,22 @@ enum class TokenType {
     MINUS,
     DECREMENT,
     COMPLEMENT,
-    EXCLAMATION_POINT,  // !
+    EXCLAMATION_POINT, // !
     // BINARY_OPERATORS
     PLUS,
     ASTERISK,
     FORWARD_SLASH,
     PERCENT,
     // LOGICAL_OPERATORS
-    LOGICAL_AND,        // &&
-    LOGICAL_OR,         // ||
+    LOGICAL_AND, // &&
+    LOGICAL_OR,  // ||
     // COMPARISON_OPERATORS
-    EQUAL,              // ==
-    NOT_EQUAL,          // !=
-    LESS_THAN,          // <
-    GREATER_THAN,       // >
-    LESS_THAN_EQUAL,    // <=
-    GREATER_THAN_EQUAL  // >=
+    EQUAL,             // ==
+    NOT_EQUAL,         // !=
+    LESS_THAN,         // <
+    GREATER_THAN,      // >
+    LESS_THAN_EQUAL,   // <=
+    GREATER_THAN_EQUAL // >=
     // Add other types as needed
 };
 class TokenTable {

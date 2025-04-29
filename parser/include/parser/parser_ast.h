@@ -14,13 +14,6 @@ public:
 
 // Forward declaration of node types
 class Identifier;
-class ComplementOperator;
-class NegateOperator;
-class AddOperator;
-class SubtractOperator;
-class MultiplyOperator;
-class DivideOperator;
-class RemainderOperator;
 class UnaryExpression;
 class BinaryExpression;
 class ConstantExpression;
@@ -32,13 +25,6 @@ class Program;
 class ParserVisitor {
 public:
     virtual void visit(Identifier& node) = 0;
-    virtual void visit(ComplementOperator& node) = 0;
-    virtual void visit(NegateOperator& node) = 0;
-    virtual void visit(AddOperator& node) = 0;
-    virtual void visit(SubtractOperator& node) = 0;
-    virtual void visit(MultiplyOperator& node) = 0;
-    virtual void visit(DivideOperator& node) = 0;
-    virtual void visit(RemainderOperator& node) = 0;
     virtual void visit(UnaryExpression& node) = 0;
     virtual void visit(BinaryExpression& node) = 0;
     virtual void visit(ConstantExpression& node) = 0;
@@ -48,72 +34,26 @@ public:
     virtual ~ParserVisitor() = default;
 };
 
-// UNARY_OPERATOR
-class UnaryOperator : public ParserAST {
-public:
-    virtual ~UnaryOperator() = default;
+enum class UnaryOperator {
+    COMPLEMENT,
+    NEGATE,
+    NOT
 };
 
-class ComplementOperator : public UnaryOperator {
-public:
-    void accept(ParserVisitor& visitor) override
-    {
-        visitor.visit(*this);
-    }
-};
-
-class NegateOperator : public UnaryOperator {
-public:
-    void accept(ParserVisitor& visitor) override
-    {
-        visitor.visit(*this);
-    }
-};
-
-// BINARY_OPERATOR
-class BinaryOperator : public ParserAST {
-public:
-    virtual ~BinaryOperator() = default;
-};
-
-class AddOperator : public BinaryOperator {
-public:
-    void accept(ParserVisitor& visitor) override
-    {
-        visitor.visit(*this);
-    }
-};
-
-class SubtractOperator : public BinaryOperator {
-public:
-    void accept(ParserVisitor& visitor) override
-    {
-        visitor.visit(*this);
-    }
-};
-
-class MultiplyOperator : public BinaryOperator {
-public:
-    void accept(ParserVisitor& visitor) override
-    {
-        visitor.visit(*this);
-    }
-};
-
-class DivideOperator : public BinaryOperator {
-public:
-    void accept(ParserVisitor& visitor) override
-    {
-        visitor.visit(*this);
-    }
-};
-
-class RemainderOperator : public BinaryOperator {
-public:
-    void accept(ParserVisitor& visitor) override
-    {
-        visitor.visit(*this);
-    }
+enum class BinaryOperator {
+    ADD,
+    SUBTRACT,
+    MULTIPLY,
+    DIVIDE,
+    REMAINDER,
+    AND,
+    OR,
+    EQUAL,
+    NOT_EQUAL,
+    LESS_THAN,
+    LESS_OR_EQUAL,
+    GREATER_THAN,
+    GREATER_OR_EQUAL
 };
 
 // Abstract class for all expressions
@@ -139,7 +79,7 @@ public:
 
 class UnaryExpression : public Expression {
 public:
-    UnaryExpression(std::unique_ptr<UnaryOperator> op, std::unique_ptr<Expression> expr)
+    UnaryExpression(UnaryOperator op, std::unique_ptr<Expression> expr)
         : unary_operator(std::move(op))
         , expression(std::move(expr))
     {
@@ -150,13 +90,13 @@ public:
         visitor.visit(*this);
     }
 
-    std::unique_ptr<UnaryOperator> unary_operator;
+    UnaryOperator unary_operator;
     std::unique_ptr<Expression> expression;
 };
 
 class BinaryExpression : public Expression {
 public:
-    BinaryExpression(std::unique_ptr<BinaryOperator> op, std::unique_ptr<Expression> l, std::unique_ptr<Expression> r)
+    BinaryExpression(BinaryOperator op, std::unique_ptr<Expression> l, std::unique_ptr<Expression> r)
         : binary_operator(std::move(op))
         , left_expression(std::move(l))
         , right_expression(std::move(r))
@@ -168,7 +108,7 @@ public:
         visitor.visit(*this);
     }
 
-    std::unique_ptr<BinaryOperator> binary_operator;
+    BinaryOperator binary_operator;
     std::unique_ptr<Expression> left_expression;
     std::unique_ptr<Expression> right_expression;
 };

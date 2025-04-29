@@ -19,28 +19,37 @@ std::shared_ptr<TackyAST> TackyGenerator::generate()
 
 std::unique_ptr<UnaryOperator> TackyGenerator::transform_unary_operator(parser::UnaryOperator& unary_operator)
 {
-    if (dynamic_cast<parser::NegateOperator*>(&unary_operator)) {
+    switch (unary_operator) {
+    case parser::UnaryOperator::NEGATE: {
         return std::make_unique<NegateOperator>();
-    } else if (dynamic_cast<parser::ComplementOperator*>(&unary_operator)) {
+    }
+    case parser::UnaryOperator::COMPLEMENT: {
         return std::make_unique<ComplementOperator>();
-    } else {
+    }
+    default:
         throw TackyGeneratorError("TackyGenerator: Invalid or Unsuppored UnaryOperator");
     }
 }
 
 std::unique_ptr<BinaryOperator> TackyGenerator::transform_binary_operator(parser::BinaryOperator& binary_operator)
 {
-    if (dynamic_cast<parser::AddOperator*>(&binary_operator)) {
+    switch (binary_operator) {
+    case parser::BinaryOperator::ADD: {
         return std::make_unique<AddOperator>();
-    } else if (dynamic_cast<parser::SubtractOperator*>(&binary_operator)) {
+    }
+    case parser::BinaryOperator::SUBTRACT: {
         return std::make_unique<SubtractOperator>();
-    } else if (dynamic_cast<parser::MultiplyOperator*>(&binary_operator)) {
+    }
+    case parser::BinaryOperator::MULTIPLY: {
         return std::make_unique<MultiplyOperator>();
-    } else if (dynamic_cast<parser::DivideOperator*>(&binary_operator)) {
+    }
+    case parser::BinaryOperator::DIVIDE: {
         return std::make_unique<DivideOperator>();
-    } else if (dynamic_cast<parser::RemainderOperator*>(&binary_operator)) {
+    }
+    case parser::BinaryOperator::REMAINDER: {
         return std::make_unique<RemainderOperator>();
-    } else {
+    }
+    default:
         throw TackyGeneratorError("TackyGenerator: Invalid or Unsuppored BinaryOperator");
     }
 }
@@ -54,7 +63,7 @@ std::unique_ptr<Value> TackyGenerator::transform_expression(parser::Expression& 
         std::string dst_name = make_temporary();
         std::unique_ptr<TemporaryVariable> dst = std::make_unique<TemporaryVariable>(dst_name);
         std::unique_ptr<Value> dst_copy = std::make_unique<TemporaryVariable>(*dst);
-        std::unique_ptr<UnaryOperator> op = transform_unary_operator(*(unary_expression->unary_operator.get()));
+        std::unique_ptr<UnaryOperator> op = transform_unary_operator(unary_expression->unary_operator);
         instructions.emplace_back(std::make_unique<UnaryInstruction>(std::move(op), std::move(src), std::move(dst)));
         return dst_copy;
     } else if (parser::BinaryExpression* binary_expression = dynamic_cast<parser::BinaryExpression*>(&expression)) {
@@ -63,7 +72,7 @@ std::unique_ptr<Value> TackyGenerator::transform_expression(parser::Expression& 
         std::string dst_name = make_temporary();
         std::unique_ptr<TemporaryVariable> dst = std::make_unique<TemporaryVariable>(dst_name);
         std::unique_ptr<Value> dst_copy = std::make_unique<TemporaryVariable>(*dst);
-        std::unique_ptr<BinaryOperator> op = transform_binary_operator(*(binary_expression->binary_operator.get()));
+        std::unique_ptr<BinaryOperator> op = transform_binary_operator(binary_expression->binary_operator);
         instructions.emplace_back(std::make_unique<BinaryInstruction>(std::move(op), std::move(src1), std::move(src2), std::move(dst)));
         return dst_copy;
     } else {

@@ -106,7 +106,6 @@ void CodeEmitter::visit(MultOperator& node)
 {
     *m_file_stream << "imull";
 }
-    
 
 void CodeEmitter::visit(ReturnInstruction& node)
 {
@@ -133,7 +132,6 @@ void CodeEmitter::visit(UnaryInstruction& node)
     *m_file_stream << "\n";
 }
 
-
 void CodeEmitter::visit(BinaryInstruction& node)
 {
     *m_file_stream << "\t";
@@ -156,7 +154,6 @@ void CodeEmitter::visit(CdqInstruction& node)
 {
     *m_file_stream << "\tcdq\n";
 }
-
 
 void CodeEmitter::visit(AllocateStackInstruction& node)
 {

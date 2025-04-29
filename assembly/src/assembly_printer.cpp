@@ -120,7 +120,7 @@ void PrinterVisitor::visit(UnaryInstruction& node)
     }
 }
 
-void PrinterVisitor::visit(BinaryInstruction& node) 
+void PrinterVisitor::visit(BinaryInstruction& node)
 {
     int id = get_node_id(&node);
     m_dot_content << "  node" << id << " [label=\"BinaryInstruction\"];\n";
@@ -144,7 +144,7 @@ void PrinterVisitor::visit(BinaryInstruction& node)
     }
 }
 
-void PrinterVisitor::visit(IdivInstruction& node) 
+void PrinterVisitor::visit(IdivInstruction& node)
 {
     int id = get_node_id(&node);
     m_dot_content << "  node" << id << " [label=\"IdivInstruction\"];\n";
@@ -155,7 +155,6 @@ void PrinterVisitor::visit(IdivInstruction& node)
                       << " [label=\"operand\"];\n";
     }
 }
-
 
 void PrinterVisitor::visit(AllocateStackInstruction& node)
 {

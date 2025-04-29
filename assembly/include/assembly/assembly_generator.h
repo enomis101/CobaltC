@@ -78,18 +78,18 @@ private:
     void visit(Program& node) override;
 
     template<typename I>
-    void fixup_double_stack_address_instruction(std::unique_ptr<Instruction>& i, std::vector<std::unique_ptr<Instruction>>& instructions){
-        if(I* instruction = dynamic_cast<I*>(i.get())){
+    void fixup_double_stack_address_instruction(std::unique_ptr<Instruction>& i, std::vector<std::unique_ptr<Instruction>>& instructions)
+    {
+        if (I* instruction = dynamic_cast<I*>(i.get())) {
             StackAddress* source = dynamic_cast<StackAddress*>(instruction->source.get());
             StackAddress* destination = dynamic_cast<StackAddress*>(instruction->destination.get());
             if (source && destination) {
                 instructions.emplace_back(std::make_unique<MovInstruction>(std::move(instruction->source), std::make_unique<Register>(RegisterName::R10)));
-                instruction->source = std::make_unique<Register>(RegisterName::R10);  
+                instruction->source = std::make_unique<Register>(RegisterName::R10);
             }
-            //push a copy of instruction
+            // push a copy of instruction
             instructions.emplace_back(std::move(i));
-        }
-        else{
+        } else {
             throw AssemblyGeneratorError("Invalid Instruction type passed to fixup_double_stack_address_instruction");
         }
     }

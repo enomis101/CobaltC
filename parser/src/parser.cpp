@@ -79,10 +79,9 @@ std::unique_ptr<Expression> Parser::parse_expression(int min_prec)
 
         const Token* next_token = &peek();
         while (next_token && TokenTable::is_binary_operator(next_token->type()) && precedence(*next_token) >= min_prec) {
-
-            std::unique_ptr<BinaryOperator> op = parse_binary_operator();
+            BinaryOperator op = parse_binary_operator();
             std::unique_ptr<Expression> right = parse_expression(precedence(*next_token) + 1);
-            left = std::make_unique<BinaryExpression>(std::move(op), std::move(left), std::move(right));
+            left = std::make_unique<BinaryExpression>(op, std::move(left), std::move(right));
             if (has_tokens()) {
                 next_token = &peek();
             } else {
@@ -110,9 +109,9 @@ std::unique_ptr<Expression> Parser::parse_factor()
             res = std::make_unique<ConstantExpression>(next_token.literal<int>());
             return res;
         } else if (TokenTable::is_unary_operator(next_token.type())) {
-            std::unique_ptr<UnaryOperator> op = parse_unary_operator();
+            UnaryOperator op = parse_unary_operator();
             std::unique_ptr<Expression> expr = parse_factor();
-            res = std::make_unique<UnaryExpression>(std::move(op), std::move(expr));
+            res = std::make_unique<UnaryExpression>(op, std::move(expr));
             return res;
         } else if (next_token.type() == TokenType::OPEN_PAREN) {
             take_token();
@@ -132,45 +131,46 @@ std::unique_ptr<Expression> Parser::parse_factor()
     }
 }
 
-std::unique_ptr<UnaryOperator> Parser::parse_unary_operator()
+UnaryOperator Parser::parse_unary_operator()
 {
-    std::unique_ptr<UnaryOperator> res;
+    static const std::unordered_map<TokenType, UnaryOperator> unary_op_map = {
+        {TokenType::MINUS, UnaryOperator::NEGATE},
+        {TokenType::COMPLEMENT, UnaryOperator::COMPLEMENT},
+        {TokenType::EXCLAMATION_POINT, UnaryOperator::NOT}
+    };
+
     const Token& next_token = peek();
-    if (next_token.type() == TokenType::MINUS) {
+    auto it = unary_op_map.find(next_token.type());
+    if (it != unary_op_map.end()) {
         take_token();
-        res = std::make_unique<NegateOperator>();
-        return res;
-    } else if (next_token.type() == TokenType::COMPLEMENT) {
-        take_token();
-        res = std::make_unique<ComplementOperator>();
-        return res;
-    } else {
-        throw ParserError(std::format("In UnaryOperator: got {}", Token::type_to_string(next_token.type())));
+        return it->second;
     }
+    throw ParserError(std::format("In UnaryOperator: got {}", Token::type_to_string(next_token.type())));
 }
 
-std::unique_ptr<BinaryOperator> Parser::parse_binary_operator()
+BinaryOperator Parser::parse_binary_operator()
 {
-    std::unique_ptr<UnaryOperator> res;
+    static const std::unordered_map<TokenType, BinaryOperator> binary_op_map = {
+        {TokenType::ASTERISK, BinaryOperator::MULTIPLY},
+        {TokenType::FORWARD_SLASH, BinaryOperator::DIVIDE},
+        {TokenType::PERCENT, BinaryOperator::REMAINDER},
+        {TokenType::PLUS, BinaryOperator::ADD},
+        {TokenType::MINUS, BinaryOperator::SUBTRACT},
+        {TokenType::LOGICAL_AND, BinaryOperator::AND},
+        {TokenType::LOGICAL_OR, BinaryOperator::OR},
+        {TokenType::EQUAL, BinaryOperator::EQUAL},
+        {TokenType::NOT_EQUAL, BinaryOperator::NOT_EQUAL},
+        {TokenType::LESS_THAN, BinaryOperator::LESS_THAN},
+        {TokenType::LESS_THAN_EQUAL, BinaryOperator::LESS_OR_EQUAL},
+        {TokenType::GREATER_THAN, BinaryOperator::GREATER_THAN},
+        {TokenType::GREATER_THAN_EQUAL, BinaryOperator::GREATER_OR_EQUAL}
+    };
+
     const Token& next_token = peek();
-    switch (next_token.type()) {
-    case TokenType::ASTERISK:
+    auto it = binary_op_map.find(next_token.type());
+    if (it != binary_op_map.end()) {
         take_token();
-        return std::make_unique<MultiplyOperator>();
-    case TokenType::FORWARD_SLASH:
-        take_token();
-        return std::make_unique<DivideOperator>();
-    case TokenType::PERCENT:
-        take_token();
-        return std::make_unique<RemainderOperator>();
-    case TokenType::PLUS:
-        take_token();
-        return std::make_unique<AddOperator>();
-    case TokenType::MINUS:
-        take_token();
-        return std::make_unique<SubtractOperator>();
-    default:
-        break;
+        return it->second;
     }
     throw ParserError(std::format("In BinaryOperator: got {}", Token::type_to_string(next_token.type())));
 }
@@ -213,6 +213,22 @@ int Parser::precedence(const Token& token)
     case TokenType::PLUS:
     case TokenType::MINUS: {
         return 45;
+    }
+    case TokenType::LESS_THAN:
+    case TokenType::LESS_THAN_EQUAL:
+    case TokenType::GREATER_THAN:
+    case TokenType::GREATER_THAN_EQUAL: {
+        return 35;
+    }
+    case TokenType::EQUAL:
+    case TokenType::NOT_EQUAL: {
+        return 30;
+    }
+    case TokenType::LOGICAL_AND: {
+        return 10;
+    }
+    case TokenType::LOGICAL_OR: {
+        return 5;
     }
     default: {
         return 0;

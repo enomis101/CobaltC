@@ -43,13 +43,12 @@ void PrinterVisitor::visit(Identifier& node)
 void PrinterVisitor::visit(UnaryExpression& node)
 {
     int id = get_node_id(&node);
-    m_dot_content << "  node" << id << " [label=\"UnaryExpression\"];\n";
 
-    if (node.unary_operator) {
-        node.unary_operator->accept(*this);
-        m_dot_content << "  node" << id << " -> node" << get_node_id(node.unary_operator.get())
-                      << " [label=\"unary_operator\"];\n";
-    }
+    std::string label = "UnaryExpression";
+
+    label += "\noperator: " + operator_to_string(node.unary_operator) + "\n";
+
+    m_dot_content << "  node" << id << " [label=\"" << label << "\"];\n";
 
     if (node.expression) {
         node.expression->accept(*this);
@@ -61,13 +60,12 @@ void PrinterVisitor::visit(UnaryExpression& node)
 void PrinterVisitor::visit(BinaryExpression& node)
 {
     int id = get_node_id(&node);
-    m_dot_content << "  node" << id << " [label=\"BinaryExpression\"];\n";
 
-    if (node.binary_operator) {
-        node.binary_operator->accept(*this);
-        m_dot_content << "  node" << id << " -> node" << get_node_id(node.binary_operator.get())
-                      << " [label=\"binary_operator\"];\n";
-    }
+    std::string label = "BinaryExpression";
+
+    label += "\noperator: " + operator_to_string(node.binary_operator) + "\n";
+
+    m_dot_content << "  node" << id << " [label=\"" << label << "\"];\n";
 
     if (node.left_expression) {
         node.left_expression->accept(*this);
@@ -81,7 +79,6 @@ void PrinterVisitor::visit(BinaryExpression& node)
                       << " [label=\"right_expression\"];\n";
     }
 }
-
 void PrinterVisitor::visit(ConstantExpression& node)
 {
     int id = get_node_id(&node);
@@ -97,6 +94,54 @@ void PrinterVisitor::visit(ReturnStatement& node)
         node.expression->accept(*this);
         m_dot_content << "  node" << id << " -> node" << get_node_id(node.expression.get())
                       << " [label=\"expression\"];\n";
+    }
+}
+
+std::string PrinterVisitor::operator_to_string(UnaryOperator op)
+{
+    switch (op) {
+    case UnaryOperator::COMPLEMENT:
+        return "~";
+    case UnaryOperator::NEGATE:
+        return "-";
+    case UnaryOperator::NOT:
+        return "!";
+    default:
+        return "unknown";
+    }
+}
+
+std::string PrinterVisitor::operator_to_string(BinaryOperator op)
+{
+    switch (op) {
+    case BinaryOperator::ADD:
+        return "+";
+    case BinaryOperator::SUBTRACT:
+        return "-";
+    case BinaryOperator::MULTIPLY:
+        return "*";
+    case BinaryOperator::DIVIDE:
+        return "/";
+    case BinaryOperator::REMAINDER:
+        return "%";
+    case BinaryOperator::AND:
+        return "&&";
+    case BinaryOperator::OR:
+        return "||";
+    case BinaryOperator::EQUAL:
+        return "==";
+    case BinaryOperator::NOT_EQUAL:
+        return "!=";
+    case BinaryOperator::LESS_THAN:
+        return "<";
+    case BinaryOperator::LESS_OR_EQUAL:
+        return "<=";
+    case BinaryOperator::GREATER_THAN:
+        return ">";
+    case BinaryOperator::GREATER_OR_EQUAL:
+        return ">=";
+    default:
+        return "unknown";
     }
 }
 

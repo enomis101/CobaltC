@@ -95,7 +95,7 @@ public:
     {
         visitor.visit(*this);
     }
-    
+
     std::unique_ptr<UnaryOperator> clone() const override
     {
         return std::make_unique<NotOperator>();
@@ -108,7 +108,7 @@ public:
     {
         visitor.visit(*this);
     }
-    
+
     std::unique_ptr<UnaryOperator> clone() const override
     {
         return std::make_unique<NegOperator>();
@@ -127,7 +127,7 @@ public:
     {
         visitor.visit(*this);
     }
-    
+
     std::unique_ptr<BinaryOperator> clone() const override
     {
         return std::make_unique<AddOperator>();
@@ -140,7 +140,7 @@ public:
     {
         visitor.visit(*this);
     }
-    
+
     std::unique_ptr<BinaryOperator> clone() const override
     {
         return std::make_unique<SubOperator>();
@@ -153,7 +153,7 @@ public:
     {
         visitor.visit(*this);
     }
-    
+
     std::unique_ptr<BinaryOperator> clone() const override
     {
         return std::make_unique<MultOperator>();
@@ -178,7 +178,7 @@ public:
     {
         visitor.visit(*this);
     }
-    
+
     std::unique_ptr<Operand> clone() const override
     {
         return std::make_unique<ImmediateValue>(value);
@@ -198,7 +198,7 @@ public:
     {
         visitor.visit(*this);
     }
-    
+
     std::unique_ptr<Operand> clone() const override
     {
         return std::make_unique<Register>(reg);
@@ -218,7 +218,7 @@ public:
     {
         visitor.visit(*this);
     }
-    
+
     std::unique_ptr<Operand> clone() const override
     {
         return std::make_unique<PseudoRegister>(identifier.name);
@@ -238,7 +238,7 @@ public:
     {
         visitor.visit(*this);
     }
-    
+
     std::unique_ptr<Operand> clone() const override
     {
         return std::make_unique<StackAddress>(offset);
@@ -259,7 +259,7 @@ public:
     {
         visitor.visit(*this);
     }
-    
+
     std::unique_ptr<Instruction> clone() const override
     {
         return std::make_unique<ReturnInstruction>();
@@ -273,20 +273,19 @@ public:
         , destination(std::move(dst))
     {
     }
-    
+
     void accept(AssemblyVisitor& visitor) override
     {
         visitor.visit(*this);
     }
-    
+
     std::unique_ptr<Instruction> clone() const override
     {
         return std::make_unique<MovInstruction>(
             source->clone(),
-            destination->clone()
-        );
+            destination->clone());
     }
-    
+
     std::unique_ptr<Operand> source;
     std::unique_ptr<Operand> destination;
 };
@@ -298,18 +297,17 @@ public:
         , operand(std::move(op))
     {
     }
-    
+
     void accept(AssemblyVisitor& visitor) override
     {
         visitor.visit(*this);
     }
-    
+
     std::unique_ptr<Instruction> clone() const override
     {
         return std::make_unique<UnaryInstruction>(
             unary_operator->clone(),
-            operand->clone()
-        );
+            operand->clone());
     }
 
     std::unique_ptr<UnaryOperator> unary_operator;
@@ -324,19 +322,18 @@ public:
         , destination(std::move(dst))
     {
     }
-    
+
     void accept(AssemblyVisitor& visitor) override
     {
         visitor.visit(*this);
     }
-    
+
     std::unique_ptr<Instruction> clone() const override
     {
         return std::make_unique<BinaryInstruction>(
             binary_operator->clone(),
             source->clone(),
-            destination->clone()
-        );
+            destination->clone());
     }
 
     std::unique_ptr<BinaryOperator> binary_operator;
@@ -350,17 +347,16 @@ public:
         : operand(std::move(op))
     {
     }
-    
+
     void accept(AssemblyVisitor& visitor) override
     {
         visitor.visit(*this);
     }
-    
+
     std::unique_ptr<Instruction> clone() const override
     {
         return std::make_unique<IdivInstruction>(
-            operand->clone()
-        );
+            operand->clone());
     }
 
     std::unique_ptr<Operand> operand;
@@ -372,7 +368,7 @@ public:
     {
         visitor.visit(*this);
     }
-    
+
     std::unique_ptr<Instruction> clone() const override
     {
         return std::make_unique<CdqInstruction>();
@@ -390,7 +386,7 @@ public:
     {
         visitor.visit(*this);
     }
-    
+
     std::unique_ptr<Instruction> clone() const override
     {
         return std::make_unique<AllocateStackInstruction>(value);
@@ -411,16 +407,16 @@ public:
     {
         visitor.visit(*this);
     }
-    
+
     std::unique_ptr<Function> clone() const
     {
         std::vector<std::unique_ptr<Instruction>> cloned_instructions;
         cloned_instructions.reserve(instructions.size());
-        
+
         for (const auto& instruction : instructions) {
             cloned_instructions.push_back(instruction->clone());
         }
-        
+
         return std::make_unique<Function>(name.name, std::move(cloned_instructions));
     }
 
@@ -439,12 +435,12 @@ public:
     {
         visitor.visit(*this);
     }
-    
+
     std::unique_ptr<Program> clone() const
     {
         return std::make_unique<Program>(function->clone());
     }
-    
+
     std::unique_ptr<Function> function;
 };
 

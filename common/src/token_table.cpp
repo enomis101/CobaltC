@@ -127,11 +127,20 @@ TokenTable::TokenTable()
         { '+', TokenType::PLUS },
         { '*', TokenType::ASTERISK },
         { '/', TokenType::FORWARD_SLASH },
-        { '%', TokenType::PERCENT }
+        { '%', TokenType::PERCENT },
+        { '!', TokenType::EXCLAMATION_POINT },
+        { '<', TokenType::LESS_THAN },
+        { '>', TokenType::GREATER_THAN }
     };
 
     m_double_char_tokens = {
-        { "--", TokenType::DECREMENT }
+        { "--", TokenType::DECREMENT },
+        { "&&", TokenType::LOGICAL_AND },
+        { "||", TokenType::LOGICAL_OR },
+        { "==", TokenType::EQUAL },
+        { "!=", TokenType::NOT_EQUAL },
+        { "<=", TokenType::LESS_THAN_EQUAL },
+        { ">=", TokenType::GREATER_THAN_EQUAL }
     };
 
     // Initialize regex patterns

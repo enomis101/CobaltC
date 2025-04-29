@@ -160,9 +160,9 @@ std::unique_ptr<Operand> AssemblyGenerator::transform_operand(tacky::Value& val)
 
 std::unique_ptr<UnaryOperator> AssemblyGenerator::transform_operator(tacky::UnaryOperator& op)
 {
-    if (dynamic_cast<tacky::NegateOperator*>(&op)) {
+    if (op == tacky::UnaryOperator::NEGATE) {
         return std::make_unique<NegOperator>();
-    } else if (dynamic_cast<tacky::ComplementOperator*>(&op)) {
+    } else if (op == tacky::UnaryOperator::COMPLEMENT) {
         return std::make_unique<NotOperator>();
     } else {
         throw AssemblyGeneratorError("AssemblyGenerator: Invalid or Unsupported tacky::UnaryOperator");
@@ -171,11 +171,11 @@ std::unique_ptr<UnaryOperator> AssemblyGenerator::transform_operator(tacky::Unar
 
 std::unique_ptr<BinaryOperator> AssemblyGenerator::transform_operator(tacky::BinaryOperator& op)
 {
-    if (dynamic_cast<tacky::AddOperator*>(&op)) {
+    if (op == tacky::BinaryOperator::ADD) {
         return std::make_unique<AddOperator>();
-    } else if (dynamic_cast<tacky::SubtractOperator*>(&op)) {
+    } else if (op == tacky::BinaryOperator::SUBTRACT) {
         return std::make_unique<SubOperator>();
-    } else if (dynamic_cast<tacky::MultiplyOperator*>(&op)) {
+    } else if (op == tacky::BinaryOperator::MULTIPLY) {
         return std::make_unique<MultOperator>();
     } else {
         throw AssemblyGeneratorError("AssemblyGenerator: Invalid or Unsupported tacky::BinaryOperator");
@@ -199,14 +199,14 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_instructi
         std::unique_ptr<Operand> dst_copy = dst->clone();
         res.emplace_back(std::make_unique<MovInstruction>(std::move(src), std::move(dst)));
 
-        std::unique_ptr<UnaryOperator> op = transform_operator(*unary_instruction->unary_operator);
+        std::unique_ptr<UnaryOperator> op = transform_operator(unary_instruction->unary_operator);
         res.emplace_back(std::make_unique<UnaryInstruction>(std::move(op), std::move(dst_copy)));
 
         return res;
     } else if (tacky::BinaryInstruction* binary_instruction = dynamic_cast<tacky::BinaryInstruction*>(&instruction)) {
         std::vector<std::unique_ptr<Instruction>> res;
 
-        if (dynamic_cast<tacky::DivideOperator*>(binary_instruction->binary_operator.get())) {
+        if (binary_instruction->binary_operator == tacky::BinaryOperator::DIVIDE) {
             std::unique_ptr<Operand> src1 = transform_operand(*binary_instruction->source1);
             std::unique_ptr<Operand> src2 = transform_operand(*binary_instruction->source2);
             std::unique_ptr<Operand> dst = transform_operand(*binary_instruction->destination);
@@ -214,7 +214,7 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_instructi
             res.emplace_back(std::make_unique<CdqInstruction>());
             res.emplace_back(std::make_unique<IdivInstruction>(std::move(src2)));
             res.emplace_back(std::make_unique<MovInstruction>(std::make_unique<Register>(RegisterName::AX), std::move(dst)));
-        } else if (dynamic_cast<tacky::RemainderOperator*>(binary_instruction->binary_operator.get())) {
+        } else if (binary_instruction->binary_operator == tacky::BinaryOperator::REMAINDER) {
             std::unique_ptr<Operand> src1 = transform_operand(*binary_instruction->source1);
             std::unique_ptr<Operand> src2 = transform_operand(*binary_instruction->source2);
             std::unique_ptr<Operand> dst = transform_operand(*binary_instruction->destination);
@@ -228,7 +228,7 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_instructi
             std::unique_ptr<Operand> dst_copy = dst->clone();
             res.emplace_back(std::make_unique<MovInstruction>(std::move(src1), std::move(dst)));
 
-            std::unique_ptr<BinaryOperator> op = transform_operator(*binary_instruction->binary_operator);
+            std::unique_ptr<BinaryOperator> op = transform_operator(binary_instruction->binary_operator);
             std::unique_ptr<Operand> src2 = transform_operand(*binary_instruction->source2);
             res.emplace_back(std::make_unique<BinaryInstruction>(std::move(op), std::move(src2), std::move(dst_copy)));
         }

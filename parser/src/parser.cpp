@@ -134,9 +134,9 @@ std::unique_ptr<Expression> Parser::parse_factor()
 UnaryOperator Parser::parse_unary_operator()
 {
     static const std::unordered_map<TokenType, UnaryOperator> unary_op_map = {
-        {TokenType::MINUS, UnaryOperator::NEGATE},
-        {TokenType::COMPLEMENT, UnaryOperator::COMPLEMENT},
-        {TokenType::EXCLAMATION_POINT, UnaryOperator::NOT}
+        { TokenType::MINUS, UnaryOperator::NEGATE },
+        { TokenType::COMPLEMENT, UnaryOperator::COMPLEMENT },
+        { TokenType::EXCLAMATION_POINT, UnaryOperator::NOT }
     };
 
     const Token& next_token = peek();
@@ -151,19 +151,19 @@ UnaryOperator Parser::parse_unary_operator()
 BinaryOperator Parser::parse_binary_operator()
 {
     static const std::unordered_map<TokenType, BinaryOperator> binary_op_map = {
-        {TokenType::ASTERISK, BinaryOperator::MULTIPLY},
-        {TokenType::FORWARD_SLASH, BinaryOperator::DIVIDE},
-        {TokenType::PERCENT, BinaryOperator::REMAINDER},
-        {TokenType::PLUS, BinaryOperator::ADD},
-        {TokenType::MINUS, BinaryOperator::SUBTRACT},
-        {TokenType::LOGICAL_AND, BinaryOperator::AND},
-        {TokenType::LOGICAL_OR, BinaryOperator::OR},
-        {TokenType::EQUAL, BinaryOperator::EQUAL},
-        {TokenType::NOT_EQUAL, BinaryOperator::NOT_EQUAL},
-        {TokenType::LESS_THAN, BinaryOperator::LESS_THAN},
-        {TokenType::LESS_THAN_EQUAL, BinaryOperator::LESS_OR_EQUAL},
-        {TokenType::GREATER_THAN, BinaryOperator::GREATER_THAN},
-        {TokenType::GREATER_THAN_EQUAL, BinaryOperator::GREATER_OR_EQUAL}
+        { TokenType::ASTERISK, BinaryOperator::MULTIPLY },
+        { TokenType::FORWARD_SLASH, BinaryOperator::DIVIDE },
+        { TokenType::PERCENT, BinaryOperator::REMAINDER },
+        { TokenType::PLUS, BinaryOperator::ADD },
+        { TokenType::MINUS, BinaryOperator::SUBTRACT },
+        { TokenType::LOGICAL_AND, BinaryOperator::AND },
+        { TokenType::LOGICAL_OR, BinaryOperator::OR },
+        { TokenType::EQUAL, BinaryOperator::EQUAL },
+        { TokenType::NOT_EQUAL, BinaryOperator::NOT_EQUAL },
+        { TokenType::LESS_THAN, BinaryOperator::LESS_THAN },
+        { TokenType::LESS_THAN_EQUAL, BinaryOperator::LESS_OR_EQUAL },
+        { TokenType::GREATER_THAN, BinaryOperator::GREATER_THAN },
+        { TokenType::GREATER_THAN_EQUAL, BinaryOperator::GREATER_OR_EQUAL }
     };
 
     const Token& next_token = peek();

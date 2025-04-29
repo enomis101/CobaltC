@@ -80,7 +80,7 @@ public:
 class UnaryExpression : public Expression {
 public:
     UnaryExpression(UnaryOperator op, std::unique_ptr<Expression> expr)
-        : unary_operator(std::move(op))
+        : unary_operator(op)
         , expression(std::move(expr))
     {
     }
@@ -97,7 +97,7 @@ public:
 class BinaryExpression : public Expression {
 public:
     BinaryExpression(BinaryOperator op, std::unique_ptr<Expression> l, std::unique_ptr<Expression> r)
-        : binary_operator(std::move(op))
+        : binary_operator(op)
         , left_expression(std::move(l))
         , right_expression(std::move(r))
     {

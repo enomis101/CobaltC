@@ -101,11 +101,11 @@ std::string PrinterVisitor::operator_to_string(UnaryOperator op)
 {
     switch (op) {
     case UnaryOperator::COMPLEMENT:
-        return "~";
+        return "Complement";
     case UnaryOperator::NEGATE:
-        return "-";
+        return "Negate";
     case UnaryOperator::NOT:
-        return "!";
+        return "Not";
     default:
         return "unknown";
     }
@@ -115,31 +115,31 @@ std::string PrinterVisitor::operator_to_string(BinaryOperator op)
 {
     switch (op) {
     case BinaryOperator::ADD:
-        return "+";
+        return "Add";
     case BinaryOperator::SUBTRACT:
-        return "-";
+        return "Subtract";
     case BinaryOperator::MULTIPLY:
-        return "*";
+        return "Multiply";
     case BinaryOperator::DIVIDE:
-        return "/";
+        return "Divide";
     case BinaryOperator::REMAINDER:
-        return "%";
+        return "Remainder";
     case BinaryOperator::AND:
-        return "&&";
+        return "And";
     case BinaryOperator::OR:
-        return "||";
+        return "Or";
     case BinaryOperator::EQUAL:
-        return "==";
+        return "Equal";
     case BinaryOperator::NOT_EQUAL:
-        return "!=";
+        return "NotEqual";
     case BinaryOperator::LESS_THAN:
-        return "<";
+        return "LessThan";
     case BinaryOperator::LESS_OR_EQUAL:
-        return "<=";
+        return "LessOrEqual";
     case BinaryOperator::GREATER_THAN:
-        return ">";
+        return "GreaterThan";
     case BinaryOperator::GREATER_OR_EQUAL:
-        return ">=";
+        return "GreaterOrEqual";
     default:
         return "unknown";
     }

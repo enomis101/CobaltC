@@ -72,13 +72,12 @@ void PrinterVisitor::visit(ReturnInstruction& node)
 void PrinterVisitor::visit(UnaryInstruction& node)
 {
     int id = get_node_id(&node);
-    m_dot_content << "  node" << id << " [label=\"UnaryInstruction\"];\n";
 
-    if (node.unary_operator) {
-        node.unary_operator->accept(*this);
-        m_dot_content << "  node" << id << " -> node" << get_node_id(node.unary_operator.get())
-                      << " [label=\"unary_operator\"];\n";
-    }
+    std::string label = "UnaryInstruction";
+
+    label += "\noperator: " + operator_to_string(node.unary_operator) + "\n";
+
+    m_dot_content << "  node" << id << " [label=\"" << label << "\"];\n";
 
     if (node.source) {
         node.source->accept(*this);
@@ -96,13 +95,12 @@ void PrinterVisitor::visit(UnaryInstruction& node)
 void PrinterVisitor::visit(BinaryInstruction& node)
 {
     int id = get_node_id(&node);
-    m_dot_content << "  node" << id << " [label=\"BinaryInstruction\"];\n";
 
-    if (node.binary_operator) {
-        node.binary_operator->accept(*this);
-        m_dot_content << "  node" << id << " -> node" << get_node_id(node.binary_operator.get())
-                      << " [label=\"binary_operator\"];\n";
-    }
+    std::string label = "BinaryInstruction";
+
+    label += "\noperator: " + operator_to_string(node.binary_operator) + "\n";
+
+    m_dot_content << "  node" << id << " [label=\"" << label << "\"];\n";
 
     if (node.source1) {
         node.source1->accept(*this);
@@ -161,4 +159,53 @@ int PrinterVisitor::get_node_id(const TackyAST* node)
         m_node_ids[node] = m_node_count++;
     }
     return m_node_ids[node];
+}
+
+
+std::string PrinterVisitor::operator_to_string(UnaryOperator op)
+{
+    switch (op) {
+    case UnaryOperator::COMPLEMENT:
+        return "Complement";
+    case UnaryOperator::NEGATE:
+        return "Negate";
+    case UnaryOperator::NOT:
+        return "Not";
+    default:
+        return "unknown";
+    }
+}
+
+std::string PrinterVisitor::operator_to_string(BinaryOperator op)
+{
+    switch (op) {
+    case BinaryOperator::ADD:
+        return "Add";
+    case BinaryOperator::SUBTRACT:
+        return "Subtract";
+    case BinaryOperator::MULTIPLY:
+        return "Multiply";
+    case BinaryOperator::DIVIDE:
+        return "Divide";
+    case BinaryOperator::REMAINDER:
+        return "Remainder";
+    case BinaryOperator::AND:
+        return "And";
+    case BinaryOperator::OR:
+        return "Or";
+    case BinaryOperator::EQUAL:
+        return "Equal";
+    case BinaryOperator::NOT_EQUAL:
+        return "NotEqual";
+    case BinaryOperator::LESS_THAN:
+        return "LessThan";
+    case BinaryOperator::LESS_OR_EQUAL:
+        return "LessOrEqual";
+    case BinaryOperator::GREATER_THAN:
+        return "GreaterThan";
+    case BinaryOperator::GREATER_OR_EQUAL:
+        return "GreaterOrEqual";
+    default:
+        return "unknown";
+    }
 }

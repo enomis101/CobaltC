@@ -1,6 +1,7 @@
 #include "tacky/tacky_generator.h"
 #include <fstream>
 #include <string>
+#include <unordered_map>
 
 using namespace tacky;
 
@@ -17,41 +18,46 @@ std::shared_ptr<TackyAST> TackyGenerator::generate()
     return transform_program(*dynamic_cast<parser::Program*>(m_ast.get()));
 }
 
-std::unique_ptr<UnaryOperator> TackyGenerator::transform_unary_operator(parser::UnaryOperator& unary_operator)
+UnaryOperator TackyGenerator::transform_unary_operator(parser::UnaryOperator& unary_operator)
 {
-    switch (unary_operator) {
-    case parser::UnaryOperator::NEGATE: {
-        return std::make_unique<NegateOperator>();
+    static const std::unordered_map<parser::UnaryOperator, UnaryOperator> unary_op_map = {
+        { parser::UnaryOperator::NEGATE, UnaryOperator::NEGATE },
+        { parser::UnaryOperator::COMPLEMENT, UnaryOperator::COMPLEMENT },
+        { parser::UnaryOperator::NOT, UnaryOperator::NOT }
+    };
+
+    auto it = unary_op_map.find(unary_operator);
+    if (it != unary_op_map.end()) {
+        return it->second;
     }
-    case parser::UnaryOperator::COMPLEMENT: {
-        return std::make_unique<ComplementOperator>();
-    }
-    default:
-        throw TackyGeneratorError("TackyGenerator: Invalid or Unsuppored UnaryOperator");
-    }
+
+    throw TackyGeneratorError("TackyGenerator: Invalid or Unsuppored UnaryOperator");
 }
 
-std::unique_ptr<BinaryOperator> TackyGenerator::transform_binary_operator(parser::BinaryOperator& binary_operator)
+BinaryOperator TackyGenerator::transform_binary_operator(parser::BinaryOperator& binary_operator)
 {
-    switch (binary_operator) {
-    case parser::BinaryOperator::ADD: {
-        return std::make_unique<AddOperator>();
+    static const std::unordered_map<parser::BinaryOperator, BinaryOperator> binary_op_map = {
+        { parser::BinaryOperator::MULTIPLY, BinaryOperator::MULTIPLY },
+        { parser::BinaryOperator::DIVIDE, BinaryOperator::DIVIDE },
+        { parser::BinaryOperator::REMAINDER, BinaryOperator::REMAINDER },
+        { parser::BinaryOperator::ADD, BinaryOperator::ADD },
+        { parser::BinaryOperator::SUBTRACT, BinaryOperator::SUBTRACT },
+        { parser::BinaryOperator::AND, BinaryOperator::AND },
+        { parser::BinaryOperator::OR, BinaryOperator::OR },
+        { parser::BinaryOperator::EQUAL, BinaryOperator::EQUAL },
+        { parser::BinaryOperator::NOT_EQUAL, BinaryOperator::NOT_EQUAL },
+        { parser::BinaryOperator::LESS_THAN, BinaryOperator::LESS_THAN },
+        { parser::BinaryOperator::LESS_OR_EQUAL, BinaryOperator::LESS_OR_EQUAL },
+        { parser::BinaryOperator::GREATER_THAN, BinaryOperator::GREATER_THAN },
+        { parser::BinaryOperator::GREATER_OR_EQUAL, BinaryOperator::GREATER_OR_EQUAL }
+    };
+
+    auto it = binary_op_map.find(binary_operator);
+    if (it != binary_op_map.end()) {
+        return it->second;
     }
-    case parser::BinaryOperator::SUBTRACT: {
-        return std::make_unique<SubtractOperator>();
-    }
-    case parser::BinaryOperator::MULTIPLY: {
-        return std::make_unique<MultiplyOperator>();
-    }
-    case parser::BinaryOperator::DIVIDE: {
-        return std::make_unique<DivideOperator>();
-    }
-    case parser::BinaryOperator::REMAINDER: {
-        return std::make_unique<RemainderOperator>();
-    }
-    default:
-        throw TackyGeneratorError("TackyGenerator: Invalid or Unsuppored BinaryOperator");
-    }
+
+    throw TackyGeneratorError("TackyGenerator: Invalid or Unsuppored BinaryOperator");
 }
 
 std::unique_ptr<Value> TackyGenerator::transform_expression(parser::Expression& expression, std::vector<std::unique_ptr<Instruction>>& instructions)
@@ -63,8 +69,8 @@ std::unique_ptr<Value> TackyGenerator::transform_expression(parser::Expression& 
         std::string dst_name = make_temporary();
         std::unique_ptr<TemporaryVariable> dst = std::make_unique<TemporaryVariable>(dst_name);
         std::unique_ptr<Value> dst_copy = std::make_unique<TemporaryVariable>(*dst);
-        std::unique_ptr<UnaryOperator> op = transform_unary_operator(unary_expression->unary_operator);
-        instructions.emplace_back(std::make_unique<UnaryInstruction>(std::move(op), std::move(src), std::move(dst)));
+        UnaryOperator op = transform_unary_operator(unary_expression->unary_operator);
+        instructions.emplace_back(std::make_unique<UnaryInstruction>(op, std::move(src), std::move(dst)));
         return dst_copy;
     } else if (parser::BinaryExpression* binary_expression = dynamic_cast<parser::BinaryExpression*>(&expression)) {
         std::unique_ptr<Value> src1 = transform_expression(*binary_expression->left_expression, instructions);
@@ -72,8 +78,8 @@ std::unique_ptr<Value> TackyGenerator::transform_expression(parser::Expression& 
         std::string dst_name = make_temporary();
         std::unique_ptr<TemporaryVariable> dst = std::make_unique<TemporaryVariable>(dst_name);
         std::unique_ptr<Value> dst_copy = std::make_unique<TemporaryVariable>(*dst);
-        std::unique_ptr<BinaryOperator> op = transform_binary_operator(binary_expression->binary_operator);
-        instructions.emplace_back(std::make_unique<BinaryInstruction>(std::move(op), std::move(src1), std::move(src2), std::move(dst)));
+        BinaryOperator op = transform_binary_operator(binary_expression->binary_operator);
+        instructions.emplace_back(std::make_unique<BinaryInstruction>(op, std::move(src1), std::move(src2), std::move(dst)));
         return dst_copy;
     } else {
         throw TackyGeneratorError("TackyGenerator: Invalid or Unsuppored Expression");

@@ -14,18 +14,16 @@ public:
 
 // Forward declaration of node types
 class Identifier;
-class ComplementOperator;
-class NegateOperator;
-class AddOperator;
-class SubtractOperator;
-class MultiplyOperator;
-class DivideOperator;
-class RemainderOperator;
 class Constant;
 class TemporaryVariable;
 class ReturnInstruction;
 class UnaryInstruction;
 class BinaryInstruction;
+class CopyInstruction;
+class JumpInstruction;
+class JumpIfZeroInstruction;
+class JumpIfNotZeroInstruction;
+class LabelInstruction;
 class Function;
 class Program;
 
@@ -33,18 +31,16 @@ class Program;
 class TackyVisitor {
 public:
     virtual void visit(Identifier& node) = 0;
-    virtual void visit(ComplementOperator& node) = 0;
-    virtual void visit(NegateOperator& node) = 0;
-    virtual void visit(AddOperator& node) = 0;
-    virtual void visit(SubtractOperator& node) = 0;
-    virtual void visit(MultiplyOperator& node) = 0;
-    virtual void visit(DivideOperator& node) = 0;
-    virtual void visit(RemainderOperator& node) = 0;
     virtual void visit(Constant& node) = 0;
     virtual void visit(TemporaryVariable& node) = 0;
     virtual void visit(ReturnInstruction& node) = 0;
     virtual void visit(UnaryInstruction& node) = 0;
     virtual void visit(BinaryInstruction& node) = 0;
+    virtual void visit(CopyInstruction& node) = 0;
+    virtual void visit(JumpInstruction& node) = 0;
+    virtual void visit(JumpIfZeroInstruction& node) = 0;
+    virtual void visit(JumpIfNotZeroInstruction& node) = 0;
+    virtual void visit(LabelInstruction& node) = 0;
     virtual void visit(Function& node) = 0;
     virtual void visit(Program& node) = 0;
     virtual ~TackyVisitor() = default;
@@ -65,71 +61,26 @@ public:
     std::string name;
 };
 
-class UnaryOperator : public TackyAST {
-public:
-    virtual ~UnaryOperator() = default;
+enum class UnaryOperator {
+    COMPLEMENT,
+    NEGATE,
+    NOT
 };
 
-class ComplementOperator : public UnaryOperator {
-public:
-    void accept(TackyVisitor& visitor) override
-    {
-        visitor.visit(*this);
-    }
-};
-
-class NegateOperator : public UnaryOperator {
-public:
-    void accept(TackyVisitor& visitor) override
-    {
-        visitor.visit(*this);
-    }
-};
-
-// BINARY_OPERATOR
-class BinaryOperator : public TackyAST {
-public:
-    virtual ~BinaryOperator() = default;
-};
-
-class AddOperator : public BinaryOperator {
-public:
-    void accept(TackyVisitor& visitor) override
-    {
-        visitor.visit(*this);
-    }
-};
-
-class SubtractOperator : public BinaryOperator {
-public:
-    void accept(TackyVisitor& visitor) override
-    {
-        visitor.visit(*this);
-    }
-};
-
-class MultiplyOperator : public BinaryOperator {
-public:
-    void accept(TackyVisitor& visitor) override
-    {
-        visitor.visit(*this);
-    }
-};
-
-class DivideOperator : public BinaryOperator {
-public:
-    void accept(TackyVisitor& visitor) override
-    {
-        visitor.visit(*this);
-    }
-};
-
-class RemainderOperator : public BinaryOperator {
-public:
-    void accept(TackyVisitor& visitor) override
-    {
-        visitor.visit(*this);
-    }
+enum class BinaryOperator {
+    ADD,
+    SUBTRACT,
+    MULTIPLY,
+    DIVIDE,
+    REMAINDER,
+    AND,
+    OR,
+    EQUAL,
+    NOT_EQUAL,
+    LESS_THAN,
+    LESS_OR_EQUAL,
+    GREATER_THAN,
+    GREATER_OR_EQUAL
 };
 
 class Value : public TackyAST {
@@ -189,8 +140,8 @@ public:
 
 class UnaryInstruction : public Instruction {
 public:
-    UnaryInstruction(std::unique_ptr<UnaryOperator> op, std::unique_ptr<Value> src, std::unique_ptr<Value> dst)
-        : unary_operator(std::move(op))
+    UnaryInstruction(UnaryOperator op, std::unique_ptr<Value> src, std::unique_ptr<Value> dst)
+        : unary_operator(op)
         , source(std::move(src))
         , destination(std::move(dst))
     {
@@ -201,15 +152,15 @@ public:
         visitor.visit(*this);
     }
 
-    std::unique_ptr<UnaryOperator> unary_operator;
+    UnaryOperator unary_operator;
     std::unique_ptr<Value> source;
     std::unique_ptr<Value> destination;
 };
 
 class BinaryInstruction : public Instruction {
 public:
-    BinaryInstruction(std::unique_ptr<BinaryOperator> op, std::unique_ptr<Value> src1, std::unique_ptr<Value> src2, std::unique_ptr<Value> dst)
-        : binary_operator(std::move(op))
+    BinaryInstruction(BinaryOperator op, std::unique_ptr<Value> src1, std::unique_ptr<Value> src2, std::unique_ptr<Value> dst)
+        : binary_operator(op)
         , source1(std::move(src1))
         , source2(std::move(src2))
         , destination(std::move(dst))
@@ -221,10 +172,91 @@ public:
         visitor.visit(*this);
     }
 
-    std::unique_ptr<BinaryOperator> binary_operator;
+    BinaryOperator binary_operator;
     std::unique_ptr<Value> source1;
     std::unique_ptr<Value> source2;
     std::unique_ptr<Value> destination;
+};
+
+class CopyInstruction : public Instruction {
+public:
+    CopyInstruction(std::unique_ptr<Value> src, std::unique_ptr<Value> dst)
+        : source(std::move(src))
+        , destination(std::move(dst))
+    {
+    }
+
+    void accept(TackyVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    std::unique_ptr<Value> source;
+    std::unique_ptr<Value> destination;
+};
+
+class JumpInstruction : public Instruction {
+public:
+    JumpInstruction(const std::string& id)
+        : identifier { id }
+    {
+    }
+
+    void accept(TackyVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    Identifier identifier;
+};
+
+class JumpIfZeroInstruction : public Instruction {
+public:
+    JumpIfZeroInstruction(std::unique_ptr<Value> cond, const std::string& id)
+        : condition{std::move(cond)}
+        , identifier { id }
+    {
+    }
+
+    void accept(TackyVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    std::unique_ptr<Value> condition;
+    Identifier identifier;
+};
+
+class JumpIfNotZeroInstruction : public Instruction {
+public:
+    JumpIfNotZeroInstruction(std::unique_ptr<Value> cond, const std::string& id)
+        : condition{std::move(cond)}
+        , identifier { id }
+    {
+    }
+
+    void accept(TackyVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    std::unique_ptr<Value> condition;
+    Identifier identifier;
+};
+
+class LabelInstruction : public Instruction {
+public:
+    LabelInstruction(const std::string& id)
+        : identifier { id }
+    {
+    }
+
+    void accept(TackyVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    Identifier identifier;
 };
 
 class Function : public TackyAST {

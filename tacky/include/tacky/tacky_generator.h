@@ -21,8 +21,8 @@ public:
     std::shared_ptr<TackyAST> generate();
 
 private:
-    std::unique_ptr<UnaryOperator> transform_unary_operator(parser::UnaryOperator& op);
-    std::unique_ptr<BinaryOperator> transform_binary_operator(parser::BinaryOperator& op);
+    UnaryOperator transform_unary_operator(parser::UnaryOperator& op);
+    BinaryOperator transform_binary_operator(parser::BinaryOperator& op);
     std::unique_ptr<Value> transform_expression(parser::Expression& expression, std::vector<std::unique_ptr<Instruction>>& instructions);
     std::vector<std::unique_ptr<Instruction>> transform_statement(parser::Statement& statement);
     std::unique_ptr<Function> transform_function(parser::Function& function);

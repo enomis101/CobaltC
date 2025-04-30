@@ -10,17 +10,17 @@ class ImmediateValue;
 class Register;
 class PseudoRegister;
 class StackAddress;
-class NotOperator;
-class NegOperator;
-class AddOperator;
-class SubOperator;
-class MultOperator;
 class ReturnInstruction;
 class MovInstruction;
 class UnaryInstruction;
 class BinaryInstruction;
+class CmpInstruction;
 class IdivInstruction;
 class CdqInstruction;
+class JumpInstruction;
+class JumpCCInstruction;
+class SetCCInstruction;
+class LabelInstruction;
 class AllocateStackInstruction;
 class Function;
 class Program;
@@ -32,17 +32,17 @@ public:
     virtual void visit(Register& node) = 0;
     virtual void visit(PseudoRegister& node) = 0;
     virtual void visit(StackAddress& node) = 0;
-    virtual void visit(NotOperator& node) = 0;
-    virtual void visit(NegOperator& node) = 0;
-    virtual void visit(AddOperator& node) = 0;
-    virtual void visit(SubOperator& node) = 0;
-    virtual void visit(MultOperator& node) = 0;
     virtual void visit(ReturnInstruction& node) = 0;
     virtual void visit(MovInstruction& node) = 0;
     virtual void visit(UnaryInstruction& node) = 0;
     virtual void visit(BinaryInstruction& node) = 0;
+    virtual void visit(CmpInstruction& node) = 0;
     virtual void visit(IdivInstruction& node) = 0;
     virtual void visit(CdqInstruction& node) = 0;
+    virtual void visit(JumpInstruction& node) = 0;
+    virtual void visit(JumpCCInstruction& node) = 0;
+    virtual void visit(SetCCInstruction& node) = 0;
+    virtual void visit(LabelInstruction& node) = 0;
     virtual void visit(AllocateStackInstruction& node) = 0;
     virtual void visit(Function& node) = 0;
     virtual void visit(Program& node) = 0;
@@ -83,81 +83,24 @@ public:
     std::string name;
 };
 
-class UnaryOperator : public AssemblyAST {
-public:
-    virtual ~UnaryOperator() = default;
-    virtual std::unique_ptr<UnaryOperator> clone() const = 0;
+enum class UnaryOperator {
+    NEG,
+    NOT
 };
 
-class NotOperator : public UnaryOperator {
-public:
-    void accept(AssemblyVisitor& visitor) override
-    {
-        visitor.visit(*this);
-    }
-
-    std::unique_ptr<UnaryOperator> clone() const override
-    {
-        return std::make_unique<NotOperator>();
-    }
+enum class BinaryOperator {
+    ADD,
+    SUB,
+    MULT
 };
 
-class NegOperator : public UnaryOperator {
-public:
-    void accept(AssemblyVisitor& visitor) override
-    {
-        visitor.visit(*this);
-    }
-
-    std::unique_ptr<UnaryOperator> clone() const override
-    {
-        return std::make_unique<NegOperator>();
-    }
-};
-
-class BinaryOperator : public AssemblyAST {
-public:
-    virtual ~BinaryOperator() = default;
-    virtual std::unique_ptr<BinaryOperator> clone() const = 0;
-};
-
-class AddOperator : public BinaryOperator {
-public:
-    void accept(AssemblyVisitor& visitor) override
-    {
-        visitor.visit(*this);
-    }
-
-    std::unique_ptr<BinaryOperator> clone() const override
-    {
-        return std::make_unique<AddOperator>();
-    }
-};
-
-class SubOperator : public BinaryOperator {
-public:
-    void accept(AssemblyVisitor& visitor) override
-    {
-        visitor.visit(*this);
-    }
-
-    std::unique_ptr<BinaryOperator> clone() const override
-    {
-        return std::make_unique<SubOperator>();
-    }
-};
-
-class MultOperator : public BinaryOperator {
-public:
-    void accept(AssemblyVisitor& visitor) override
-    {
-        visitor.visit(*this);
-    }
-
-    std::unique_ptr<BinaryOperator> clone() const override
-    {
-        return std::make_unique<MultOperator>();
-    }
+enum class ConditionCode {
+    E,
+    NE,
+    G,
+    GE,
+    L,
+    LE
 };
 
 // Abstract class for all expressions
@@ -292,8 +235,8 @@ public:
 
 class UnaryInstruction : public Instruction {
 public:
-    UnaryInstruction(std::unique_ptr<UnaryOperator> u_op, std::unique_ptr<Operand> op)
-        : unary_operator(std::move(u_op))
+    UnaryInstruction(UnaryOperator u_op, std::unique_ptr<Operand> op)
+        : unary_operator(u_op)
         , operand(std::move(op))
     {
     }
@@ -306,18 +249,18 @@ public:
     std::unique_ptr<Instruction> clone() const override
     {
         return std::make_unique<UnaryInstruction>(
-            unary_operator->clone(),
+            unary_operator,
             operand->clone());
     }
 
-    std::unique_ptr<UnaryOperator> unary_operator;
+    UnaryOperator unary_operator;
     std::unique_ptr<Operand> operand;
 };
 
 class BinaryInstruction : public Instruction {
 public:
-    BinaryInstruction(std::unique_ptr<BinaryOperator> b_op, std::unique_ptr<Operand> src, std::unique_ptr<Operand> dst)
-        : binary_operator(std::move(b_op))
+    BinaryInstruction(BinaryOperator b_op, std::unique_ptr<Operand> src, std::unique_ptr<Operand> dst)
+        : binary_operator(b_op)
         , source(std::move(src))
         , destination(std::move(dst))
     {
@@ -331,12 +274,36 @@ public:
     std::unique_ptr<Instruction> clone() const override
     {
         return std::make_unique<BinaryInstruction>(
-            binary_operator->clone(),
+            binary_operator,
             source->clone(),
             destination->clone());
     }
 
-    std::unique_ptr<BinaryOperator> binary_operator;
+    BinaryOperator binary_operator;
+    std::unique_ptr<Operand> source;
+    std::unique_ptr<Operand> destination;
+};
+
+class CmpInstruction : public Instruction {
+public:
+    CmpInstruction(std::unique_ptr<Operand> src, std::unique_ptr<Operand> dst)
+        : source(std::move(src))
+        , destination(std::move(dst))
+    {
+    }
+
+    void accept(AssemblyVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    std::unique_ptr<Instruction> clone() const override
+    {
+        return std::make_unique<CmpInstruction>(
+            source->clone(),
+            destination->clone());
+    }
+
     std::unique_ptr<Operand> source;
     std::unique_ptr<Operand> destination;
 };
@@ -373,6 +340,96 @@ public:
     {
         return std::make_unique<CdqInstruction>();
     }
+};
+
+class JumpInstruction : public Instruction {
+public:
+    JumpInstruction(const std::string& id)
+        : identifier{id}
+    {
+    }
+
+    void accept(AssemblyVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    std::unique_ptr<Instruction> clone() const override
+    {
+        return std::make_unique<JumpInstruction>(
+            identifier);
+    }
+
+    Identifier identifier;
+};
+
+class JumpCCInstruction : public Instruction {
+public:
+    JumpCCInstruction(ConditionCode cc, const std::string& id)
+        : condition_code{cc}
+        , identifier{id}
+    {
+    }
+
+    void accept(AssemblyVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    std::unique_ptr<Instruction> clone() const override
+    {
+        return std::make_unique<JumpCCInstruction>(
+            condition_code,
+            identifier);
+    }
+
+    ConditionCode condition_code;
+    Identifier identifier;
+};
+
+class SetCCInstruction : public Instruction {
+public:
+    SetCCInstruction(ConditionCode cc, std::unique_ptr<Operand> dst)
+        : condition_code(cc)
+        , destination(std::move(dst))
+    {
+    }
+
+    void accept(AssemblyVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    std::unique_ptr<Instruction> clone() const override
+    {
+        return std::make_unique<SetCCInstruction>(
+            condition_code,
+            destination->clone());
+    }
+
+    ConditionCode condition_code;
+    std::unique_ptr<Operand> destination;
+};
+
+class LabelInstruction : public Instruction {
+public:
+    LabelInstruction(const std::string& id)
+        : identifier{id}
+    {
+    }
+
+    void accept(AssemblyVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    std::unique_ptr<Instruction> clone() const override
+    {
+        return std::make_unique<LabelInstruction>(
+            identifier);
+    }
+
+    Identifier identifier;
 };
 
 class AllocateStackInstruction : public Instruction {

@@ -97,9 +97,9 @@ void FixUpInstructionsStep::visit(Function& node)
         if (dynamic_cast<MovInstruction*>(i.get())) {
             fixup_double_stack_address_instruction<MovInstruction>(i, node.instructions);
         } else if (BinaryInstruction* binary_instruction = dynamic_cast<BinaryInstruction*>(i.get())) {
-            if (dynamic_cast<AddOperator*>(binary_instruction->binary_operator.get()) || dynamic_cast<SubOperator*>(binary_instruction->binary_operator.get())) {
+            if ((binary_instruction->binary_operator == BinaryOperator::ADD) || (binary_instruction->binary_operator == BinaryOperator::SUB)) {
                 fixup_double_stack_address_instruction<BinaryInstruction>(i, node.instructions);
-            } else if (dynamic_cast<MultOperator*>(binary_instruction->binary_operator.get())) {
+            } else if (binary_instruction->binary_operator == BinaryOperator::MULT) {
                 // imul cant use memory addresses as its destination
                 std::unique_ptr<Operand> destination_copy = binary_instruction->destination->clone();
                 // Load destination into R11 register
@@ -158,28 +158,34 @@ std::unique_ptr<Operand> AssemblyGenerator::transform_operand(tacky::Value& val)
     }
 }
 
-std::unique_ptr<UnaryOperator> AssemblyGenerator::transform_operator(tacky::UnaryOperator& op)
+UnaryOperator AssemblyGenerator::transform_operator(tacky::UnaryOperator& unary_operator)
 {
-    if (op == tacky::UnaryOperator::NEGATE) {
-        return std::make_unique<NegOperator>();
-    } else if (op == tacky::UnaryOperator::COMPLEMENT) {
-        return std::make_unique<NotOperator>();
-    } else {
-        throw AssemblyGeneratorError("AssemblyGenerator: Invalid or Unsupported tacky::UnaryOperator");
+    static const std::unordered_map<tacky::UnaryOperator, UnaryOperator> unary_op_map = {
+        { tacky::UnaryOperator::NEGATE, UnaryOperator::NEG },
+        { tacky::UnaryOperator::COMPLEMENT, UnaryOperator::NOT }
+    };
+
+    auto it = unary_op_map.find(unary_operator);
+    if (it != unary_op_map.end()) {
+        return it->second;
     }
+    throw AssemblyGeneratorError("AssemblyGenerator: Invalid or Unsupported tacky::UnaryOperator");
 }
 
-std::unique_ptr<BinaryOperator> AssemblyGenerator::transform_operator(tacky::BinaryOperator& op)
+BinaryOperator AssemblyGenerator::transform_operator(tacky::BinaryOperator& binary_operator)
 {
-    if (op == tacky::BinaryOperator::ADD) {
-        return std::make_unique<AddOperator>();
-    } else if (op == tacky::BinaryOperator::SUBTRACT) {
-        return std::make_unique<SubOperator>();
-    } else if (op == tacky::BinaryOperator::MULTIPLY) {
-        return std::make_unique<MultOperator>();
-    } else {
-        throw AssemblyGeneratorError("AssemblyGenerator: Invalid or Unsupported tacky::BinaryOperator");
+    static const std::unordered_map<tacky::BinaryOperator, BinaryOperator> binary_op_map = {
+        { tacky::BinaryOperator::ADD, BinaryOperator::ADD },
+        { tacky::BinaryOperator::SUBTRACT, BinaryOperator::SUB },
+        { tacky::BinaryOperator::MULTIPLY, BinaryOperator::MULT }
+    };
+
+    auto it = binary_op_map.find(binary_operator);
+    if (it != binary_op_map.end()) {
+        return it->second;
     }
+
+    throw AssemblyGeneratorError("AssemblyGenerator: Invalid or Unsupported tacky::BinaryOperator");
 }
 
 std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_instruction(tacky::Instruction& instruction)
@@ -199,8 +205,8 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_instructi
         std::unique_ptr<Operand> dst_copy = dst->clone();
         res.emplace_back(std::make_unique<MovInstruction>(std::move(src), std::move(dst)));
 
-        std::unique_ptr<UnaryOperator> op = transform_operator(unary_instruction->unary_operator);
-        res.emplace_back(std::make_unique<UnaryInstruction>(std::move(op), std::move(dst_copy)));
+        UnaryOperator op = transform_operator(unary_instruction->unary_operator);
+        res.emplace_back(std::make_unique<UnaryInstruction>(op, std::move(dst_copy)));
 
         return res;
     } else if (tacky::BinaryInstruction* binary_instruction = dynamic_cast<tacky::BinaryInstruction*>(&instruction)) {
@@ -228,11 +234,19 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_instructi
             std::unique_ptr<Operand> dst_copy = dst->clone();
             res.emplace_back(std::make_unique<MovInstruction>(std::move(src1), std::move(dst)));
 
-            std::unique_ptr<BinaryOperator> op = transform_operator(binary_instruction->binary_operator);
+            BinaryOperator op = transform_operator(binary_instruction->binary_operator);
             std::unique_ptr<Operand> src2 = transform_operand(*binary_instruction->source2);
-            res.emplace_back(std::make_unique<BinaryInstruction>(std::move(op), std::move(src2), std::move(dst_copy)));
+            res.emplace_back(std::make_unique<BinaryInstruction>(op, std::move(src2), std::move(dst_copy)));
         }
         return res;
+    } else if (tacky::JumpInstruction* jump_instruction = dynamic_cast<tacky::JumpInstruction*>(&instruction)) {
+
+    } else if (tacky::JumpIfZeroInstruction* jump_if_zero_instruction = dynamic_cast<tacky::JumpIfZeroInstruction*>(&instruction)) {
+
+    } else if (tacky::JumpIfNotZeroInstruction* jump_if_not_zero_instruction = dynamic_cast<tacky::JumpIfNotZeroInstruction*>(&instruction)) {
+
+    } else if (tacky::LabelInstruction* label_instruction = dynamic_cast<tacky::LabelInstruction*>(&instruction)) {
+
     } else {
         throw AssemblyGeneratorError("AssemblyGenerator: Invalid or Unsupported tacky::Instruction");
     }

@@ -345,7 +345,7 @@ public:
 class JumpInstruction : public Instruction {
 public:
     JumpInstruction(const std::string& id)
-        : identifier{id}
+        : identifier { id }
     {
     }
 
@@ -366,8 +366,8 @@ public:
 class JumpCCInstruction : public Instruction {
 public:
     JumpCCInstruction(ConditionCode cc, const std::string& id)
-        : condition_code{cc}
-        , identifier{id}
+        : condition_code { cc }
+        , identifier { id }
     {
     }
 
@@ -414,7 +414,7 @@ public:
 class LabelInstruction : public Instruction {
 public:
     LabelInstruction(const std::string& id)
-        : identifier{id}
+        : identifier { id }
     {
     }
 

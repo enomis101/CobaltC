@@ -84,6 +84,12 @@ void PrinterVisitor::visit(StackAddress& node)
     m_dot_content << "  node" << id << " [label=\"StackAddress\\noffset: " << node.offset << "\"];\n";
 }
 
+void PrinterVisitor::visit(ReturnInstruction& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"ReturnInstruction\"];\n";
+}
+
 void PrinterVisitor::visit(MovInstruction& node)
 {
     int id = get_node_id(&node);
@@ -105,13 +111,8 @@ void PrinterVisitor::visit(MovInstruction& node)
 void PrinterVisitor::visit(UnaryInstruction& node)
 {
     int id = get_node_id(&node);
-    m_dot_content << "  node" << id << " [label=\"UnaryInstruction\"];\n";
-
-    if (node.unary_operator) {
-        node.unary_operator->accept(*this);
-        m_dot_content << "  node" << id << " -> node" << get_node_id(node.unary_operator.get())
-                      << " [label=\"unary_operator\"];\n";
-    }
+    m_dot_content << "  node" << id << " [label=\"UnaryInstruction\\noperator: "
+                  << operator_to_string(node.unary_operator) << "\"];\n";
 
     if (node.operand) {
         node.operand->accept(*this);
@@ -123,13 +124,26 @@ void PrinterVisitor::visit(UnaryInstruction& node)
 void PrinterVisitor::visit(BinaryInstruction& node)
 {
     int id = get_node_id(&node);
-    m_dot_content << "  node" << id << " [label=\"BinaryInstruction\"];\n";
+    m_dot_content << "  node" << id << " [label=\"BinaryInstruction\\noperator: "
+                  << operator_to_string(node.binary_operator) << "\"];\n";
 
-    if (node.binary_operator) {
-        node.binary_operator->accept(*this);
-        m_dot_content << "  node" << id << " -> node" << get_node_id(node.binary_operator.get())
-                      << " [label=\"binary_operator\"];\n";
+    if (node.source) {
+        node.source->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.source.get())
+                      << " [label=\"source\"];\n";
     }
+
+    if (node.destination) {
+        node.destination->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.destination.get())
+                      << " [label=\"destination\"];\n";
+    }
+}
+
+void PrinterVisitor::visit(CmpInstruction& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"CmpInstruction\"];\n";
 
     if (node.source) {
         node.source->accept(*this);
@@ -154,6 +168,59 @@ void PrinterVisitor::visit(IdivInstruction& node)
         m_dot_content << "  node" << id << " -> node" << get_node_id(node.operand.get())
                       << " [label=\"operand\"];\n";
     }
+}
+
+void PrinterVisitor::visit(CdqInstruction& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"CdqInstruction\"];\n";
+}
+
+void PrinterVisitor::visit(JumpInstruction& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"JumpInstruction\"];\n";
+
+    // Visit the contained identifier
+    node.identifier.accept(*this);
+    m_dot_content << "  node" << id << " -> node" << get_node_id(&node.identifier)
+                  << " [label=\"identifier\"];\n";
+}
+
+void PrinterVisitor::visit(JumpCCInstruction& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"JumpCCInstruction\\ncondition: "
+                  << operator_to_string(node.condition_code) << "\"];\n";
+
+    // Visit the contained identifier
+    node.identifier.accept(*this);
+    m_dot_content << "  node" << id << " -> node" << get_node_id(&node.identifier)
+                  << " [label=\"identifier\"];\n";
+}
+
+void PrinterVisitor::visit(SetCCInstruction& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"SetCCInstruction\\ncondition: "
+                  << operator_to_string(node.condition_code) << "\"];\n";
+
+    if (node.destination) {
+        node.destination->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.destination.get())
+                      << " [label=\"destination\"];\n";
+    }
+}
+
+void PrinterVisitor::visit(LabelInstruction& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"LabelInstruction\"];\n";
+
+    // Visit the contained identifier
+    node.identifier.accept(*this);
+    m_dot_content << "  node" << id << " -> node" << get_node_id(&node.identifier)
+                  << " [label=\"identifier\"];\n";
 }
 
 void PrinterVisitor::visit(AllocateStackInstruction& node)
@@ -200,4 +267,50 @@ int PrinterVisitor::get_node_id(const AssemblyAST* node)
         m_node_ids[node] = m_node_count++;
     }
     return m_node_ids[node];
+}
+
+std::string PrinterVisitor::operator_to_string(UnaryOperator op)
+{
+    switch (op) {
+    case UnaryOperator::NEG:
+        return "NEG";
+    case UnaryOperator::NOT:
+        return "NOT";
+    default:
+        return "unknown";
+    }
+}
+
+std::string PrinterVisitor::operator_to_string(BinaryOperator op)
+{
+    switch (op) {
+    case BinaryOperator::ADD:
+        return "ADD";
+    case BinaryOperator::SUB:
+        return "SUB";
+    case BinaryOperator::MULT:
+        return "MULT";
+    default:
+        return "unknown";
+    }
+}
+
+std::string PrinterVisitor::operator_to_string(ConditionCode cc)
+{
+    switch (cc) {
+    case ConditionCode::E:
+        return "E";
+    case ConditionCode::NE:
+        return "NE";
+    case ConditionCode::G:
+        return "G";
+    case ConditionCode::GE:
+        return "GE";
+    case ConditionCode::L:
+        return "L";
+    case ConditionCode::LE:
+        return "LE";
+    default:
+        return "unknown";
+    }
 }

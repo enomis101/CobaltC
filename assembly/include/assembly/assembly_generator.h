@@ -27,17 +27,17 @@ private:
     void visit(Register& node) override { }
     void visit(PseudoRegister& node) override { }
     void visit(StackAddress& node) override { }
-    void visit(NotOperator& node) override { }
-    void visit(NegOperator& node) override { }
-    void visit(AddOperator& node) override { }
-    void visit(SubOperator& node) override { }
-    void visit(MultOperator& node) override { }
     void visit(ReturnInstruction& node) override { }
     void visit(MovInstruction& node) override;
     void visit(UnaryInstruction& node) override;
     void visit(BinaryInstruction& node) override;
+    void visit(CmpInstruction& node) override;
     void visit(IdivInstruction& node) override;
     void visit(CdqInstruction& node) override { }
+    void visit(JumpInstruction& node) override;
+    void visit(JumpCCInstruction& node) override;
+    void visit(SetCCInstruction& node) override;
+    void visit(LabelInstruction& node) override;
     void visit(AllocateStackInstruction& node) override { }
     void visit(Function& node) override;
     void visit(Program& node) override;
@@ -62,17 +62,17 @@ private:
     void visit(Register& node) override { }
     void visit(PseudoRegister& node) override { }
     void visit(StackAddress& node) override { }
-    void visit(NotOperator& node) override { }
-    void visit(NegOperator& node) override { }
-    void visit(AddOperator& node) override { }
-    void visit(SubOperator& node) override { }
-    void visit(MultOperator& node) override { }
     void visit(ReturnInstruction& node) override { }
     void visit(MovInstruction& node) override { }
     void visit(UnaryInstruction& node) override { }
     void visit(BinaryInstruction& node) override { }
+    void visit(CmpInstruction& node) override { }
     void visit(IdivInstruction& node) override { }
     void visit(CdqInstruction& node) override { }
+    void visit(JumpInstruction& node) override { }
+    void visit(JumpCCInstruction& node) override { }
+    void visit(SetCCInstruction& node) override { }
+    void visit(LabelInstruction& node) override { }
     void visit(AllocateStackInstruction& node) override { }
     void visit(Function& node) override;
     void visit(Program& node) override;
@@ -107,8 +107,8 @@ public:
 
 private:
     std::unique_ptr<Operand> transform_operand(tacky::Value& op);
-    std::unique_ptr<UnaryOperator> transform_operator(tacky::UnaryOperator& op);
-    std::unique_ptr<BinaryOperator> transform_operator(tacky::BinaryOperator& op);
+    UnaryOperator transform_operator(tacky::UnaryOperator& unary_operator);
+    BinaryOperator transform_operator(tacky::BinaryOperator& binary_operator);
     std::vector<std::unique_ptr<Instruction>> transform_instruction(tacky::Instruction& instruction);
     std::unique_ptr<Function> transform_function(tacky::Function& function);
     std::unique_ptr<Program> transform_program(tacky::Program& program);

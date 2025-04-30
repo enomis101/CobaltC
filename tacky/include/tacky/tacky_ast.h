@@ -185,6 +185,12 @@ public:
         , destination(std::move(dst))
     {
     }
+    CopyInstruction(int src, std::unique_ptr<Value> dst)
+    : source(std::make_unique<Constant>(src))
+    , destination(std::move(dst))
+    {
+    }
+
 
     void accept(TackyVisitor& visitor) override
     {

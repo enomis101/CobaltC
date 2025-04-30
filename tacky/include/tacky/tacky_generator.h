@@ -28,10 +28,12 @@ private:
     std::unique_ptr<Function> transform_function(parser::Function& function);
     std::unique_ptr<Program> transform_program(parser::Program& program);
     std::string make_temporary();
+    std::string make_label(const std::string& in_label);
     void reset_counter();
 
     std::shared_ptr<parser::ParserAST> m_ast;
     int m_temporary_counter = 0;
+    int m_label_counter = 0;
 };
 
 } // namespace tacky

@@ -75,7 +75,7 @@ void PrinterVisitor::visit(UnaryInstruction& node)
 
     std::string label = "UnaryInstruction";
 
-    label += "\noperator: " + operator_to_string(node.unary_operator) + "\n";
+    label += "\\noperator: " + operator_to_string(node.unary_operator) + "\\n";
 
     m_dot_content << "  node" << id << " [label=\"" << label << "\"];\n";
 
@@ -98,7 +98,7 @@ void PrinterVisitor::visit(BinaryInstruction& node)
 
     std::string label = "BinaryInstruction";
 
-    label += "\noperator: " + operator_to_string(node.binary_operator) + "\n";
+    label += "\\noperator: " + operator_to_string(node.binary_operator) + "\\n";
 
     m_dot_content << "  node" << id << " [label=\"" << label << "\"];\n";
 
@@ -119,6 +119,80 @@ void PrinterVisitor::visit(BinaryInstruction& node)
         m_dot_content << "  node" << id << " -> node" << get_node_id(node.destination.get())
                       << " [label=\"destination\"];\n";
     }
+}
+
+void PrinterVisitor::visit(CopyInstruction& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"CopyInstruction\"];\n";
+
+    if (node.source) {
+        node.source->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.source.get())
+                      << " [label=\"source\"];\n";
+    }
+
+    if (node.destination) {
+        node.destination->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.destination.get())
+                      << " [label=\"destination\"];\n";
+    }
+}
+
+void PrinterVisitor::visit(JumpInstruction& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"JumpInstruction\"];\n";
+
+    // Process the identifier
+    node.identifier.accept(*this);
+    m_dot_content << "  node" << id << " -> node" << get_node_id(&node.identifier)
+                  << " [label=\"identifier\"];\n";
+}
+
+void PrinterVisitor::visit(JumpIfZeroInstruction& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"JumpIfZeroInstruction\"];\n";
+
+    if (node.condition) {
+        node.condition->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.condition.get())
+                      << " [label=\"condition\"];\n";
+    }
+
+    // Process the identifier
+    node.identifier.accept(*this);
+    m_dot_content << "  node" << id << " -> node" << get_node_id(&node.identifier)
+                  << " [label=\"identifier\"];\n";
+}
+
+void PrinterVisitor::visit(JumpIfNotZeroInstruction& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"JumpIfNotZeroInstruction\"];\n";
+
+    if (node.condition) {
+        node.condition->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.condition.get())
+                      << " [label=\"condition\"];\n";
+    }
+
+    // Process the identifier
+    node.identifier.accept(*this);
+    m_dot_content << "  node" << id << " -> node" << get_node_id(&node.identifier)
+                  << " [label=\"identifier\"];\n";
+}
+
+void PrinterVisitor::visit(LabelInstruction& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"LabelInstruction\"];\n";
+
+    // Process the identifier
+    node.identifier.accept(*this);
+    m_dot_content << "  node" << id << " -> node" << get_node_id(&node.identifier)
+                  << " [label=\"identifier\"];\n";
 }
 
 void PrinterVisitor::visit(Function& node)
@@ -160,7 +234,6 @@ int PrinterVisitor::get_node_id(const TackyAST* node)
     }
     return m_node_ids[node];
 }
-
 
 std::string PrinterVisitor::operator_to_string(UnaryOperator op)
 {

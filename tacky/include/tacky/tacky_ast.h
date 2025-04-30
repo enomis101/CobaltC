@@ -186,11 +186,10 @@ public:
     {
     }
     CopyInstruction(int src, std::unique_ptr<Value> dst)
-    : source(std::make_unique<Constant>(src))
-    , destination(std::move(dst))
+        : source(std::make_unique<Constant>(src))
+        , destination(std::move(dst))
     {
     }
-
 
     void accept(TackyVisitor& visitor) override
     {
@@ -219,7 +218,7 @@ public:
 class JumpIfZeroInstruction : public Instruction {
 public:
     JumpIfZeroInstruction(std::unique_ptr<Value> cond, const std::string& id)
-        : condition{std::move(cond)}
+        : condition { std::move(cond) }
         , identifier { id }
     {
     }
@@ -236,7 +235,7 @@ public:
 class JumpIfNotZeroInstruction : public Instruction {
 public:
     JumpIfNotZeroInstruction(std::unique_ptr<Value> cond, const std::string& id)
-        : condition{std::move(cond)}
+        : condition { std::move(cond) }
         , identifier { id }
     {
     }

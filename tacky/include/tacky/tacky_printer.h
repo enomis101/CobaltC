@@ -19,6 +19,11 @@ public:
     void visit(ReturnInstruction& node) override;
     void visit(UnaryInstruction& node) override;
     void visit(BinaryInstruction& node) override;
+    void visit(CopyInstruction& node) override;
+    void visit(JumpInstruction& node) override;
+    void visit(JumpIfZeroInstruction& node) override;
+    void visit(JumpIfNotZeroInstruction& node) override;
+    void visit(LabelInstruction& node) override;
     void visit(Function& node) override;
     void visit(Program& node) override;
 

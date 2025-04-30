@@ -73,8 +73,8 @@ std::unique_ptr<Value> TackyGenerator::transform_expression(parser::Expression& 
         instructions.emplace_back(std::make_unique<UnaryInstruction>(op, std::move(src), std::move(dst)));
         return dst_copy;
     } else if (parser::BinaryExpression* binary_expression = dynamic_cast<parser::BinaryExpression*>(&expression)) {
-        //WE need to handle logical AND OR differently to supprt short circuit
-        if(binary_expression->binary_operator == parser::BinaryOperator::AND){
+        // WE need to handle logical AND OR differently to supprt short circuit
+        if (binary_expression->binary_operator == parser::BinaryOperator::AND) {
             std::unique_ptr<Value> src1 = transform_expression(*binary_expression->left_expression, instructions);
             std::string false_label = make_label("and_false");
             instructions.emplace_back(std::make_unique<JumpIfZeroInstruction>(std::move(src1), false_label));
@@ -83,7 +83,7 @@ std::unique_ptr<Value> TackyGenerator::transform_expression(parser::Expression& 
             std::string result = make_temporary();
             {
                 std::unique_ptr<TemporaryVariable> result_var = std::make_unique<TemporaryVariable>(result);
-                instructions.emplace_back(std::make_unique<CopyInstruction>(1,std::move(result_var)));
+                instructions.emplace_back(std::make_unique<CopyInstruction>(1, std::move(result_var)));
             }
 
             std::string end_label = make_label("and_end");
@@ -91,23 +91,34 @@ std::unique_ptr<Value> TackyGenerator::transform_expression(parser::Expression& 
             instructions.emplace_back(std::make_unique<LabelInstruction>(false_label));
             {
                 std::unique_ptr<TemporaryVariable> result_var = std::make_unique<TemporaryVariable>(result);
-                instructions.emplace_back(std::make_unique<CopyInstruction>(0,std::move(result_var)));
+                instructions.emplace_back(std::make_unique<CopyInstruction>(0, std::move(result_var)));
             }
             instructions.emplace_back(std::make_unique<LabelInstruction>(end_label));
             std::unique_ptr<TemporaryVariable> result_var = std::make_unique<TemporaryVariable>(result);
             return result_var;
-        }
-        else if(binary_expression->binary_operator == parser::BinaryOperator::OR){
+        } else if (binary_expression->binary_operator == parser::BinaryOperator::OR) {
             std::unique_ptr<Value> src1 = transform_expression(*binary_expression->left_expression, instructions);
+            std::string true_label = make_label("or_true");
+            instructions.emplace_back(std::make_unique<JumpIfNotZeroInstruction>(std::move(src1), true_label));
             std::unique_ptr<Value> src2 = transform_expression(*binary_expression->right_expression, instructions);
-            std::string dst_name = make_temporary();
-            std::unique_ptr<TemporaryVariable> dst = std::make_unique<TemporaryVariable>(dst_name);
-            std::unique_ptr<Value> dst_copy = std::make_unique<TemporaryVariable>(*dst);
-            BinaryOperator op = transform_binary_operator(binary_expression->binary_operator);
-            instructions.emplace_back(std::make_unique<BinaryInstruction>(op, std::move(src1), std::move(src2), std::move(dst)));
-            return dst_copy;
-        }
-        else{
+            instructions.emplace_back(std::make_unique<JumpIfNotZeroInstruction>(std::move(src2), true_label));
+            std::string result = make_temporary();
+            {
+                std::unique_ptr<TemporaryVariable> result_var = std::make_unique<TemporaryVariable>(result);
+                instructions.emplace_back(std::make_unique<CopyInstruction>(0, std::move(result_var)));
+            }
+
+            std::string end_label = make_label("or_end");
+            instructions.emplace_back(std::make_unique<JumpInstruction>(end_label));
+            instructions.emplace_back(std::make_unique<LabelInstruction>(true_label));
+            {
+                std::unique_ptr<TemporaryVariable> result_var = std::make_unique<TemporaryVariable>(result);
+                instructions.emplace_back(std::make_unique<CopyInstruction>(1, std::move(result_var)));
+            }
+            instructions.emplace_back(std::make_unique<LabelInstruction>(end_label));
+            std::unique_ptr<TemporaryVariable> result_var = std::make_unique<TemporaryVariable>(result);
+            return result_var;
+        } else {
             std::unique_ptr<Value> src1 = transform_expression(*binary_expression->left_expression, instructions);
             std::unique_ptr<Value> src2 = transform_expression(*binary_expression->right_expression, instructions);
             std::string dst_name = make_temporary();
@@ -156,6 +167,7 @@ std::string TackyGenerator::make_temporary()
     return "tmp." + std::to_string(m_temporary_counter++);
 }
 
-std::string TackyGenerator::make_label(const std::string& in_label){
+std::string TackyGenerator::make_label(const std::string& in_label)
+{
     return in_label + "_" + std::to_string(m_label_counter++);
 }

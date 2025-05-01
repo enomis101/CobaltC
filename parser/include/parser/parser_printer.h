@@ -20,6 +20,11 @@ public:
     void visit(ReturnStatement& node) override;
     void visit(Function& node) override;
     void visit(Program& node) override;
+    void visit(VariableExpression& node) override;
+    void visit(AssignmentExpression& node) override;
+    void visit(ExpressionStatement& node) override;
+    void visit(NullStatement& node) override;
+    void visit(VariableDeclaration& node) override;
 
 private:
     // Get or assign a unique ID for each node

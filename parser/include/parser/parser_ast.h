@@ -171,8 +171,6 @@ public:
     std::unique_ptr<Expression> right_expression;
 };
 
-
-
 class BlockItem : public ParserAST {
 public:
     virtual ~BlockItem() = default;

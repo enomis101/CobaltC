@@ -61,6 +61,7 @@ std::unique_ptr<Declaration> Parser::parse_declaration()
     const Token& identifier_token = expect(TokenType::IDENTIFIER);
     const Token& next_token = peek();
     if (next_token.type() == TokenType::SEMICOLON) {
+        take_token();
         return std::make_unique<VariableDeclaration>(identifier_token.lexeme());
     }
     expect(TokenType::ASSIGNMENT);
@@ -97,18 +98,17 @@ std::unique_ptr<Expression> Parser::parse_expression(int min_prec)
     std::unique_ptr<Expression> left;
 
     left = parse_factor();
-    if (!has_tokens()){
+    if (!has_tokens()) {
         return left;
     }
 
     const Token* next_token = &peek();
     while (next_token && TokenTable::is_binary_operator(next_token->type()) && precedence(*next_token) >= min_prec) {
-        if(next_token->type() == TokenType::ASSIGNMENT){    //= must be rigth associative a = b = c --> a  = (b = c)
+        if (next_token->type() == TokenType::ASSIGNMENT) { //= must be rigth associative a = b = c --> a  = (b = c)
             take_token();
             std::unique_ptr<Expression> right = parse_expression(precedence(*next_token));
             left = std::make_unique<AssignmentExpression>(std::move(left), std::move(right));
-        }
-        else{
+        } else {
             BinaryOperator op = parse_binary_operator();
             std::unique_ptr<Expression> right = parse_expression(precedence(*next_token) + 1);
             left = std::make_unique<BinaryExpression>(op, std::move(left), std::move(right));
@@ -121,25 +121,24 @@ std::unique_ptr<Expression> Parser::parse_expression(int min_prec)
 
 std::unique_ptr<Expression> Parser::parse_factor()
 {
-    std::unique_ptr<Expression> res;
-
     const Token& next_token = peek();
     if (next_token.type() == TokenType::CONSTANT) {
         take_token();
-        res = std::make_unique<ConstantExpression>(next_token.literal<int>());
-        return res;
+        return std::make_unique<ConstantExpression>(next_token.literal<int>());
     } else if (TokenTable::is_unary_operator(next_token.type())) {
         UnaryOperator op = parse_unary_operator();
         std::unique_ptr<Expression> expr = parse_factor();
-        res = std::make_unique<UnaryExpression>(op, std::move(expr));
-        return res;
+        return std::make_unique<UnaryExpression>(op, std::move(expr));
     } else if (next_token.type() == TokenType::OPEN_PAREN) {
         take_token();
-        res = parse_expression();
+        std::unique_ptr<Expression> res = parse_expression();
         expect(TokenType::CLOSE_PAREN);
         return res;
+    } else if (next_token.type() == TokenType::IDENTIFIER) {
+        take_token();
+        return std::make_unique<VariableExpression>(next_token.lexeme());
     } else {
-        throw ParserError("Malformed Factor");
+        throw ParserError(std::format("Malformed Factor {}", next_token.to_string()));
     }
 }
 

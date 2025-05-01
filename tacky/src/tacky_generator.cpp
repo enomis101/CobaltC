@@ -145,7 +145,7 @@ std::vector<std::unique_ptr<Instruction>> TackyGenerator::transform_statement(pa
 
 std::unique_ptr<Function> TackyGenerator::transform_function(parser::Function& function)
 {
-    std::vector<std::unique_ptr<Instruction>> body = transform_statement(*(function.body.get()));
+    std::vector<std::unique_ptr<Instruction>> body; // = transform_statement(*(function.body.get()));    //TODO: FIX_TACKY
     return std::make_unique<Function>(function.name->name, std::move(body));
 }
 

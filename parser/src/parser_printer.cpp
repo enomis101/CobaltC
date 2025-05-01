@@ -79,6 +79,7 @@ void PrinterVisitor::visit(BinaryExpression& node)
                       << " [label=\"right_expression\"];\n";
     }
 }
+
 void PrinterVisitor::visit(ConstantExpression& node)
 {
     int id = get_node_id(&node);
@@ -94,6 +95,71 @@ void PrinterVisitor::visit(ReturnStatement& node)
         node.expression->accept(*this);
         m_dot_content << "  node" << id << " -> node" << get_node_id(node.expression.get())
                       << " [label=\"expression\"];\n";
+    }
+}
+
+void PrinterVisitor::visit(VariableExpression& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"VariableExpression\"];\n";
+
+    // Visit the identifier
+    node.identifier.accept(*this);
+    m_dot_content << "  node" << id << " -> node" << get_node_id(&node.identifier)
+                  << " [label=\"identifier\"];\n";
+}
+
+void PrinterVisitor::visit(AssignmentExpression& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"AssignmentExpression\"];\n";
+
+    if (node.left_expression) {
+        node.left_expression->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.left_expression.get())
+                      << " [label=\"left_expression\"];\n";
+    }
+
+    if (node.right_expression) {
+        node.right_expression->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.right_expression.get())
+                      << " [label=\"right_expression\"];\n";
+    }
+}
+
+void PrinterVisitor::visit(ExpressionStatement& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"ExpressionStatement\"];\n";
+
+    if (node.expression) {
+        node.expression->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.expression.get())
+                      << " [label=\"expression\"];\n";
+    }
+}
+
+void PrinterVisitor::visit(NullStatement& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"NullStatement\"];\n";
+}
+
+void PrinterVisitor::visit(VariableDeclaration& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"VariableDeclaration\"];\n";
+
+    // Visit the identifier
+    node.identifier.accept(*this);
+    m_dot_content << "  node" << id << " -> node" << get_node_id(&node.identifier)
+                  << " [label=\"identifier\"];\n";
+
+    // Visit the initializer expression if present
+    if (node.expression.has_value() && node.expression.value()) {
+        node.expression.value()->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.expression.value().get())
+                      << " [label=\"initializer\"];\n";
     }
 }
 
@@ -156,10 +222,13 @@ void PrinterVisitor::visit(Function& node)
                       << " [label=\"name\"];\n";
     }
 
-    if (node.body) {
-        node.body->accept(*this);
-        m_dot_content << "  node" << id << " -> node" << get_node_id(node.body.get())
-                      << " [label=\"body\"];\n";
+    // Visit each block item in the body
+    for (size_t i = 0; i < node.body.size(); ++i) {
+        if (node.body[i]) {
+            node.body[i]->accept(*this);
+            m_dot_content << "  node" << id << " -> node" << get_node_id(node.body[i].get())
+                          << " [label=\"body[" << i << "]\"];\n";
+        }
     }
 }
 

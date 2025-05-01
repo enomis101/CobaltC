@@ -139,7 +139,8 @@ TokenTable::TokenTable()
         { '%', TokenType::PERCENT },
         { '!', TokenType::EXCLAMATION_POINT },
         { '<', TokenType::LESS_THAN },
-        { '>', TokenType::GREATER_THAN }
+        { '>', TokenType::GREATER_THAN },
+        { '=', TokenType::ASSIGNMENT }
     };
 
     m_double_char_tokens = {

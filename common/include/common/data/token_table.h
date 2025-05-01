@@ -36,7 +36,8 @@ enum class TokenType {
     LESS_THAN,         // <
     GREATER_THAN,      // >
     LESS_THAN_EQUAL,   // <=
-    GREATER_THAN_EQUAL // >=
+    GREATER_THAN_EQUAL, // >=
+    ASSIGNMENT         // =
     // Add other types as needed
 };
 class TokenTable {

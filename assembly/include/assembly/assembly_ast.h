@@ -17,8 +17,8 @@ class BinaryInstruction;
 class CmpInstruction;
 class IdivInstruction;
 class CdqInstruction;
-class JumpInstruction;
-class JumpCCInstruction;
+class JmpInstruction;
+class JmpCCInstruction;
 class SetCCInstruction;
 class LabelInstruction;
 class AllocateStackInstruction;
@@ -39,8 +39,8 @@ public:
     virtual void visit(CmpInstruction& node) = 0;
     virtual void visit(IdivInstruction& node) = 0;
     virtual void visit(CdqInstruction& node) = 0;
-    virtual void visit(JumpInstruction& node) = 0;
-    virtual void visit(JumpCCInstruction& node) = 0;
+    virtual void visit(JmpInstruction& node) = 0;
+    virtual void visit(JmpCCInstruction& node) = 0;
     virtual void visit(SetCCInstruction& node) = 0;
     virtual void visit(LabelInstruction& node) = 0;
     virtual void visit(AllocateStackInstruction& node) = 0;
@@ -132,8 +132,9 @@ public:
 
 class Register : public Operand {
 public:
-    Register(RegisterName r)
+    Register(RegisterName r, bool b = false)
         : reg { r }
+        , single_byte { b }
     {
     }
 
@@ -144,10 +145,11 @@ public:
 
     std::unique_ptr<Operand> clone() const override
     {
-        return std::make_unique<Register>(reg);
+        return std::make_unique<Register>(reg, single_byte);
     }
 
     RegisterName reg;
+    bool single_byte; // set to true by the SetCC instruction
 };
 
 class PseudoRegister : public Operand {
@@ -342,9 +344,9 @@ public:
     }
 };
 
-class JumpInstruction : public Instruction {
+class JmpInstruction : public Instruction {
 public:
-    JumpInstruction(const std::string& id)
+    JmpInstruction(const std::string& id)
         : identifier { id }
     {
     }
@@ -356,16 +358,16 @@ public:
 
     std::unique_ptr<Instruction> clone() const override
     {
-        return std::make_unique<JumpInstruction>(
-            identifier);
+        return std::make_unique<JmpInstruction>(
+            identifier.name);
     }
 
     Identifier identifier;
 };
 
-class JumpCCInstruction : public Instruction {
+class JmpCCInstruction : public Instruction {
 public:
-    JumpCCInstruction(ConditionCode cc, const std::string& id)
+    JmpCCInstruction(ConditionCode cc, const std::string& id)
         : condition_code { cc }
         , identifier { id }
     {
@@ -378,9 +380,9 @@ public:
 
     std::unique_ptr<Instruction> clone() const override
     {
-        return std::make_unique<JumpCCInstruction>(
+        return std::make_unique<JmpCCInstruction>(
             condition_code,
-            identifier);
+            identifier.name);
     }
 
     ConditionCode condition_code;
@@ -393,6 +395,9 @@ public:
         : condition_code(cc)
         , destination(std::move(dst))
     {
+        if (Register* reg = dynamic_cast<Register*>(destination.get())) {
+            reg->single_byte = true;
+        }
     }
 
     void accept(AssemblyVisitor& visitor) override
@@ -426,7 +431,7 @@ public:
     std::unique_ptr<Instruction> clone() const override
     {
         return std::make_unique<LabelInstruction>(
-            identifier);
+            identifier.name);
     }
 
     Identifier identifier;

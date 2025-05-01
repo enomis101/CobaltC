@@ -176,10 +176,10 @@ void PrinterVisitor::visit(CdqInstruction& node)
     m_dot_content << "  node" << id << " [label=\"CdqInstruction\"];\n";
 }
 
-void PrinterVisitor::visit(JumpInstruction& node)
+void PrinterVisitor::visit(JmpInstruction& node)
 {
     int id = get_node_id(&node);
-    m_dot_content << "  node" << id << " [label=\"JumpInstruction\"];\n";
+    m_dot_content << "  node" << id << " [label=\"JmpInstruction\"];\n";
 
     // Visit the contained identifier
     node.identifier.accept(*this);
@@ -187,10 +187,10 @@ void PrinterVisitor::visit(JumpInstruction& node)
                   << " [label=\"identifier\"];\n";
 }
 
-void PrinterVisitor::visit(JumpCCInstruction& node)
+void PrinterVisitor::visit(JmpCCInstruction& node)
 {
     int id = get_node_id(&node);
-    m_dot_content << "  node" << id << " [label=\"JumpCCInstruction\\ncondition: "
+    m_dot_content << "  node" << id << " [label=\"JmpCCInstruction\\ncondition: "
                   << operator_to_string(node.condition_code) << "\"];\n";
 
     // Visit the contained identifier

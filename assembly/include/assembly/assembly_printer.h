@@ -25,8 +25,8 @@ public:
     void visit(CmpInstruction& node) override;
     void visit(IdivInstruction& node) override;
     void visit(CdqInstruction& node) override;
-    void visit(JumpInstruction& node) override;
-    void visit(JumpCCInstruction& node) override;
+    void visit(JmpInstruction& node) override;
+    void visit(JmpCCInstruction& node) override;
     void visit(SetCCInstruction& node) override;
     void visit(LabelInstruction& node) override;
     void visit(AllocateStackInstruction& node) override;

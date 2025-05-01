@@ -262,10 +262,6 @@ std::string PrinterVisitor::operator_to_string(BinaryOperator op)
         return "Divide";
     case BinaryOperator::REMAINDER:
         return "Remainder";
-    case BinaryOperator::AND:
-        return "And";
-    case BinaryOperator::OR:
-        return "Or";
     case BinaryOperator::EQUAL:
         return "Equal";
     case BinaryOperator::NOT_EQUAL:

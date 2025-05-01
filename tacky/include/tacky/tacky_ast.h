@@ -73,8 +73,6 @@ enum class BinaryOperator {
     MULTIPLY,
     DIVIDE,
     REMAINDER,
-    AND,
-    OR,
     EQUAL,
     NOT_EQUAL,
     LESS_THAN,

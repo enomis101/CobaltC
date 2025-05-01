@@ -42,11 +42,6 @@ void CodeEmitter::emit_code()
     m_ast->accept(*this);
 }
 
-void CodeEmitter::visit(Identifier& node)
-{
-    *m_file_stream << std::format("{}", node.name);
-}
-
 void CodeEmitter::visit(ImmediateValue& node)
 {
     *m_file_stream << std::format("${}", node.value);
@@ -56,19 +51,19 @@ void CodeEmitter::visit(Register& node)
 {
     switch (node.reg) {
     case RegisterName::AX: {
-        *m_file_stream << "%eax";
+        *m_file_stream << (node.single_byte ? "%al" : "%eax");
         break;
     }
     case RegisterName::DX: {
-        *m_file_stream << "%edx";
+        *m_file_stream << (node.single_byte ? "%dl" : "%edx");
         break;
     }
     case RegisterName::R10: {
-        *m_file_stream << "%r10d";
+        *m_file_stream << (node.single_byte ? "%r10b" : "%r10d");
         break;
     }
     case RegisterName::R11: {
-        *m_file_stream << "%r11d";
+        *m_file_stream << (node.single_byte ? "%r11b" : "%r11d");
         break;
     }
     default:
@@ -80,31 +75,6 @@ void CodeEmitter::visit(Register& node)
 void CodeEmitter::visit(StackAddress& node)
 {
     *m_file_stream << std::format("{}(%rbp)", node.offset);
-}
-
-void CodeEmitter::visit(NotOperator& node)
-{
-    *m_file_stream << "notl";
-}
-
-void CodeEmitter::visit(NegOperator& node)
-{
-    *m_file_stream << "negl";
-}
-
-void CodeEmitter::visit(AddOperator& node)
-{
-    *m_file_stream << "addl";
-}
-
-void CodeEmitter::visit(SubOperator& node)
-{
-    *m_file_stream << "subl";
-}
-
-void CodeEmitter::visit(MultOperator& node)
-{
-    *m_file_stream << "imull";
 }
 
 void CodeEmitter::visit(ReturnInstruction& node)
@@ -125,18 +95,23 @@ void CodeEmitter::visit(MovInstruction& node)
 
 void CodeEmitter::visit(UnaryInstruction& node)
 {
-    *m_file_stream << "\t";
-    node.unary_operator->accept(*this);
-    *m_file_stream << "\t";
+    *m_file_stream << std::format("\t{}\t", operator_instruction(node.unary_operator));
     node.operand->accept(*this);
     *m_file_stream << "\n";
 }
 
 void CodeEmitter::visit(BinaryInstruction& node)
 {
-    *m_file_stream << "\t";
-    node.binary_operator->accept(*this);
-    *m_file_stream << "\t";
+    *m_file_stream << std::format("\t{}\t", operator_instruction(node.binary_operator));
+    node.source->accept(*this);
+    *m_file_stream << ",\t";
+    node.destination->accept(*this);
+    *m_file_stream << "\n";
+}
+
+void CodeEmitter::visit(CmpInstruction& node)
+{
+    *m_file_stream << "\tcmpl\t";
     node.source->accept(*this);
     *m_file_stream << ",\t";
     node.destination->accept(*this);
@@ -155,6 +130,28 @@ void CodeEmitter::visit(CdqInstruction& node)
     *m_file_stream << "\tcdq\n";
 }
 
+void CodeEmitter::visit(JmpInstruction& node)
+{
+    *m_file_stream << std::format("\tjmp \t.L{}\n", node.identifier.name);
+}
+
+void CodeEmitter::visit(JmpCCInstruction& node)
+{
+    *m_file_stream << std::format("\tj{} \t.L{}\n", to_instruction_suffix(node.condition_code), node.identifier.name);
+}
+
+void CodeEmitter::visit(SetCCInstruction& node)
+{
+    *m_file_stream << std::format("\tset{} \t", to_instruction_suffix(node.condition_code));
+    node.destination->accept(*this);
+    *m_file_stream << "\n";
+}
+
+void CodeEmitter::visit(LabelInstruction& node)
+{
+    *m_file_stream << std::format(".L{}:\n", node.identifier.name);
+}
+
 void CodeEmitter::visit(AllocateStackInstruction& node)
 {
     *m_file_stream << std::format("\tsubq\t${}, %rsp\n", node.value);
@@ -162,11 +159,7 @@ void CodeEmitter::visit(AllocateStackInstruction& node)
 
 void CodeEmitter::visit(Function& node)
 {
-    *m_file_stream << "\t.globl ";
-    node.name.accept(*this);
-    *m_file_stream << "\n";
-    node.name.accept(*this);
-    *m_file_stream << ":\n";
+    *m_file_stream << std::format("\t.globl {}\n{}:\n", node.name.name, node.name.name);
     *m_file_stream << "\tpushq\t%rbp\n";
     *m_file_stream << "\tmovq\t%rsp, %rbp\n";
     for (auto& instruction : node.instructions) {
@@ -178,4 +171,50 @@ void CodeEmitter::visit(Program& node)
 {
     node.function->accept(*this);
     *m_file_stream << std::format("\t.section .note.GNU-stack,\"\",@progbits\n");
+}
+
+std::string CodeEmitter::operator_instruction(UnaryOperator op)
+{
+    switch (op) {
+    case UnaryOperator::NEG:
+        return "negl";
+    case UnaryOperator::NOT:
+        return "notl";
+    default:
+        throw CodeEmitterError("CodeEmitter: Unsupported UnaryOperator");
+    }
+}
+
+std::string CodeEmitter::operator_instruction(BinaryOperator op)
+{
+    switch (op) {
+    case BinaryOperator::ADD:
+        return "addl";
+    case BinaryOperator::SUB:
+        return "subl";
+    case BinaryOperator::MULT:
+        return "imull";
+    default:
+        throw CodeEmitterError("CodeEmitter: Unsupported BinaryOperator");
+    }
+}
+
+std::string CodeEmitter::to_instruction_suffix(ConditionCode cc)
+{
+    switch (cc) {
+    case ConditionCode::E:
+        return "e";
+    case ConditionCode::NE:
+        return "ne";
+    case ConditionCode::G:
+        return "g";
+    case ConditionCode::GE:
+        return "ge";
+    case ConditionCode::L:
+        return "l";
+    case ConditionCode::LE:
+        return "le";
+    default:
+        return "unknown";
+    }
 }

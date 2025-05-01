@@ -21,26 +21,29 @@ public:
     void emit_code();
 
 private:
-    void visit(Identifier& node) override;
+    void visit(Identifier& node) override { throw CodeEmitterError("visit(Identifier&) is not supported"); }
     void visit(ImmediateValue& node) override;
     void visit(Register& node) override;
     void visit(PseudoRegister& node) override { throw CodeEmitterError("Found PseudoRegister node during CodeEmission"); }
     void visit(StackAddress& node) override;
-    void visit(NotOperator& node) override;
-    void visit(NegOperator& node) override;
-    void visit(AddOperator& node) override;
-    void visit(SubOperator& node) override;
-    void visit(MultOperator& node) override;
     void visit(ReturnInstruction& node) override;
     void visit(MovInstruction& node) override;
     void visit(UnaryInstruction& node) override;
     void visit(BinaryInstruction& node) override;
+    void visit(CmpInstruction& node) override;
     void visit(IdivInstruction& node) override;
     void visit(CdqInstruction& node) override;
+    void visit(JmpInstruction& node) override;
+    void visit(JmpCCInstruction& node) override;
+    void visit(SetCCInstruction& node) override;
+    void visit(LabelInstruction& node) override;
     void visit(AllocateStackInstruction& node) override;
     void visit(Function& node) override;
     void visit(Program& node) override;
 
+    std::string operator_instruction(UnaryOperator op);
+    std::string operator_instruction(BinaryOperator op);
+    std::string to_instruction_suffix(ConditionCode cc);
     const std::string m_output_file;
     std::shared_ptr<AssemblyAST> m_ast;
     std::ofstream* m_file_stream;

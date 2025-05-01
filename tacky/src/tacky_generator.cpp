@@ -42,8 +42,6 @@ BinaryOperator TackyGenerator::transform_binary_operator(parser::BinaryOperator&
         { parser::BinaryOperator::REMAINDER, BinaryOperator::REMAINDER },
         { parser::BinaryOperator::ADD, BinaryOperator::ADD },
         { parser::BinaryOperator::SUBTRACT, BinaryOperator::SUBTRACT },
-        { parser::BinaryOperator::AND, BinaryOperator::AND },
-        { parser::BinaryOperator::OR, BinaryOperator::OR },
         { parser::BinaryOperator::EQUAL, BinaryOperator::EQUAL },
         { parser::BinaryOperator::NOT_EQUAL, BinaryOperator::NOT_EQUAL },
         { parser::BinaryOperator::LESS_THAN, BinaryOperator::LESS_THAN },

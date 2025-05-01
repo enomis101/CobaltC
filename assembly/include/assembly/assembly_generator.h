@@ -3,6 +3,7 @@
 #include "tacky/tacky_ast.h"
 #include <stdexcept>
 #include <unordered_map>
+#include <vector>
 
 namespace assembly {
 
@@ -34,10 +35,10 @@ private:
     void visit(CmpInstruction& node) override;
     void visit(IdivInstruction& node) override;
     void visit(CdqInstruction& node) override { }
-    void visit(JumpInstruction& node) override;
-    void visit(JumpCCInstruction& node) override;
+    void visit(JmpInstruction& node) override { }
+    void visit(JmpCCInstruction& node) override { }
     void visit(SetCCInstruction& node) override;
-    void visit(LabelInstruction& node) override;
+    void visit(LabelInstruction& node) override { }
     void visit(AllocateStackInstruction& node) override { }
     void visit(Function& node) override;
     void visit(Program& node) override;
@@ -69,8 +70,8 @@ private:
     void visit(CmpInstruction& node) override { }
     void visit(IdivInstruction& node) override { }
     void visit(CdqInstruction& node) override { }
-    void visit(JumpInstruction& node) override { }
-    void visit(JumpCCInstruction& node) override { }
+    void visit(JmpInstruction& node) override { }
+    void visit(JmpCCInstruction& node) override { }
     void visit(SetCCInstruction& node) override { }
     void visit(LabelInstruction& node) override { }
     void visit(AllocateStackInstruction& node) override { }
@@ -110,9 +111,14 @@ private:
     UnaryOperator transform_operator(tacky::UnaryOperator& unary_operator);
     BinaryOperator transform_operator(tacky::BinaryOperator& binary_operator);
     std::vector<std::unique_ptr<Instruction>> transform_instruction(tacky::Instruction& instruction);
+    std::vector<std::unique_ptr<Instruction>> transform_unary_instruction(tacky::UnaryInstruction& unary_instruction);
+    std::vector<std::unique_ptr<Instruction>> transform_binary_instruction(tacky::BinaryInstruction& binary_instruction);
+    std::vector<std::unique_ptr<Instruction>> transform_jump_instruction(tacky::Instruction& jump_instruction);
     std::unique_ptr<Function> transform_function(tacky::Function& function);
     std::unique_ptr<Program> transform_program(tacky::Program& program);
 
+    bool is_relational_operator(tacky::BinaryOperator op);
+    ConditionCode to_condition_code(tacky::BinaryOperator op);
     std::shared_ptr<tacky::TackyAST> m_ast;
 };
 

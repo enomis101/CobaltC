@@ -31,13 +31,13 @@ enum class TokenType {
     LOGICAL_AND, // &&
     LOGICAL_OR,  // ||
     // COMPARISON_OPERATORS
-    EQUAL,             // ==
-    NOT_EQUAL,         // !=
-    LESS_THAN,         // <
-    GREATER_THAN,      // >
-    LESS_THAN_EQUAL,   // <=
+    EQUAL,              // ==
+    NOT_EQUAL,          // !=
+    LESS_THAN,          // <
+    GREATER_THAN,       // >
+    LESS_THAN_EQUAL,    // <=
     GREATER_THAN_EQUAL, // >=
-    ASSIGNMENT         // =
+    ASSIGNMENT          // =
     // Add other types as needed
 };
 class TokenTable {

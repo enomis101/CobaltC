@@ -94,6 +94,7 @@ bool TokenTable::is_binary_operator(TokenType type)
     case TokenType::GREATER_THAN:
     case TokenType::LESS_THAN_EQUAL:
     case TokenType::GREATER_THAN_EQUAL:
+    case TokenType::ASSIGNMENT:
         // Add other binary operators as needed
         return true;
     default:

@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -20,6 +21,11 @@ class ConstantExpression;
 class ReturnStatement;
 class Function;
 class Program;
+class VariableExpression;
+class AssignmentExpression;
+class ExpressionStatement;
+class NullStatement;
+class VariableDeclaration;
 
 // ParserVisitor interface
 class ParserVisitor {
@@ -31,6 +37,12 @@ public:
     virtual void visit(ReturnStatement& node) = 0;
     virtual void visit(Function& node) = 0;
     virtual void visit(Program& node) = 0;
+    virtual void visit(VariableExpression& node) = 0;
+    virtual void visit(AssignmentExpression& node) = 0;
+    virtual void visit(ExpressionStatement& node) = 0;
+    virtual void visit(NullStatement& node) = 0;
+    virtual void visit(VariableDeclaration& node) = 0;
+
     virtual ~ParserVisitor() = default;
 };
 
@@ -56,6 +68,21 @@ enum class BinaryOperator {
     GREATER_OR_EQUAL
 };
 
+class Identifier : public ParserAST {
+public:
+    Identifier(const std::string& name)
+        : name(name)
+    {
+    }
+
+    void accept(ParserVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    std::string name;
+};
+
 // Abstract class for all expressions
 class Expression : public ParserAST {
 public:
@@ -75,6 +102,21 @@ public:
     }
 
     int value;
+};
+
+class VariableExpression : public Expression {
+public:
+    VariableExpression(const std::string& id)
+        : identifier { id }
+    {
+    }
+
+    void accept(ParserVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    Identifier identifier;
 };
 
 class UnaryExpression : public Expression {
@@ -113,10 +155,11 @@ public:
     std::unique_ptr<Expression> right_expression;
 };
 
-class Identifier : public ParserAST {
+class AssignmentExpression : public Expression {
 public:
-    Identifier(const std::string& name)
-        : name(name)
+    AssignmentExpression(std::unique_ptr<Expression> l, std::unique_ptr<Expression> r)
+        : left_expression(std::move(l))
+        , right_expression(std::move(r))
     {
     }
 
@@ -124,11 +167,18 @@ public:
     {
         visitor.visit(*this);
     }
-
-    std::string name;
+    std::unique_ptr<Expression> left_expression;
+    std::unique_ptr<Expression> right_expression;
 };
 
-class Statement : public ParserAST {
+
+
+class BlockItem : public ParserAST {
+public:
+    virtual ~BlockItem() = default;
+};
+
+class Statement : public BlockItem {
 public:
     virtual ~Statement() = default;
 };
@@ -148,9 +198,54 @@ public:
     std::unique_ptr<Expression> expression;
 };
 
+class ExpressionStatement : public Statement {
+public:
+    ExpressionStatement(std::unique_ptr<Expression> expr)
+        : expression(std::move(expr))
+    {
+    }
+
+    void accept(ParserVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    std::unique_ptr<Expression> expression;
+};
+
+class NullStatement : public Statement {
+public:
+    void accept(ParserVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+};
+
+class Declaration : public BlockItem {
+public:
+    virtual ~Declaration() = default;
+};
+
+class VariableDeclaration : public Declaration {
+public:
+    VariableDeclaration(const std::string& id, std::unique_ptr<Expression> expr = nullptr)
+        : identifier { id }
+        , expression(expr ? std::optional<std::unique_ptr<Expression>>(std::move(expr)) : std::nullopt)
+    {
+    }
+
+    void accept(ParserVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    Identifier identifier;
+    std::optional<std::unique_ptr<Expression>> expression;
+};
+
 class Function : public ParserAST {
 public:
-    Function(std::unique_ptr<Identifier> name, std::unique_ptr<Statement> body)
+    Function(std::unique_ptr<Identifier> name, std::vector<std::unique_ptr<BlockItem>> body)
         : name(std::move(name))
         , body(std::move(body))
     {
@@ -161,7 +256,7 @@ public:
         visitor.visit(*this);
     }
     std::unique_ptr<Identifier> name;
-    std::unique_ptr<Statement> body;
+    std::vector<std::unique_ptr<BlockItem>> body;
 };
 
 class Program : public ParserAST {

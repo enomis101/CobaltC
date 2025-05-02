@@ -7,6 +7,7 @@
 #include "lexer/lexer.h"
 #include "parser/parser.h"
 #include "parser/parser_printer.h"
+#include "parser/semantic_analyzer.h"
 #include "tacky/tacky_generator.h"
 #include "tacky/tacky_printer.h"
 #include <algorithm>
@@ -33,11 +34,11 @@ CompilerApplication::CompilerApplication()
 void CompilerApplication::run(const std::string& input_file, const std::string& operation)
 {
     // Check if operation is valid
-    std::vector<std::string> valid_operations = { "--lex", "--parse", "--tacky", "--codegen", "-S", "" };
+    std::vector<std::string> valid_operations = { "--lex", "--parse", "--validate", "--tacky", "--codegen", "-S", "" };
     if (std::find(valid_operations.begin(), valid_operations.end(), operation) == valid_operations.end()) {
         throw CompilerError(std::format(
             "Invalid operation: '{}'\n"
-            "Valid operations are: --lex, --parse, --tacky, --codegen, -S, or no operation for full compilation",
+            "Valid operations are: --lex, --parse, --validate, --tacky, --codegen, -S, or no operation for full compilation",
             operation));
     }
 
@@ -132,6 +133,37 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
 
     if (operation == "--parse") {
         LOG_INFO(LOG_CONTEXT, "Parsing operation completed successfully");
+        return;
+    }
+
+    try {
+        LOG_INFO(LOG_CONTEXT, "Starting Semantic Analysis stage");
+
+        parser::SemanticAnalyzer semantic_analyzer(parser_ast);
+        semantic_analyzer.analyze();
+
+        LOG_INFO(LOG_CONTEXT, "Semantic Analysis");
+
+        if (logging::LogManager::logger()->is_enabled(LOG_CONTEXT, logging::LogLevel::DEBUG)) {
+            std::string debug_str = "Parsed Program\n";
+            LOG_DEBUG(LOG_CONTEXT, debug_str);
+            parser::PrinterVisitor printer;
+            std::string base_name = file_path.stem().string();
+            printer.generate_dot_file("debug/" + base_name + "_semantic_analysisAST.dot", *(parser_ast.get()));
+            LOG_DEBUG(LOG_CONTEXT, "Generated AST visualization");
+        }
+    } catch (const parser::SemanticAnalyzerError& e) {
+        throw CompilerError(std::format("Semantic Analysis error: {}", e.what()));
+    } catch (const std::exception& e) {
+        throw CompilerError(std::format(
+            "Unexpected error during Semantic Analysis stage: {}\n"
+            "This may indicate a bug in the compiler - please report this issue",
+            e.what()));
+    }
+
+
+    if (operation == "--validate") {
+        LOG_INFO(LOG_CONTEXT, "Semantic Analysis operation completed successfully");
         return;
     }
 

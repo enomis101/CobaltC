@@ -1,4 +1,5 @@
 #pragma once
+#include "common/data/name_generator.h"
 #include "parser/parser_ast.h"
 #include "tacky/tacky_ast.h"
 #include <stdexcept>
@@ -24,16 +25,14 @@ private:
     UnaryOperator transform_unary_operator(parser::UnaryOperator& op);
     BinaryOperator transform_binary_operator(parser::BinaryOperator& op);
     std::unique_ptr<Value> transform_expression(parser::Expression& expression, std::vector<std::unique_ptr<Instruction>>& instructions);
-    std::vector<std::unique_ptr<Instruction>> transform_statement(parser::Statement& statement);
+    void transform_statement(parser::Statement& statement, std::vector<std::unique_ptr<Instruction>>& instructions);
+    void transform_declaration(parser::Declaration& declaration, std::vector<std::unique_ptr<Instruction>>& instructions);
+    void transform_block_item(parser::BlockItem& block_item, std::vector<std::unique_ptr<Instruction>>& instructions);
     std::unique_ptr<Function> transform_function(parser::Function& function);
     std::unique_ptr<Program> transform_program(parser::Program& program);
-    std::string make_temporary();
-    std::string make_label(const std::string& in_label);
-    void reset_counter();
 
     std::shared_ptr<parser::ParserAST> m_ast;
-    int m_temporary_counter = 0;
-    int m_label_counter = 0;
+    NameGenerator& m_name_generator;
 };
 
 } // namespace tacky

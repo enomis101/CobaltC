@@ -161,7 +161,6 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
             e.what()));
     }
 
-
     if (operation == "--validate") {
         LOG_INFO(LOG_CONTEXT, "Semantic Analysis operation completed successfully");
         return;

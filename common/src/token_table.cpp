@@ -122,7 +122,9 @@ TokenTable::TokenTable()
     m_keywords = {
         { "int", TokenType::INT_KW },
         { "void", TokenType::VOID_KW },
-        { "return", TokenType::RETURN_KW }
+        { "return", TokenType::RETURN_KW },
+        { "if", TokenType::IF_KW },
+        { "else", TokenType::ELSE_KW }
     };
 
     // Initialize single-character tokens for optimization
@@ -141,7 +143,9 @@ TokenTable::TokenTable()
         { '!', TokenType::EXCLAMATION_POINT },
         { '<', TokenType::LESS_THAN },
         { '>', TokenType::GREATER_THAN },
-        { '=', TokenType::ASSIGNMENT }
+        { '=', TokenType::ASSIGNMENT },
+        { '?', TokenType::QUESTION_MARK },
+        { ':', TokenType::COLON }
     };
 
     m_double_char_tokens = {

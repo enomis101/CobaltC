@@ -12,6 +12,8 @@ enum class TokenType {
     INT_KW,
     VOID_KW,
     RETURN_KW,
+    IF_KW,
+    ELSE_KW,
     OPEN_PAREN,
     CLOSE_PAREN,
     OPEN_BRACE,
@@ -37,7 +39,10 @@ enum class TokenType {
     GREATER_THAN,       // >
     LESS_THAN_EQUAL,    // <=
     GREATER_THAN_EQUAL, // >=
-    ASSIGNMENT          // =
+    ASSIGNMENT,          // =
+    //CONDITIONAL OPERATORS
+    QUESTION_MARK,
+    COLON
     // Add other types as needed
 };
 class TokenTable {

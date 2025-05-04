@@ -127,6 +127,30 @@ void PrinterVisitor::visit(AssignmentExpression& node)
     }
 }
 
+void PrinterVisitor::visit(ConditionalExpression& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"ConditionalExpression\"];\n";
+
+    if (node.condition) {
+        node.condition->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.condition.get())
+                      << " [label=\"condition\"];\n";
+    }
+
+    if (node.true_expression) {
+        node.true_expression->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.true_expression.get())
+                      << " [label=\"true_expression\"];\n";
+    }
+
+    if (node.false_expression) {
+        node.false_expression->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.false_expression.get())
+                      << " [label=\"false_expression\"];\n";
+    }
+}
+
 void PrinterVisitor::visit(ExpressionStatement& node)
 {
     int id = get_node_id(&node);
@@ -136,6 +160,30 @@ void PrinterVisitor::visit(ExpressionStatement& node)
         node.expression->accept(*this);
         m_dot_content << "  node" << id << " -> node" << get_node_id(node.expression.get())
                       << " [label=\"expression\"];\n";
+    }
+}
+
+void PrinterVisitor::visit(IfStatement& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"IfStatement\"];\n";
+
+    if (node.condition) {
+        node.condition->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.condition.get())
+                      << " [label=\"condition\"];\n";
+    }
+
+    if (node.then_statement) {
+        node.then_statement->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.then_statement.get())
+                      << " [label=\"then_statement\"];\n";
+    }
+
+    if (node.else_statement.has_value() && node.else_statement.value()) {
+        node.else_statement.value()->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.else_statement.value().get())
+                      << " [label=\"else_statement\"];\n";
     }
 }
 

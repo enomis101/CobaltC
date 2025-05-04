@@ -78,44 +78,6 @@ std::optional<TokenType> TokenTable::match(std::string_view lexeme) const
     return res;
 }
 
-bool TokenTable::is_binary_operator(TokenType type)
-{
-    switch (type) {
-    case TokenType::PLUS:
-    case TokenType::MINUS:
-    case TokenType::ASTERISK:
-    case TokenType::FORWARD_SLASH:
-    case TokenType::PERCENT:
-    case TokenType::LOGICAL_AND:
-    case TokenType::LOGICAL_OR:
-    case TokenType::EQUAL:
-    case TokenType::NOT_EQUAL:
-    case TokenType::LESS_THAN:
-    case TokenType::GREATER_THAN:
-    case TokenType::LESS_THAN_EQUAL:
-    case TokenType::GREATER_THAN_EQUAL:
-    case TokenType::ASSIGNMENT:
-        // Add other binary operators as needed
-        return true;
-    default:
-        return false;
-    }
-}
-
-bool TokenTable::is_unary_operator(TokenType type)
-{
-    switch (type) {
-    case TokenType::MINUS:
-    case TokenType::COMPLEMENT:
-    case TokenType::DECREMENT:
-    case TokenType::EXCLAMATION_POINT:
-        // Add other unary operators as needed
-        return true;
-    default:
-        return false;
-    }
-}
-
 TokenTable::TokenTable()
 {
     // Initialize keywords

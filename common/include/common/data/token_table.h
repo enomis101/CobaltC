@@ -39,8 +39,8 @@ enum class TokenType {
     GREATER_THAN,       // >
     LESS_THAN_EQUAL,    // <=
     GREATER_THAN_EQUAL, // >=
-    ASSIGNMENT,          // =
-    //CONDITIONAL OPERATORS
+    ASSIGNMENT,         // =
+    // CONDITIONAL OPERATORS
     QUESTION_MARK,
     COLON
     // Add other types as needed
@@ -61,10 +61,6 @@ public:
 
     // Determines the type of a lexeme (for token classification)
     std::optional<TokenType> match(std::string_view lexeme) const;
-
-    // Utility methods to check token types
-    static bool is_binary_operator(TokenType type);
-    static bool is_unary_operator(TokenType type);
 
 private:
     // Private constructor - can only be called from getInstance()

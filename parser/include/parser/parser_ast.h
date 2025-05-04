@@ -23,7 +23,9 @@ class Function;
 class Program;
 class VariableExpression;
 class AssignmentExpression;
+class ConditionalExpression;
 class ExpressionStatement;
+class IfStatement;
 class NullStatement;
 class VariableDeclaration;
 
@@ -39,7 +41,9 @@ public:
     virtual void visit(Program& node) = 0;
     virtual void visit(VariableExpression& node) = 0;
     virtual void visit(AssignmentExpression& node) = 0;
+    virtual void visit(ConditionalExpression& node) = 0;
     virtual void visit(ExpressionStatement& node) = 0;
+    virtual void visit(IfStatement& node) = 0;
     virtual void visit(NullStatement& node) = 0;
     virtual void visit(VariableDeclaration& node) = 0;
 
@@ -171,6 +175,25 @@ public:
     std::unique_ptr<Expression> right_expression;
 };
 
+class ConditionalExpression : public Expression {
+public:
+    ConditionalExpression(std::unique_ptr<Expression> cond, std::unique_ptr<Expression> t, std::unique_ptr<Expression> f)
+        : condition(std::move(cond))
+        , true_expression(std::move(t))
+        , false_expression(std::move(f))
+    {
+    }
+
+    void accept(ParserVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    std::unique_ptr<Expression> condition;
+    std::unique_ptr<Expression> true_expression;
+    std::unique_ptr<Expression> false_expression;
+};
+
 class BlockItem : public ParserAST {
 public:
     virtual ~BlockItem() = default;
@@ -209,6 +232,25 @@ public:
     }
 
     std::unique_ptr<Expression> expression;
+};
+
+class IfStatement : public Statement {
+public:
+    IfStatement(std::unique_ptr<Expression> cond, std::unique_ptr<Statement> then_stmt, std::unique_ptr<Statement> else_stmt = nullptr)
+        : condition(std::move(cond))
+        , then_statement(std::move(then_stmt))
+        , else_statement(else_stmt ? std::optional<std::unique_ptr<Statement>>(std::move(else_stmt)) : std::nullopt)
+    {
+    }
+
+    void accept(ParserVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    std::unique_ptr<Expression> condition;
+    std::unique_ptr<Statement> then_statement;
+    std::optional<std::unique_ptr<Statement>> else_statement;
 };
 
 class NullStatement : public Statement {

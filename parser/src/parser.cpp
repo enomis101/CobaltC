@@ -80,6 +80,20 @@ std::unique_ptr<Statement> Parser::parse_statement()
         expect(TokenType::SEMICOLON);
         return std::make_unique<ReturnStatement>(std::move(expr));
     }
+    case TokenType::IF_KW: {
+        expect(TokenType::IF_KW);
+        expect(TokenType::OPEN_PAREN);
+        std::unique_ptr<Expression> expr = parse_expression();
+        expect(TokenType::CLOSE_PAREN);
+        std::unique_ptr<Statement> then_statement = parse_statement();
+        std::unique_ptr<Statement> else_statement = nullptr;
+        const Token& if_next_token = peek();
+        if (if_next_token.type() == TokenType::ELSE_KW) {
+            take_token();
+            else_statement = parse_statement();
+        }
+        return std::make_unique<IfStatement>(std::move(expr), std::move(then_statement), std::move(else_statement));
+    }
     case TokenType::SEMICOLON: {
         expect(TokenType::SEMICOLON);
         return std::make_unique<NullStatement>();
@@ -90,6 +104,14 @@ std::unique_ptr<Statement> Parser::parse_statement()
         return std::make_unique<ExpressionStatement>(std::move(expr));
     }
     }
+}
+
+std::unique_ptr<Expression> Parser::parse_conditional_middle()
+{
+    expect(TokenType::QUESTION_MARK);
+    std::unique_ptr<Expression> expr = parse_expression(0); // reset back to zero precedence level
+    expect(TokenType::COLON);
+    return expr;
 }
 
 // Implement precedence climbing
@@ -103,11 +125,16 @@ std::unique_ptr<Expression> Parser::parse_expression(int min_prec)
     }
 
     const Token* next_token = &peek();
-    while (next_token && TokenTable::is_binary_operator(next_token->type()) && precedence(*next_token) >= min_prec) {
+    while (next_token && is_binary_operator(next_token->type()) && precedence(*next_token) >= min_prec) {
         if (next_token->type() == TokenType::ASSIGNMENT) { //= must be rigth associative a = b = c --> a  = (b = c)
             take_token();
-            std::unique_ptr<Expression> right = parse_expression(precedence(*next_token));
+            std::unique_ptr<Expression> right = parse_expression(precedence(*next_token)); // different than binary operator because it's rigth associative
             left = std::make_unique<AssignmentExpression>(std::move(left), std::move(right));
+        } else if (next_token->type() == TokenType::QUESTION_MARK) {
+            // QUESTION_MARK consumed by parse_conditional_middle
+            std::unique_ptr<Expression> middle = parse_conditional_middle();
+            std::unique_ptr<Expression> right = parse_expression(precedence(*next_token)); // different than binary operator because it's rigth associative
+            left = std::make_unique<ConditionalExpression>(std::move(left), std::move(middle), std::move(right));
         } else {
             BinaryOperator op = parse_binary_operator();
             std::unique_ptr<Expression> right = parse_expression(precedence(*next_token) + 1);
@@ -125,7 +152,7 @@ std::unique_ptr<Expression> Parser::parse_factor()
     if (next_token.type() == TokenType::CONSTANT) {
         take_token();
         return std::make_unique<ConstantExpression>(next_token.literal<int>());
-    } else if (TokenTable::is_unary_operator(next_token.type())) {
+    } else if (is_unary_operator(next_token.type())) {
         UnaryOperator op = parse_unary_operator();
         std::unique_ptr<Expression> expr = parse_factor();
         return std::make_unique<UnaryExpression>(op, std::move(expr));
@@ -235,6 +262,8 @@ int Parser::precedence(const Token& token)
         return 10;
     case TokenType::LOGICAL_OR:
         return 5;
+    case TokenType::QUESTION_MARK:
+        return 3;
     case TokenType::ASSIGNMENT:
         return 1;
     default: {
@@ -251,4 +280,43 @@ void Parser::take_token()
 bool Parser::has_tokens()
 {
     return i < m_tokens.size();
+}
+
+bool Parser::is_binary_operator(TokenType type)
+{
+    switch (type) {
+    case TokenType::PLUS:
+    case TokenType::MINUS:
+    case TokenType::ASTERISK:
+    case TokenType::FORWARD_SLASH:
+    case TokenType::PERCENT:
+    case TokenType::LOGICAL_AND:
+    case TokenType::LOGICAL_OR:
+    case TokenType::EQUAL:
+    case TokenType::NOT_EQUAL:
+    case TokenType::LESS_THAN:
+    case TokenType::GREATER_THAN:
+    case TokenType::LESS_THAN_EQUAL:
+    case TokenType::GREATER_THAN_EQUAL:
+    case TokenType::ASSIGNMENT:
+    case TokenType::QUESTION_MARK:  //We treat QUESTION_MARK as a binary operator in parse_expression
+        // Add other binary operators as needed
+        return true;
+    default:
+        return false;
+    }
+}
+
+bool Parser::is_unary_operator(TokenType type)
+{
+    switch (type) {
+    case TokenType::MINUS:
+    case TokenType::COMPLEMENT:
+    case TokenType::DECREMENT:
+    case TokenType::EXCLAMATION_POINT:
+        // Add other unary operators as needed
+        return true;
+    default:
+        return false;
+    }
 }

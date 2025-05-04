@@ -31,10 +31,15 @@ private:
     std::unique_ptr<BlockItem> parse_block_item();
     std::unique_ptr<Declaration> parse_declaration();
     std::unique_ptr<Statement> parse_statement();
+    std::unique_ptr<Expression> parse_conditional_middle();
     std::unique_ptr<Expression> parse_expression(int min_prec = 0);
     std::unique_ptr<Expression> parse_factor();
     UnaryOperator parse_unary_operator();
     BinaryOperator parse_binary_operator();
+
+    // Utility methods to check token types
+    bool is_binary_operator(TokenType type);
+    bool is_unary_operator(TokenType type);
 
     // std::unique_ptr<Identifier> parse_identifier();
 

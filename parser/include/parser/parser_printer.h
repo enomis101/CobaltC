@@ -22,7 +22,9 @@ public:
     void visit(Program& node) override;
     void visit(VariableExpression& node) override;
     void visit(AssignmentExpression& node) override;
+    void visit(ConditionalExpression& node) override;
     void visit(ExpressionStatement& node) override;
+    void visit(IfStatement& node) override;
     void visit(NullStatement& node) override;
     void visit(VariableDeclaration& node) override;
 

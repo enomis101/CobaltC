@@ -27,6 +27,8 @@ public:
     void visit(IfStatement& node) override;
     void visit(NullStatement& node) override;
     void visit(VariableDeclaration& node) override;
+    void visit(Block& node) override;
+    void visit(CompoundStatement& node) override;
 
 private:
     // Get or assign a unique ID for each node

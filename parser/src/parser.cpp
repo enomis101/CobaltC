@@ -17,6 +17,19 @@ std::shared_ptr<Program> Parser::parse_program()
     return std::make_shared<Program>(std::move(fun));
 }
 
+std::unique_ptr<Block> Parser::parse_block()
+{
+    expect(TokenType::OPEN_BRACE);
+    const Token* next_token = has_tokens() ? &peek() : nullptr;
+    std::vector<std::unique_ptr<BlockItem>> body;
+    while (next_token && next_token->type() != TokenType::CLOSE_BRACE) {
+        body.emplace_back(parse_block_item());
+        next_token = has_tokens() ? &peek() : nullptr;
+    }
+    expect(TokenType::CLOSE_BRACE);
+    return std::make_unique<Block>(std::move(body));
+}
+
 std::unique_ptr<Function> Parser::parse_function()
 {
     std::unique_ptr<Function> res;
@@ -33,14 +46,8 @@ std::unique_ptr<Function> Parser::parse_function()
     expect(TokenType::OPEN_PAREN);
     expect(TokenType::VOID_KW);
     expect(TokenType::CLOSE_PAREN);
-    expect(TokenType::OPEN_BRACE);
-    const Token* next_token = has_tokens() ? &peek() : nullptr;
-    std::vector<std::unique_ptr<BlockItem>> body;
-    while (next_token && next_token->type() != TokenType::CLOSE_BRACE) {
-        body.emplace_back(parse_block_item());
-        next_token = has_tokens() ? &peek() : nullptr;
-    }
-    expect(TokenType::CLOSE_BRACE);
+
+    std::unique_ptr<Block> body = parse_block();
 
     res = std::make_unique<Function>(std::move(identifier), std::move(body));
     return res;
@@ -93,6 +100,10 @@ std::unique_ptr<Statement> Parser::parse_statement()
             else_statement = parse_statement();
         }
         return std::make_unique<IfStatement>(std::move(expr), std::move(then_statement), std::move(else_statement));
+    }
+    case TokenType::OPEN_BRACE: {
+        std::unique_ptr<Block> block = parse_block();
+        return std::make_unique<CompoundStatement>(std::move(block));
     }
     case TokenType::SEMICOLON: {
         expect(TokenType::SEMICOLON);

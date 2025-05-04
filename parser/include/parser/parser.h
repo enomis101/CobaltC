@@ -28,6 +28,7 @@ private:
     const std::vector<Token>& m_tokens;
 
     std::unique_ptr<Function> parse_function();
+    std::unique_ptr<Block> parse_block();
     std::unique_ptr<BlockItem> parse_block_item();
     std::unique_ptr<Declaration> parse_declaration();
     std::unique_ptr<Statement> parse_statement();

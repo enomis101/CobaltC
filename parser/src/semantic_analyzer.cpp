@@ -55,12 +55,14 @@ void SemanticAnalyzer::visit(Function& node)
     }
     node.name->accept(*this);
 
+    /*
     for (auto& item : node.body) {
         if (!item) {
             throw SemanticAnalyzerError("In Function: Body item pointer is null");
         }
         item->accept(*this);
     }
+    */
 }
 
 void SemanticAnalyzer::visit(Program& node)

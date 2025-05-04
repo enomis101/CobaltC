@@ -39,6 +39,8 @@ private:
     void visit(IfStatement& node) override;
     void visit(NullStatement& node) override;
     void visit(VariableDeclaration& node) override;
+    void visit(Block& node) override {}
+    void visit(CompoundStatement& node) override{}
 
     std::unordered_map<std::string, std::string> m_variable_map;
     std::shared_ptr<ParserAST> m_ast;

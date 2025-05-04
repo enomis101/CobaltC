@@ -259,6 +259,33 @@ std::string PrinterVisitor::operator_to_string(BinaryOperator op)
     }
 }
 
+void PrinterVisitor::visit(Block& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"Block\"];\n";
+
+    for (size_t i = 0; i < node.items.size(); ++i) {
+        if (node.items[i]) {
+            node.items[i]->accept(*this);
+            m_dot_content << "  node" << id << " -> node" << get_node_id(node.items[i].get())
+                          << " [label=\"items[" << i << "]\"];\n";
+        }
+    }
+}
+
+void PrinterVisitor::visit(CompoundStatement& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"CompoundStatement\"];\n";
+
+    // Visit each block item in the body
+    if (node.block) {
+        node.block->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.block.get())
+                      << " [label=\"block\"];\n";
+    }
+}
+
 void PrinterVisitor::visit(Function& node)
 {
     int id = get_node_id(&node);
@@ -271,12 +298,10 @@ void PrinterVisitor::visit(Function& node)
     }
 
     // Visit each block item in the body
-    for (size_t i = 0; i < node.body.size(); ++i) {
-        if (node.body[i]) {
-            node.body[i]->accept(*this);
-            m_dot_content << "  node" << id << " -> node" << get_node_id(node.body[i].get())
-                          << " [label=\"body[" << i << "]\"];\n";
-        }
+    if (node.body) {
+        node.body->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.body.get())
+                      << " [label=\"body\"];\n";
     }
 }
 

@@ -28,6 +28,8 @@ class ExpressionStatement;
 class IfStatement;
 class NullStatement;
 class VariableDeclaration;
+class Block;
+class CompoundStatement;
 
 // ParserVisitor interface
 class ParserVisitor {
@@ -46,6 +48,8 @@ public:
     virtual void visit(IfStatement& node) = 0;
     virtual void visit(NullStatement& node) = 0;
     virtual void visit(VariableDeclaration& node) = 0;
+    virtual void visit(Block& node) = 0;
+    virtual void visit(CompoundStatement& node) = 0;
 
     virtual ~ParserVisitor() = default;
 };
@@ -194,9 +198,25 @@ public:
     std::unique_ptr<Expression> false_expression;
 };
 
+
 class BlockItem : public ParserAST {
 public:
     virtual ~BlockItem() = default;
+};
+
+class Block : public ParserAST {
+public:
+    Block(std::vector<std::unique_ptr<BlockItem>> i)
+    : items(std::move(i))
+    {
+    }
+
+    void accept(ParserVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    std::vector<std::unique_ptr<BlockItem>> items;
 };
 
 class Statement : public BlockItem {
@@ -253,6 +273,20 @@ public:
     std::optional<std::unique_ptr<Statement>> else_statement;
 };
 
+class CompoundStatement : public Statement {
+public:
+    CompoundStatement(std::unique_ptr<Block> b)
+        : block(std::move(b))
+    {
+    }
+
+    void accept(ParserVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+    std::unique_ptr<Block> block;
+};
+
 class NullStatement : public Statement {
 public:
     void accept(ParserVisitor& visitor) override
@@ -285,7 +319,7 @@ public:
 
 class Function : public ParserAST {
 public:
-    Function(std::unique_ptr<Identifier> name, std::vector<std::unique_ptr<BlockItem>> body)
+    Function(std::unique_ptr<Identifier> name, std::unique_ptr<Block> body)
         : name(std::move(name))
         , body(std::move(body))
     {
@@ -296,7 +330,7 @@ public:
         visitor.visit(*this);
     }
     std::unique_ptr<Identifier> name;
-    std::vector<std::unique_ptr<BlockItem>> body;
+    std::unique_ptr<Block> body;
 };
 
 class Program : public ParserAST {

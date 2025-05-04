@@ -232,9 +232,11 @@ void TackyGenerator::transform_block_item(parser::BlockItem& block_item, std::ve
 std::unique_ptr<Function> TackyGenerator::transform_function(parser::Function& function)
 {
     std::vector<std::unique_ptr<Instruction>> body;
+    /* //TODO: Implement tacky stage
     for (std::unique_ptr<parser::BlockItem>& block_item : function.body) {
         transform_block_item(*block_item, body);
     }
+    */
     body.emplace_back(std::make_unique<ReturnInstruction>(std::make_unique<Constant>(0)));
     return std::make_unique<Function>(function.name->name, std::move(body));
 }

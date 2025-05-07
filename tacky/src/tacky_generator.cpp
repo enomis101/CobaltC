@@ -202,7 +202,55 @@ void TackyGenerator::transform_statement(parser::Statement& statement, std::vect
         // value is discarded
     }else if (parser::CompoundStatement* compound_statement = dynamic_cast<parser::CompoundStatement*>(&statement)) {
         transform_block(*compound_statement->block.get(), instructions);
-    } else if (dynamic_cast<parser::NullStatement*>(&statement)) {
+    }else if (parser::BreakStatement* break_statement = dynamic_cast<parser::BreakStatement*>(&statement)) {
+        std::string break_label = "break_" + break_statement->label.name;
+        instructions.emplace_back(std::make_unique<JumpInstruction>(break_label));
+    }else if (parser::ContinueStatement* continue_statement = dynamic_cast<parser::ContinueStatement*>(&statement)) {
+        std::string continue_label = "continue_" + continue_statement->label.name;
+        instructions.emplace_back(std::make_unique<JumpInstruction>(continue_label));
+    }else if (parser::DoWhileStatement* do_while_statement = dynamic_cast<parser::DoWhileStatement*>(&statement)) {
+        std::string start_label = m_name_generator.make_label("do_while_start");
+        std::string continue_label = "continue_" + do_while_statement->label.name;
+        std::string break_label = "break_" + do_while_statement->label.name;
+        
+        instructions.emplace_back(std::make_unique<LabelInstruction>(start_label));
+        transform_statement(*do_while_statement->body, instructions);
+        instructions.emplace_back(std::make_unique<LabelInstruction>(continue_label));
+        std::unique_ptr<Value> cond = transform_expression(*(do_while_statement->condition.get()), instructions);
+        instructions.emplace_back(std::make_unique<JumpIfNotZeroInstruction>(std::move(cond), start_label));
+        instructions.emplace_back(std::make_unique<LabelInstruction>(break_label));
+    } else if (parser::WhileStatement* while_statement = dynamic_cast<parser::WhileStatement*>(&statement)) {
+        std::string continue_label = "continue_" + while_statement->label.name;
+        std::string break_label = "break_" + while_statement->label.name;
+        instructions.emplace_back(std::make_unique<LabelInstruction>(continue_label));
+        std::unique_ptr<Value> cond = transform_expression(*(while_statement->condition.get()), instructions);
+        instructions.emplace_back(std::make_unique<JumpIfZeroInstruction>(std::move(cond), break_label));
+
+        transform_statement(*while_statement->body, instructions);
+
+        instructions.emplace_back(std::make_unique<JumpInstruction>(continue_label));
+        instructions.emplace_back(std::make_unique<LabelInstruction>(break_label));
+    } else if (parser::ForStatement* for_statement = dynamic_cast<parser::ForStatement*>(&statement)) {
+        std::string start_label = m_name_generator.make_label("for_start");
+        std::string continue_label = "continue_" + for_statement->label.name;
+        std::string break_label = "break_" + for_statement->label.name;
+        transform_for_init(*for_statement->init, instructions);
+        instructions.emplace_back(std::make_unique<LabelInstruction>(start_label));
+        if(for_statement->condition.has_value()){
+            std::unique_ptr<Value> cond = transform_expression(*(for_statement->condition.value().get()), instructions);
+            instructions.emplace_back(std::make_unique<JumpIfZeroInstruction>(std::move(cond), break_label));
+        }
+        
+        transform_statement(*for_statement->body, instructions);
+        instructions.emplace_back(std::make_unique<LabelInstruction>(continue_label));
+
+        if(for_statement->post.has_value()){
+            transform_expression(*(for_statement->post.value().get()), instructions);
+        }
+
+        instructions.emplace_back(std::make_unique<JumpInstruction>(start_label));
+        instructions.emplace_back(std::make_unique<LabelInstruction>(break_label));
+    }  else if (dynamic_cast<parser::NullStatement*>(&statement)) {
         // do nothing
     } else {
         throw TackyGeneratorError("TackyGenerator: Invalid or Unsuppored Statement");
@@ -220,6 +268,20 @@ void TackyGenerator::transform_declaration(parser::Declaration& declaration, std
         throw TackyGeneratorError("TackyGenerator: Invalid or Unsuppored Declaration");
     }
 }
+
+void TackyGenerator::transform_for_init(parser::ForInit& for_init, std::vector<std::unique_ptr<Instruction>>& instructions)
+{
+    if (parser::ForInitDeclaration* declaration = dynamic_cast<parser::ForInitDeclaration*>(&for_init)) {
+        transform_declaration(*declaration->declaration, instructions);
+    } else if (parser::ForInitExpression* expr = dynamic_cast<parser::ForInitExpression*>(&for_init)) {
+        if(expr->expression.has_value()){
+            transform_expression(*expr->expression.value(), instructions);
+        }
+    } else {
+        throw TackyGeneratorError("TackyGenerator: Invalid or Unsuppored ForInit");
+    }
+}
+
 void TackyGenerator::transform_block_item(parser::BlockItem& block_item, std::vector<std::unique_ptr<Instruction>>& instructions)
 {
     if (parser::Declaration* declaration = dynamic_cast<parser::Declaration*>(&block_item)) {

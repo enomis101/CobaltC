@@ -31,6 +31,7 @@ private:
     std::unique_ptr<Block> parse_block();
     std::unique_ptr<BlockItem> parse_block_item();
     std::unique_ptr<Declaration> parse_declaration();
+    std::unique_ptr<ForInit> parse_for_init();
     std::unique_ptr<Statement> parse_statement();
     std::unique_ptr<Expression> parse_conditional_middle();
     std::unique_ptr<Expression> parse_expression(int min_prec = 0);

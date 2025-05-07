@@ -86,7 +86,12 @@ TokenTable::TokenTable()
         { "void", TokenType::VOID_KW },
         { "return", TokenType::RETURN_KW },
         { "if", TokenType::IF_KW },
-        { "else", TokenType::ELSE_KW }
+        { "else", TokenType::ELSE_KW },
+        { "do", TokenType::DO_KW },
+        { "while", TokenType::WHILE_KW },
+        { "for", TokenType::FOR_KW },
+        { "break", TokenType::BREAK_KW },
+        { "continue", TokenType::CONTINUE_KW }
     };
 
     // Initialize single-character tokens for optimization

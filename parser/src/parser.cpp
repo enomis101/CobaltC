@@ -62,6 +62,7 @@ std::unique_ptr<BlockItem> Parser::parse_block_item()
         return parse_statement();
     }
 }
+
 std::unique_ptr<Declaration> Parser::parse_declaration()
 {
     expect(TokenType::INT_KW);
@@ -75,6 +76,18 @@ std::unique_ptr<Declaration> Parser::parse_declaration()
     std::unique_ptr<Expression> init_expr = parse_expression();
     expect(TokenType::SEMICOLON);
     return std::make_unique<VariableDeclaration>(identifier_token.lexeme(), std::move(init_expr));
+}
+
+std::unique_ptr<ForInit> Parser::parse_for_init()
+{
+    const Token& next_token = peek();
+    if (next_token.type() == TokenType::INT_KW) {
+        return std::make_unique<ForInitDeclaration>(parse_declaration());
+    }else {
+        std::unique_ptr<Expression> e = (next_token.type() == TokenType::SEMICOLON) ? nullptr : parse_expression();
+        expect(TokenType::SEMICOLON);
+        return std::make_unique<ForInitExpression>(std::move(e));
+    }
 }
 
 std::unique_ptr<Statement> Parser::parse_statement()
@@ -108,6 +121,57 @@ std::unique_ptr<Statement> Parser::parse_statement()
     case TokenType::SEMICOLON: {
         expect(TokenType::SEMICOLON);
         return std::make_unique<NullStatement>();
+    }
+    case TokenType::BREAK_KW: {
+        expect(TokenType::BREAK_KW);
+        expect(TokenType::SEMICOLON);
+        return std::make_unique<BreakStatement>();
+    }
+    case TokenType::CONTINUE_KW: {
+        expect(TokenType::CONTINUE_KW);
+        expect(TokenType::SEMICOLON);
+        return std::make_unique<ContinueStatement>();
+    }
+    case TokenType::WHILE_KW: {
+        expect(TokenType::WHILE_KW);
+        expect(TokenType::OPEN_PAREN);
+        std::unique_ptr<Expression> expr = parse_expression();
+        expect(TokenType::CLOSE_PAREN);
+        std::unique_ptr<Statement> statement = parse_statement();
+        return std::make_unique<WhileStatement>(std::move(expr), std::move(statement));
+    }
+    case TokenType::DO_KW: {
+        expect(TokenType::DO_KW);
+        std::unique_ptr<Statement> statement = parse_statement();
+        expect(TokenType::WHILE_KW);
+        expect(TokenType::OPEN_PAREN);
+        std::unique_ptr<Expression> expr = parse_expression();
+        expect(TokenType::CLOSE_PAREN);
+        expect(TokenType::SEMICOLON);
+        return std::make_unique<DoWhileStatement>(std::move(expr), std::move(statement));
+    }
+    case TokenType::FOR_KW: {
+        expect(TokenType::FOR_KW);
+        expect(TokenType::OPEN_PAREN);
+        std::unique_ptr<ForInit> for_init = parse_for_init();
+        std::unique_ptr<Expression> cond = nullptr;
+        {
+            const Token& for_next_token = peek();
+            if(for_next_token.type() != TokenType::SEMICOLON){
+                cond = parse_expression();
+            }
+        }
+        expect(TokenType::SEMICOLON);
+        std::unique_ptr<Expression> post = nullptr;
+        {
+            const Token& for_next_token = peek();
+            if(for_next_token.type() != TokenType::CLOSE_PAREN){
+                post = parse_expression();
+            }
+        }
+        expect(TokenType::CLOSE_PAREN);
+        std::unique_ptr<Statement> statement = parse_statement();
+        return std::make_unique<ForStatement>(std::move(for_init),std::move(cond), std::move(post), std::move(statement));
     }
     default: {
         std::unique_ptr<Expression> expr = parse_expression();

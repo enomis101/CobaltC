@@ -41,7 +41,14 @@ private:
     void visit(VariableDeclaration& node) override;
     void visit(Block& node) override;
     void visit(CompoundStatement& node) override;
-
+    void visit(BreakStatement& node)  override { }
+    void visit(ContinueStatement& node)  override { }
+    void visit(WhileStatement& node)  override { }
+    void visit(DoWhileStatement& node)  override { }
+    void visit(ForStatement& node)  override { }
+    void visit(ForInitDeclaration& node)  override { }
+    void visit(ForInitExpression& node)  override { }
+    
     struct MapEntry
     {
         MapEntry() = default;

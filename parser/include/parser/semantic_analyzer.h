@@ -39,10 +39,18 @@ private:
     void visit(IfStatement& node) override;
     void visit(NullStatement& node) override;
     void visit(VariableDeclaration& node) override;
-    void visit(Block& node) override {}
-    void visit(CompoundStatement& node) override{}
+    void visit(Block& node) override;
+    void visit(CompoundStatement& node) override;
 
-    std::unordered_map<std::string, std::string> m_variable_map;
+    struct MapEntry
+    {
+        MapEntry() = default;
+        MapEntry(const std::string& name, bool flag) : unique_name{name}, from_current_block{flag} {}
+        std::string unique_name;
+        bool from_current_block{false};
+    };
+    std::unordered_map<std::string, MapEntry> copy_variable_map();
+    std::unordered_map<std::string, MapEntry> m_variable_map;
     std::shared_ptr<ParserAST> m_ast;
     NameGenerator& m_name_generator;
 };

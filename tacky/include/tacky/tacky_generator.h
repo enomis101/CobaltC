@@ -28,6 +28,7 @@ private:
     void transform_statement(parser::Statement& statement, std::vector<std::unique_ptr<Instruction>>& instructions);
     void transform_declaration(parser::Declaration& declaration, std::vector<std::unique_ptr<Instruction>>& instructions);
     void transform_block_item(parser::BlockItem& block_item, std::vector<std::unique_ptr<Instruction>>& instructions);
+    void transform_block(parser::Block& block, std::vector<std::unique_ptr<Instruction>>& instructions);
     std::unique_ptr<Function> transform_function(parser::Function& function);
     std::unique_ptr<Program> transform_program(parser::Program& program);
 

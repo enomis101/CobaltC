@@ -55,14 +55,12 @@ void SemanticAnalyzer::visit(Function& node)
     }
     node.name->accept(*this);
 
-    /*
-    for (auto& item : node.body) {
-        if (!item) {
-            throw SemanticAnalyzerError("In Function: Body item pointer is null");
-        }
-        item->accept(*this);
+    m_variable_map.clear();
+
+    if (!node.body) {
+        throw SemanticAnalyzerError("In Function: Body pointer is null");
     }
-    */
+    node.body->accept(*this);
 }
 
 void SemanticAnalyzer::visit(Program& node)
@@ -79,7 +77,7 @@ void SemanticAnalyzer::visit(VariableExpression& node)
     if (!m_variable_map.contains(variable_name)) {
         throw SemanticAnalyzerError(std::format("In VariableExpression: Use of undeclared variable {}", variable_name));
     }
-    variable_name = m_variable_map[variable_name];
+    variable_name = m_variable_map.at(variable_name).unique_name;
 }
 
 void SemanticAnalyzer::visit(AssignmentExpression& node)
@@ -150,13 +148,44 @@ void SemanticAnalyzer::visit(NullStatement& node)
 void SemanticAnalyzer::visit(VariableDeclaration& node)
 {
     std::string& variable_name = node.identifier.name;
-    if (m_variable_map.contains(variable_name)) {
+    if (m_variable_map.contains(variable_name) && m_variable_map.at(variable_name).from_current_block) {   //throw error only if the other declaration is from the same block
         throw SemanticAnalyzerError(std::format("Duplicate variable declaration: {}", variable_name));
     }
     std::string unique_name = m_name_generator.make_temporary(variable_name);
-    m_variable_map.insert(std::make_pair(variable_name, unique_name));
+    m_variable_map.insert_or_assign(variable_name, MapEntry(unique_name, true));
     variable_name = unique_name;
     if (node.expression.has_value()) {
         node.expression.value()->accept(*this);
     }
+}
+
+void SemanticAnalyzer::visit(Block& node)
+{
+    for (auto& item : node.items) {
+        if (!item) {
+            throw SemanticAnalyzerError("In Block: item pointer is null");
+        }
+        item->accept(*this);
+    }
+}
+
+void SemanticAnalyzer::visit(CompoundStatement& node)
+{
+    if (!node.block) {
+        throw SemanticAnalyzerError("In CompoundStatement: block pointer is null");
+    }
+    std::unordered_map<std::string, SemanticAnalyzer::MapEntry> old_map = m_variable_map;
+    m_variable_map = copy_variable_map();
+    node.block->accept(*this);
+    m_variable_map = old_map;
+}
+
+
+std::unordered_map<std::string, SemanticAnalyzer::MapEntry> SemanticAnalyzer::copy_variable_map()
+{
+    std::unordered_map<std::string, SemanticAnalyzer::MapEntry> new_map = m_variable_map;
+    for(auto& p : new_map){
+        p.second.from_current_block = false;    //reset flags when copying
+    }
+    return new_map;
 }

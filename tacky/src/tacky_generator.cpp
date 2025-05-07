@@ -200,6 +200,8 @@ void TackyGenerator::transform_statement(parser::Statement& statement, std::vect
             instructions.emplace_back(std::make_unique<LabelInstruction>(end_label));
         }
         // value is discarded
+    }else if (parser::CompoundStatement* compound_statement = dynamic_cast<parser::CompoundStatement*>(&statement)) {
+        transform_block(*compound_statement->block.get(), instructions);
     } else if (dynamic_cast<parser::NullStatement*>(&statement)) {
         // do nothing
     } else {
@@ -229,14 +231,17 @@ void TackyGenerator::transform_block_item(parser::BlockItem& block_item, std::ve
     }
 }
 
+void TackyGenerator::transform_block(parser::Block& block, std::vector<std::unique_ptr<Instruction>>& instructions)
+{
+    for (std::unique_ptr<parser::BlockItem>& block_item : block.items) {
+        transform_block_item(*block_item, instructions);
+    }
+}
+
 std::unique_ptr<Function> TackyGenerator::transform_function(parser::Function& function)
 {
     std::vector<std::unique_ptr<Instruction>> body;
-    /* //TODO: Implement tacky stage
-    for (std::unique_ptr<parser::BlockItem>& block_item : function.body) {
-        transform_block_item(*block_item, body);
-    }
-    */
+    transform_block(*function.body.get(), body);
     body.emplace_back(std::make_unique<ReturnInstruction>(std::make_unique<Constant>(0)));
     return std::make_unique<Function>(function.name->name, std::move(body));
 }

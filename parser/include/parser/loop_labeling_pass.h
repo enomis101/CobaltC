@@ -2,8 +2,8 @@
 #include "common/data/name_generator.h"
 #include "parser/parser_ast.h"
 #include "parser/semantic_analyzer_error.h"
-#include <string>
 #include <stack>
+#include <string>
 
 namespace parser {
 
@@ -33,18 +33,17 @@ private:
     void visit(VariableDeclaration& node) override;
     void visit(Block& node) override;
     void visit(CompoundStatement& node) override;
-    void visit(BreakStatement& node)  override;
-    void visit(ContinueStatement& node)  override;
-    void visit(WhileStatement& node)  override;
-    void visit(DoWhileStatement& node)  override;
-    void visit(ForStatement& node)  override;
-    void visit(ForInitDeclaration& node)  override;
-    void visit(ForInitExpression& node)  override;
+    void visit(BreakStatement& node) override;
+    void visit(ContinueStatement& node) override;
+    void visit(WhileStatement& node) override;
+    void visit(DoWhileStatement& node) override;
+    void visit(ForStatement& node) override;
+    void visit(ForInitDeclaration& node) override;
+    void visit(ForInitExpression& node) override;
 
     std::shared_ptr<ParserAST> m_ast;
     NameGenerator& m_name_generator;
     std::stack<std::string> m_label_stack;
 };
-
 
 }

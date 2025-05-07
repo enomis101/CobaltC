@@ -162,24 +162,23 @@ void LoopLabelingPass::visit(CompoundStatement& node)
     node.block->accept(*this);
 }
 
-void LoopLabelingPass::visit(BreakStatement& node)  
+void LoopLabelingPass::visit(BreakStatement& node)
 {
-    if(m_label_stack.empty()){
+    if (m_label_stack.empty()) {
         throw SemanticAnalyzerError("In BreakStatement: found break statement with no parent loop");
     }
     node.label.name = m_label_stack.top();
 }
 
-void LoopLabelingPass::visit(ContinueStatement& node)  
+void LoopLabelingPass::visit(ContinueStatement& node)
 {
-    if(m_label_stack.empty()){
+    if (m_label_stack.empty()) {
         throw SemanticAnalyzerError("In ContinueStatement: found continue statement with no parent loop");
     }
     node.label.name = m_label_stack.top();
 }
 
-
-void LoopLabelingPass::visit(WhileStatement& node)  
+void LoopLabelingPass::visit(WhileStatement& node)
 {
     std::string label = m_name_generator.make_label("while");
     node.label.name = label;
@@ -198,7 +197,7 @@ void LoopLabelingPass::visit(WhileStatement& node)
     m_label_stack.pop();
 }
 
-void LoopLabelingPass::visit(DoWhileStatement& node)   
+void LoopLabelingPass::visit(DoWhileStatement& node)
 {
     std::string label = m_name_generator.make_label("do_while");
     node.label.name = label;
@@ -217,7 +216,7 @@ void LoopLabelingPass::visit(DoWhileStatement& node)
     m_label_stack.pop();
 }
 
-void LoopLabelingPass::visit(ForStatement& node)  
+void LoopLabelingPass::visit(ForStatement& node)
 {
     std::string label = m_name_generator.make_label("for");
     node.label.name = label;
@@ -228,16 +227,14 @@ void LoopLabelingPass::visit(ForStatement& node)
     }
     node.init->accept(*this);
 
-    if(node.condition.has_value())
-    {
+    if (node.condition.has_value()) {
         if (!node.condition.value()) {
             throw SemanticAnalyzerError("In ForStatement: condition pointer is null");
         }
         node.condition.value()->accept(*this);
     }
 
-    if(node.post.has_value())
-    {
+    if (node.post.has_value()) {
         if (!node.post.value()) {
             throw SemanticAnalyzerError("In ForStatement: post pointer is null");
         }
@@ -252,7 +249,7 @@ void LoopLabelingPass::visit(ForStatement& node)
     m_label_stack.pop();
 }
 
-void LoopLabelingPass::visit(ForInitDeclaration& node)  
+void LoopLabelingPass::visit(ForInitDeclaration& node)
 {
     if (!node.declaration) {
         throw SemanticAnalyzerError("In ForInitDeclaration: declaration pointer is null");
@@ -260,10 +257,9 @@ void LoopLabelingPass::visit(ForInitDeclaration& node)
     node.declaration->accept(*this);
 }
 
-void LoopLabelingPass::visit(ForInitExpression& node)  
+void LoopLabelingPass::visit(ForInitExpression& node)
 {
-    if(node.expression.has_value())
-    {
+    if (node.expression.has_value()) {
         if (!node.expression.value()) {
             throw SemanticAnalyzerError("In ForInitExpression: expression pointer is null");
         }

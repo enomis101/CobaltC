@@ -148,7 +148,7 @@ void VariableResolutionPass::visit(NullStatement& node)
 void VariableResolutionPass::visit(VariableDeclaration& node)
 {
     std::string& variable_name = node.identifier.name;
-    if (m_variable_map.contains(variable_name) && m_variable_map.at(variable_name).from_current_block) {   //throw error only if the other declaration is from the same block
+    if (m_variable_map.contains(variable_name) && m_variable_map.at(variable_name).from_current_block) { // throw error only if the other declaration is from the same block
         throw SemanticAnalyzerError(std::format("Duplicate variable declaration: {}", variable_name));
     }
     std::string unique_name = m_name_generator.make_temporary(variable_name);
@@ -180,17 +180,16 @@ void VariableResolutionPass::visit(CompoundStatement& node)
     m_variable_map = old_map;
 }
 
-
 std::unordered_map<std::string, VariableResolutionPass::MapEntry> VariableResolutionPass::copy_variable_map()
 {
     std::unordered_map<std::string, VariableResolutionPass::MapEntry> new_map = m_variable_map;
-    for(auto& p : new_map){
-        p.second.from_current_block = false;    //reset flags when copying
+    for (auto& p : new_map) {
+        p.second.from_current_block = false; // reset flags when copying
     }
     return new_map;
 }
 
-void VariableResolutionPass::visit(WhileStatement& node)  
+void VariableResolutionPass::visit(WhileStatement& node)
 {
     if (!node.condition) {
         throw SemanticAnalyzerError("In WhileStatement: Condition pointer is null");
@@ -203,7 +202,7 @@ void VariableResolutionPass::visit(WhileStatement& node)
     node.body->accept(*this);
 }
 
-void VariableResolutionPass::visit(DoWhileStatement& node)   
+void VariableResolutionPass::visit(DoWhileStatement& node)
 {
     if (!node.condition) {
         throw SemanticAnalyzerError("In DoWhileStatement: Condition pointer is null");
@@ -216,7 +215,7 @@ void VariableResolutionPass::visit(DoWhileStatement& node)
     node.body->accept(*this);
 }
 
-void VariableResolutionPass::visit(ForStatement& node)  
+void VariableResolutionPass::visit(ForStatement& node)
 {
     std::unordered_map<std::string, MapEntry> old_map = m_variable_map;
     m_variable_map = copy_variable_map();
@@ -226,16 +225,14 @@ void VariableResolutionPass::visit(ForStatement& node)
     }
     node.init->accept(*this);
 
-    if(node.condition.has_value())
-    {
+    if (node.condition.has_value()) {
         if (!node.condition.value()) {
             throw SemanticAnalyzerError("In ForStatement: condition pointer is null");
         }
         node.condition.value()->accept(*this);
     }
 
-    if(node.post.has_value())
-    {
+    if (node.post.has_value()) {
         if (!node.post.value()) {
             throw SemanticAnalyzerError("In ForStatement: post pointer is null");
         }
@@ -250,7 +247,7 @@ void VariableResolutionPass::visit(ForStatement& node)
     m_variable_map = old_map;
 }
 
-void VariableResolutionPass::visit(ForInitDeclaration& node)  
+void VariableResolutionPass::visit(ForInitDeclaration& node)
 {
     if (!node.declaration) {
         throw SemanticAnalyzerError("In ForInitDeclaration: declaration pointer is null");
@@ -258,10 +255,9 @@ void VariableResolutionPass::visit(ForInitDeclaration& node)
     node.declaration->accept(*this);
 }
 
-void VariableResolutionPass::visit(ForInitExpression& node)  
+void VariableResolutionPass::visit(ForInitExpression& node)
 {
-    if(node.expression.has_value())
-    {
+    if (node.expression.has_value()) {
         if (!node.expression.value()) {
             throw SemanticAnalyzerError("In ForInitExpression: expression pointer is null");
         }

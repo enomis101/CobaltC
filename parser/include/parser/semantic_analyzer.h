@@ -7,7 +7,7 @@
 
 namespace parser {
 
-class SemanticAnalyzer{
+class SemanticAnalyzer {
 public:
     SemanticAnalyzer(std::shared_ptr<ParserAST> ast)
         : m_ast { ast }
@@ -15,6 +15,7 @@ public:
     {
     }
     void analyze();
+
 private:
     std::shared_ptr<ParserAST> m_ast;
     NameGenerator& m_name_generator;

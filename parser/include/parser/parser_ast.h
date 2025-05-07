@@ -213,7 +213,6 @@ public:
     std::unique_ptr<Expression> false_expression;
 };
 
-
 class BlockItem : public ParserAST {
 public:
     virtual ~BlockItem() = default;
@@ -222,7 +221,7 @@ public:
 class Block : public ParserAST {
 public:
     Block(std::vector<std::unique_ptr<BlockItem>> i)
-    : items(std::move(i))
+        : items(std::move(i))
     {
     }
 
@@ -305,7 +304,7 @@ public:
 class BreakStatement : public Statement {
 public:
     BreakStatement(const std::string& l = "")
-        : label{l}
+        : label { l }
     {
     }
 
@@ -314,13 +313,13 @@ public:
         visitor.visit(*this);
     }
 
-    Identifier label; //used during loop-labeling stage 
+    Identifier label; // used during loop-labeling stage
 };
 
 class ContinueStatement : public Statement {
 public:
     ContinueStatement(const std::string& l = "")
-        : label{l}
+        : label { l }
     {
     }
 
@@ -329,15 +328,15 @@ public:
         visitor.visit(*this);
     }
 
-    Identifier label; //used during loop-labeling stage 
+    Identifier label; // used during loop-labeling stage
 };
 
 class WhileStatement : public Statement {
 public:
     WhileStatement(std::unique_ptr<Expression> c, std::unique_ptr<Statement> b, const std::string& l = "")
-        : condition{std::move(c)}
-        , body{std::move(b)}
-        , label{l}
+        : condition { std::move(c) }
+        , body { std::move(b) }
+        , label { l }
     {
     }
 
@@ -347,15 +346,15 @@ public:
     }
     std::unique_ptr<Expression> condition;
     std::unique_ptr<Statement> body;
-    Identifier label; //used during loop-labeling stage 
+    Identifier label; // used during loop-labeling stage
 };
 
 class DoWhileStatement : public Statement {
 public:
     DoWhileStatement(std::unique_ptr<Expression> c, std::unique_ptr<Statement> b, const std::string& l = "")
-        : condition{std::move(c)}
-        , body{std::move(b)}
-        , label{l}
+        : condition { std::move(c) }
+        , body { std::move(b) }
+        , label { l }
     {
     }
 
@@ -365,18 +364,17 @@ public:
     }
     std::unique_ptr<Expression> condition;
     std::unique_ptr<Statement> body;
-    Identifier label; //used during loop-labeling stage 
+    Identifier label; // used during loop-labeling stage
 };
-
 
 class ForStatement : public Statement {
 public:
     ForStatement(std::unique_ptr<ForInit> i, std::unique_ptr<Expression> c, std::unique_ptr<Expression> p, std::unique_ptr<Statement> b, const std::string& l = "")
-        : init{std::move(i)}
-        , condition{c ? std::optional<std::unique_ptr<Expression>>(std::move(c)) : std::nullopt}
-        , post{p ? std::optional<std::unique_ptr<Expression>>(std::move(p)) : std::nullopt}
-        , body{std::move(b)}
-        , label{l}
+        : init { std::move(i) }
+        , condition { c ? std::optional<std::unique_ptr<Expression>>(std::move(c)) : std::nullopt }
+        , post { p ? std::optional<std::unique_ptr<Expression>>(std::move(p)) : std::nullopt }
+        , body { std::move(b) }
+        , label { l }
     {
     }
 
@@ -389,9 +387,8 @@ public:
     std::optional<std::unique_ptr<Expression>> condition;
     std::optional<std::unique_ptr<Expression>> post;
     std::unique_ptr<Statement> body;
-    Identifier label; //used during loop-labeling stage 
+    Identifier label; // used during loop-labeling stage
 };
-    
 
 class NullStatement : public Statement {
 public:
@@ -423,15 +420,17 @@ public:
     std::optional<std::unique_ptr<Expression>> expression;
 };
 
-class ForInit : public ParserAST{
+class ForInit : public ParserAST {
 public:
     virtual ~ForInit() = default;
 };
 
-class ForInitDeclaration : public ForInit{
+class ForInitDeclaration : public ForInit {
 public:
     ForInitDeclaration(std::unique_ptr<Declaration> d)
-        : declaration{std::move(d)}{}
+        : declaration { std::move(d) }
+    {
+    }
 
     void accept(ParserVisitor& visitor) override
     {
@@ -441,11 +440,12 @@ public:
     std::unique_ptr<Declaration> declaration;
 };
 
-
-class ForInitExpression : public ForInit{
+class ForInitExpression : public ForInit {
 public:
     ForInitExpression(std::unique_ptr<Expression> e)
-        : expression{e ? std::optional<std::unique_ptr<Expression>>(std::move(e)) : std::nullopt}{}
+        : expression { e ? std::optional<std::unique_ptr<Expression>>(std::move(e)) : std::nullopt }
+    {
+    }
 
     void accept(ParserVisitor& visitor) override
     {

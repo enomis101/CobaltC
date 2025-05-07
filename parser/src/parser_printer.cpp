@@ -324,3 +324,140 @@ int PrinterVisitor::get_node_id(const ParserAST* node)
     }
     return m_node_ids[node];
 }
+
+void PrinterVisitor::visit(BreakStatement& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"BreakStatement\"];\n";
+
+    // Visit the label identifier
+    node.label.accept(*this);
+    m_dot_content << "  node" << id << " -> node" << get_node_id(&node.label)
+                  << " [label=\"label\"];\n";
+}
+
+void PrinterVisitor::visit(ContinueStatement& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"ContinueStatement\"];\n";
+
+    // Visit the label identifier
+    node.label.accept(*this);
+    m_dot_content << "  node" << id << " -> node" << get_node_id(&node.label)
+                  << " [label=\"label\"];\n";
+}
+
+void PrinterVisitor::visit(WhileStatement& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"WhileStatement\"];\n";
+
+    // Visit the condition
+    if (node.condition) {
+        node.condition->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.condition.get())
+                      << " [label=\"condition\"];\n";
+    }
+
+    // Visit the body
+    if (node.body) {
+        node.body->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.body.get())
+                      << " [label=\"body\"];\n";
+    }
+
+    // Visit the label
+    node.label.accept(*this);
+    m_dot_content << "  node" << id << " -> node" << get_node_id(&node.label)
+                  << " [label=\"label\"];\n";
+}
+
+void PrinterVisitor::visit(DoWhileStatement& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"DoWhileStatement\"];\n";
+
+    // Visit the condition
+    if (node.condition) {
+        node.condition->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.condition.get())
+                      << " [label=\"condition\"];\n";
+    }
+
+    // Visit the body
+    if (node.body) {
+        node.body->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.body.get())
+                      << " [label=\"body\"];\n";
+    }
+
+    // Visit the label
+    node.label.accept(*this);
+    m_dot_content << "  node" << id << " -> node" << get_node_id(&node.label)
+                  << " [label=\"label\"];\n";
+}
+
+void PrinterVisitor::visit(ForStatement& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"ForStatement\"];\n";
+
+    // Visit the initialization
+    if (node.init) {
+        node.init->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.init.get())
+                      << " [label=\"init\"];\n";
+    }
+
+    // Visit the condition if present
+    if (node.condition.has_value() && node.condition.value()) {
+        node.condition.value()->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.condition.value().get())
+                      << " [label=\"condition\"];\n";
+    }
+
+    // Visit the post-expression if present
+    if (node.post.has_value() && node.post.value()) {
+        node.post.value()->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.post.value().get())
+                      << " [label=\"post\"];\n";
+    }
+
+    // Visit the body
+    if (node.body) {
+        node.body->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.body.get())
+                      << " [label=\"body\"];\n";
+    }
+
+    // Visit the label
+    node.label.accept(*this);
+    m_dot_content << "  node" << id << " -> node" << get_node_id(&node.label)
+                  << " [label=\"label\"];\n";
+}
+
+void PrinterVisitor::visit(ForInitDeclaration& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"ForInitDeclaration\"];\n";
+
+    // Visit the declaration
+    if (node.declaration) {
+        node.declaration->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.declaration.get())
+                      << " [label=\"declaration\"];\n";
+    }
+}
+
+void PrinterVisitor::visit(ForInitExpression& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"ForInitExpression\"];\n";
+
+    // Visit the expression if present
+    if (node.expression.has_value() && node.expression.value()) {
+        node.expression.value()->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.expression.value().get())
+                      << " [label=\"expression\"];\n";
+    }
+}

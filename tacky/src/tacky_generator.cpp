@@ -137,30 +137,30 @@ std::unique_ptr<Value> TackyGenerator::transform_expression(parser::Expression& 
         std::unique_ptr<Value> right = transform_expression(*assignment_expression->right_expression, instructions);
         instructions.emplace_back(std::make_unique<CopyInstruction>(std::move(right), std::make_unique<TemporaryVariable>(variable->identifier.name)));
         return std::make_unique<TemporaryVariable>(variable->identifier.name);
-    }else if (parser::ConditionalExpression* conditional_expression = dynamic_cast<parser::ConditionalExpression*>(&expression)) {
-        //Create labels
+    } else if (parser::ConditionalExpression* conditional_expression = dynamic_cast<parser::ConditionalExpression*>(&expression)) {
+        // Create labels
         std::string false_label = m_name_generator.make_label("conditional_false");
         std::string end_label = m_name_generator.make_label("conditional_end");
         std::string result = m_name_generator.make_temporary();
-        
-        //Condition
+
+        // Condition
         std::unique_ptr<Value> cond = transform_expression(*conditional_expression->condition, instructions);
         instructions.emplace_back(std::make_unique<JumpIfZeroInstruction>(std::move(cond), false_label));
 
-        //True Instructions
+        // True Instructions
         std::unique_ptr<Value> true_value = transform_expression(*conditional_expression->true_expression, instructions);
         {
-            //result = true_expression
+            // result = true_expression
             std::unique_ptr<TemporaryVariable> result_var = std::make_unique<TemporaryVariable>(result);
             instructions.emplace_back(std::make_unique<CopyInstruction>(std::move(true_value), std::move(result_var)));
         }
         instructions.emplace_back(std::make_unique<JumpInstruction>(end_label));
 
-        //False Instructions
+        // False Instructions
         instructions.emplace_back(std::make_unique<LabelInstruction>(false_label));
         std::unique_ptr<Value> false_value = transform_expression(*conditional_expression->false_expression, instructions);
         {
-            //result = false_expression
+            // result = false_expression
             std::unique_ptr<TemporaryVariable> result_var = std::make_unique<TemporaryVariable>(result);
             instructions.emplace_back(std::make_unique<CopyInstruction>(std::move(false_value), std::move(result_var)));
         }
@@ -181,15 +181,14 @@ void TackyGenerator::transform_statement(parser::Statement& statement, std::vect
     } else if (parser::ExpressionStatement* expression_statement = dynamic_cast<parser::ExpressionStatement*>(&statement)) {
         std::unique_ptr<Value> value = transform_expression(*(expression_statement->expression.get()), instructions);
         // value is discarded
-    }else if (parser::IfStatement* if_statement = dynamic_cast<parser::IfStatement*>(&statement)) {
+    } else if (parser::IfStatement* if_statement = dynamic_cast<parser::IfStatement*>(&statement)) {
         std::unique_ptr<Value> cond = transform_expression(*(if_statement->condition.get()), instructions);
-        if(!if_statement->else_statement.has_value()){
+        if (!if_statement->else_statement.has_value()) {
             std::string end_label = m_name_generator.make_label("if_end");
             instructions.emplace_back(std::make_unique<JumpIfZeroInstruction>(std::move(cond), end_label));
             transform_statement(*if_statement->then_statement, instructions);
             instructions.emplace_back(std::make_unique<LabelInstruction>(end_label));
-        }   
-        else{
+        } else {
             std::string else_label = m_name_generator.make_label("else");
             std::string end_label = m_name_generator.make_label("if_end");
             instructions.emplace_back(std::make_unique<JumpIfZeroInstruction>(std::move(cond), else_label));
@@ -200,19 +199,19 @@ void TackyGenerator::transform_statement(parser::Statement& statement, std::vect
             instructions.emplace_back(std::make_unique<LabelInstruction>(end_label));
         }
         // value is discarded
-    }else if (parser::CompoundStatement* compound_statement = dynamic_cast<parser::CompoundStatement*>(&statement)) {
+    } else if (parser::CompoundStatement* compound_statement = dynamic_cast<parser::CompoundStatement*>(&statement)) {
         transform_block(*compound_statement->block.get(), instructions);
-    }else if (parser::BreakStatement* break_statement = dynamic_cast<parser::BreakStatement*>(&statement)) {
+    } else if (parser::BreakStatement* break_statement = dynamic_cast<parser::BreakStatement*>(&statement)) {
         std::string break_label = "break_" + break_statement->label.name;
         instructions.emplace_back(std::make_unique<JumpInstruction>(break_label));
-    }else if (parser::ContinueStatement* continue_statement = dynamic_cast<parser::ContinueStatement*>(&statement)) {
+    } else if (parser::ContinueStatement* continue_statement = dynamic_cast<parser::ContinueStatement*>(&statement)) {
         std::string continue_label = "continue_" + continue_statement->label.name;
         instructions.emplace_back(std::make_unique<JumpInstruction>(continue_label));
-    }else if (parser::DoWhileStatement* do_while_statement = dynamic_cast<parser::DoWhileStatement*>(&statement)) {
+    } else if (parser::DoWhileStatement* do_while_statement = dynamic_cast<parser::DoWhileStatement*>(&statement)) {
         std::string start_label = m_name_generator.make_label("do_while_start");
         std::string continue_label = "continue_" + do_while_statement->label.name;
         std::string break_label = "break_" + do_while_statement->label.name;
-        
+
         instructions.emplace_back(std::make_unique<LabelInstruction>(start_label));
         transform_statement(*do_while_statement->body, instructions);
         instructions.emplace_back(std::make_unique<LabelInstruction>(continue_label));
@@ -236,21 +235,21 @@ void TackyGenerator::transform_statement(parser::Statement& statement, std::vect
         std::string break_label = "break_" + for_statement->label.name;
         transform_for_init(*for_statement->init, instructions);
         instructions.emplace_back(std::make_unique<LabelInstruction>(start_label));
-        if(for_statement->condition.has_value()){
+        if (for_statement->condition.has_value()) {
             std::unique_ptr<Value> cond = transform_expression(*(for_statement->condition.value().get()), instructions);
             instructions.emplace_back(std::make_unique<JumpIfZeroInstruction>(std::move(cond), break_label));
         }
-        
+
         transform_statement(*for_statement->body, instructions);
         instructions.emplace_back(std::make_unique<LabelInstruction>(continue_label));
 
-        if(for_statement->post.has_value()){
+        if (for_statement->post.has_value()) {
             transform_expression(*(for_statement->post.value().get()), instructions);
         }
 
         instructions.emplace_back(std::make_unique<JumpInstruction>(start_label));
         instructions.emplace_back(std::make_unique<LabelInstruction>(break_label));
-    }  else if (dynamic_cast<parser::NullStatement*>(&statement)) {
+    } else if (dynamic_cast<parser::NullStatement*>(&statement)) {
         // do nothing
     } else {
         throw TackyGeneratorError("TackyGenerator: Invalid or Unsuppored Statement");
@@ -274,7 +273,7 @@ void TackyGenerator::transform_for_init(parser::ForInit& for_init, std::vector<s
     if (parser::ForInitDeclaration* declaration = dynamic_cast<parser::ForInitDeclaration*>(&for_init)) {
         transform_declaration(*declaration->declaration, instructions);
     } else if (parser::ForInitExpression* expr = dynamic_cast<parser::ForInitExpression*>(&for_init)) {
-        if(expr->expression.has_value()){
+        if (expr->expression.has_value()) {
             transform_expression(*expr->expression.value(), instructions);
         }
     } else {

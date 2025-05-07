@@ -1,7 +1,7 @@
 #include "parser/semantic_analyzer.h"
-#include <format>
-#include "parser/variable_resolution_pass.h"
 #include "parser/loop_labeling_pass.h"
+#include "parser/variable_resolution_pass.h"
+#include <format>
 
 using namespace parser;
 

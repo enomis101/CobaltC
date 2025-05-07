@@ -83,7 +83,7 @@ std::unique_ptr<ForInit> Parser::parse_for_init()
     const Token& next_token = peek();
     if (next_token.type() == TokenType::INT_KW) {
         return std::make_unique<ForInitDeclaration>(parse_declaration());
-    }else {
+    } else {
         std::unique_ptr<Expression> e = (next_token.type() == TokenType::SEMICOLON) ? nullptr : parse_expression();
         expect(TokenType::SEMICOLON);
         return std::make_unique<ForInitExpression>(std::move(e));
@@ -157,7 +157,7 @@ std::unique_ptr<Statement> Parser::parse_statement()
         std::unique_ptr<Expression> cond = nullptr;
         {
             const Token& for_next_token = peek();
-            if(for_next_token.type() != TokenType::SEMICOLON){
+            if (for_next_token.type() != TokenType::SEMICOLON) {
                 cond = parse_expression();
             }
         }
@@ -165,13 +165,13 @@ std::unique_ptr<Statement> Parser::parse_statement()
         std::unique_ptr<Expression> post = nullptr;
         {
             const Token& for_next_token = peek();
-            if(for_next_token.type() != TokenType::CLOSE_PAREN){
+            if (for_next_token.type() != TokenType::CLOSE_PAREN) {
                 post = parse_expression();
             }
         }
         expect(TokenType::CLOSE_PAREN);
         std::unique_ptr<Statement> statement = parse_statement();
-        return std::make_unique<ForStatement>(std::move(for_init),std::move(cond), std::move(post), std::move(statement));
+        return std::make_unique<ForStatement>(std::move(for_init), std::move(cond), std::move(post), std::move(statement));
     }
     default: {
         std::unique_ptr<Expression> expr = parse_expression();
@@ -374,7 +374,7 @@ bool Parser::is_binary_operator(TokenType type)
     case TokenType::LESS_THAN_EQUAL:
     case TokenType::GREATER_THAN_EQUAL:
     case TokenType::ASSIGNMENT:
-    case TokenType::QUESTION_MARK:  //We treat QUESTION_MARK as a binary operator in parse_expression
+    case TokenType::QUESTION_MARK: // We treat QUESTION_MARK as a binary operator in parse_expression
         // Add other binary operators as needed
         return true;
     default:

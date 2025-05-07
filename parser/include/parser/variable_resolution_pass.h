@@ -33,26 +33,28 @@ private:
     void visit(VariableDeclaration& node) override;
     void visit(Block& node) override;
     void visit(CompoundStatement& node) override;
-    void visit(BreakStatement& node)  override { }
-    void visit(ContinueStatement& node)  override { }
-    void visit(WhileStatement& node)  override;
-    void visit(DoWhileStatement& node)  override;
-    void visit(ForStatement& node)  override;
-    void visit(ForInitDeclaration& node)  override;
-    void visit(ForInitExpression& node)  override;
-    
-    struct MapEntry
-    {
+    void visit(BreakStatement& node) override { }
+    void visit(ContinueStatement& node) override { }
+    void visit(WhileStatement& node) override;
+    void visit(DoWhileStatement& node) override;
+    void visit(ForStatement& node) override;
+    void visit(ForInitDeclaration& node) override;
+    void visit(ForInitExpression& node) override;
+
+    struct MapEntry {
         MapEntry() = default;
-        MapEntry(const std::string& name, bool flag) : unique_name{name}, from_current_block{flag} {}
+        MapEntry(const std::string& name, bool flag)
+            : unique_name { name }
+            , from_current_block { flag }
+        {
+        }
         std::string unique_name;
-        bool from_current_block{false};
+        bool from_current_block { false };
     };
     std::unordered_map<std::string, MapEntry> copy_variable_map();
     std::unordered_map<std::string, MapEntry> m_variable_map;
     std::shared_ptr<ParserAST> m_ast;
     NameGenerator& m_name_generator;
 };
-
 
 }

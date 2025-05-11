@@ -286,10 +286,11 @@ void PrinterVisitor::visit(CompoundStatement& node)
     }
 }
 
-void PrinterVisitor::visit(Function& node)
+void PrinterVisitor::visit(FunctionDeclaration& node)
 {
+    /*
     int id = get_node_id(&node);
-    m_dot_content << "  node" << id << " [label=\"Function\"];\n";
+    m_dot_content << "  node" << id << " [label=\"FunctionDeclaration\"];\n";
 
     if (node.name) {
         node.name->accept(*this);
@@ -303,10 +304,12 @@ void PrinterVisitor::visit(Function& node)
         m_dot_content << "  node" << id << " -> node" << get_node_id(node.body.get())
                       << " [label=\"body\"];\n";
     }
+    */
 }
 
 void PrinterVisitor::visit(Program& node)
 {
+    /*
     int id = get_node_id(&node);
     m_dot_content << "  node" << id << " [label=\"Program\", color=blue, style=filled, fillcolor=lightblue];\n";
 
@@ -315,6 +318,7 @@ void PrinterVisitor::visit(Program& node)
         m_dot_content << "  node" << id << " -> node" << get_node_id(node.function.get())
                       << " [label=\"function\"];\n";
     }
+    */
 }
 
 int PrinterVisitor::get_node_id(const ParserAST* node)

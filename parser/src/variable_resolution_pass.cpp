@@ -48,27 +48,31 @@ void VariableResolutionPass::visit(ReturnStatement& node)
     node.expression->accept(*this);
 }
 
-void VariableResolutionPass::visit(Function& node)
+void VariableResolutionPass::visit(FunctionDeclaration& node)
 {
+    /*
     if (!node.name) {
-        throw SemanticAnalyzerError("In Function: Name pointer is null");
+        throw SemanticAnalyzerError("In FunctionDeclaration: Name pointer is null");
     }
     node.name->accept(*this);
 
     m_variable_map.clear();
 
     if (!node.body) {
-        throw SemanticAnalyzerError("In Function: Body pointer is null");
+        throw SemanticAnalyzerError("In FunctionDeclaration: Body pointer is null");
     }
     node.body->accept(*this);
+    */
 }
 
 void VariableResolutionPass::visit(Program& node)
 {
+    /*
     if (!node.function) {
-        throw SemanticAnalyzerError("In Program: Function pointer is null");
+        throw SemanticAnalyzerError("In Program: FunctionDeclaration pointer is null");
     }
     node.function->accept(*this);
+    */
 }
 
 void VariableResolutionPass::visit(VariableExpression& node)

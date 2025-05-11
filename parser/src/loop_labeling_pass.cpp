@@ -47,25 +47,29 @@ void LoopLabelingPass::visit(ReturnStatement& node)
     node.expression->accept(*this);
 }
 
-void LoopLabelingPass::visit(Function& node)
+void LoopLabelingPass::visit(FunctionDeclaration& node)
 {
+    /*
     if (!node.name) {
-        throw SemanticAnalyzerError("In Function: Name pointer is null");
+        throw SemanticAnalyzerError("In FunctionDeclaration: Name pointer is null");
     }
     node.name->accept(*this);
 
     if (!node.body) {
-        throw SemanticAnalyzerError("In Function: Body pointer is null");
+        throw SemanticAnalyzerError("In FunctionDeclaration: Body pointer is null");
     }
     node.body->accept(*this);
+    */
 }
 
 void LoopLabelingPass::visit(Program& node)
 {
-    if (!node.function) {
-        throw SemanticAnalyzerError("In Program: Function pointer is null");
-    }
-    node.function->accept(*this);
+    /*
+if (!node.function) {
+    throw SemanticAnalyzerError("In Program: FunctionDeclaration pointer is null");
+}
+node.function->accept(*this);
+*/
 }
 
 void LoopLabelingPass::visit(VariableExpression& node)

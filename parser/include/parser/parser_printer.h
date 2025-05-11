@@ -18,11 +18,12 @@ public:
     void visit(BinaryExpression& node) override;
     void visit(ConstantExpression& node) override;
     void visit(ReturnStatement& node) override;
-    void visit(Function& node) override;
+    void visit(FunctionDeclaration& node) override;
     void visit(Program& node) override;
     void visit(VariableExpression& node) override;
     void visit(AssignmentExpression& node) override;
     void visit(ConditionalExpression& node) override;
+    void visit(FunctionCallExpression& node) override { }
     void visit(ExpressionStatement& node) override;
     void visit(IfStatement& node) override;
     void visit(NullStatement& node) override;

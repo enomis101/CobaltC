@@ -299,15 +299,18 @@ void TackyGenerator::transform_block(parser::Block& block, std::vector<std::uniq
     }
 }
 
-std::unique_ptr<Function> TackyGenerator::transform_function(parser::Function& function)
+std::unique_ptr<Function> TackyGenerator::transform_function(parser::FunctionDeclaration& function)
 {
+    /*
     std::vector<std::unique_ptr<Instruction>> body;
     transform_block(*function.body.get(), body);
     body.emplace_back(std::make_unique<ReturnInstruction>(std::make_unique<Constant>(0)));
     return std::make_unique<Function>(function.name->name, std::move(body));
+    */
+    return nullptr;
 }
 
 std::unique_ptr<Program> TackyGenerator::transform_program(parser::Program& program)
 {
-    return std::make_unique<Program>(transform_function(*(program.function.get())));
+    return std::make_unique<Program>(transform_function(*(program.functions[0].get())));
 }

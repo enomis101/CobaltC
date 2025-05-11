@@ -7,14 +7,11 @@ using namespace parser;
 
 std::shared_ptr<Program> Parser::parse_program()
 {
-    std::unique_ptr<Function> fun = parse_function();
-    if (has_tokens()) {
-        const Token& extra_token = m_tokens[i];
-        throw ParserError(std::format(
-            "Unexpected token after program end at line {}: '{}'",
-            extra_token.line(), extra_token.lexeme()));
+    std::vector<std::unique_ptr<FunctionDeclaration>> funcs;
+    while (has_tokens()) {
+        funcs.emplace_back(parse_function_declaration());
     }
-    return std::make_shared<Program>(std::move(fun));
+    return std::make_shared<Program>(std::move(funcs));
 }
 
 std::unique_ptr<Block> Parser::parse_block()
@@ -30,29 +27,6 @@ std::unique_ptr<Block> Parser::parse_block()
     return std::make_unique<Block>(std::move(body));
 }
 
-std::unique_ptr<Function> Parser::parse_function()
-{
-    std::unique_ptr<Function> res;
-
-    // Track the function we're trying to parse
-    std::string function_name = "unknown";
-
-    expect(TokenType::INT_KW);
-    const Token& identifier_token = expect(TokenType::IDENTIFIER);
-    function_name = identifier_token.lexeme();
-
-    std::unique_ptr<Identifier> identifier = std::make_unique<Identifier>(function_name);
-
-    expect(TokenType::OPEN_PAREN);
-    expect(TokenType::VOID_KW);
-    expect(TokenType::CLOSE_PAREN);
-
-    std::unique_ptr<Block> body = parse_block();
-
-    res = std::make_unique<Function>(std::move(identifier), std::move(body));
-    return res;
-}
-
 std::unique_ptr<BlockItem> Parser::parse_block_item()
 {
     const Token& next_token = peek();
@@ -63,15 +37,69 @@ std::unique_ptr<BlockItem> Parser::parse_block_item()
     }
 }
 
+std::vector<Identifier> Parser::parse_parameter_list()
+{
+    const Token* next_token = &peek();
+    std::vector<Identifier> res;
+    if (next_token->type() == TokenType::VOID_KW) {
+        expect(TokenType::VOID_KW);
+        return res;
+    }
+
+    while (true) {
+        expect(TokenType::INT_KW);
+        const Token& identifier_token = expect(TokenType::IDENTIFIER);
+        res.push_back(identifier_token.lexeme());
+        next_token = &peek();
+        if (next_token->type() == TokenType::CLOSE_PAREN) {
+            break;
+        }
+        expect(TokenType::COMMA);
+    }
+
+    return res;
+}
+
 std::unique_ptr<Declaration> Parser::parse_declaration()
+{
+    const Token& next_token = peek(3); // Look ahead 3 tokens
+    if (next_token.type() == TokenType::OPEN_PAREN) {
+        return parse_function_declaration();
+    }
+    return parse_variable_declaration();
+}
+
+std::unique_ptr<FunctionDeclaration> Parser::parse_function_declaration()
+{
+    expect(TokenType::INT_KW);
+    const Token& identifier_token = expect(TokenType::IDENTIFIER);
+
+    expect(TokenType::OPEN_PAREN);
+    std::vector<Identifier> param_list = parse_parameter_list();
+    expect(TokenType::CLOSE_PAREN);
+
+    const Token& next_token = peek();
+    std::unique_ptr<Block> body = nullptr;
+    if (next_token.type() == TokenType::SEMICOLON) {
+        expect(TokenType::SEMICOLON);
+    } else {
+        body = parse_block();
+    }
+
+    return std::make_unique<FunctionDeclaration>(identifier_token.lexeme(), param_list, std::move(body));
+}
+
+std::unique_ptr<VariableDeclaration> Parser::parse_variable_declaration()
 {
     expect(TokenType::INT_KW);
     const Token& identifier_token = expect(TokenType::IDENTIFIER);
     const Token& next_token = peek();
+
     if (next_token.type() == TokenType::SEMICOLON) {
-        take_token();
+        expect(TokenType::SEMICOLON);
         return std::make_unique<VariableDeclaration>(identifier_token.lexeme());
     }
+
     expect(TokenType::ASSIGNMENT);
     std::unique_ptr<Expression> init_expr = parse_expression();
     expect(TokenType::SEMICOLON);
@@ -82,7 +110,8 @@ std::unique_ptr<ForInit> Parser::parse_for_init()
 {
     const Token& next_token = peek();
     if (next_token.type() == TokenType::INT_KW) {
-        return std::make_unique<ForInitDeclaration>(parse_declaration());
+        std::unique_ptr<VariableDeclaration> decl = parse_variable_declaration();
+        return std::make_unique<ForInitDeclaration>(std::move(decl));
     } else {
         std::unique_ptr<Expression> e = (next_token.type() == TokenType::SEMICOLON) ? nullptr : parse_expression();
         expect(TokenType::SEMICOLON);
@@ -237,8 +266,26 @@ std::unique_ptr<Expression> Parser::parse_factor()
         expect(TokenType::CLOSE_PAREN);
         return res;
     } else if (next_token.type() == TokenType::IDENTIFIER) {
-        take_token();
-        return std::make_unique<VariableExpression>(next_token.lexeme());
+        const Token& identifier_token = expect(TokenType::IDENTIFIER);
+        const Token* new_next_token = &peek();
+        if (new_next_token->type() != TokenType::OPEN_PAREN) {
+            return std::make_unique<VariableExpression>(identifier_token.lexeme());
+        }
+        expect(TokenType::OPEN_PAREN);
+        std::vector<std::unique_ptr<Expression>> args;
+        new_next_token = &peek();
+        if (new_next_token->type() != TokenType::CLOSE_PAREN) {
+            while (true) {
+                args.emplace_back(parse_expression());
+                new_next_token = &peek();
+                if (new_next_token->type() == TokenType::CLOSE_PAREN) {
+                    break;
+                }
+                expect(TokenType::COMMA);
+            }
+        }
+        expect(TokenType::CLOSE_PAREN);
+        return std::make_unique<FunctionCallExpression>(identifier_token.lexeme(), std::move(args));
     } else {
         throw ParserError(std::format("Malformed Factor {}", next_token.to_string()));
     }
@@ -307,12 +354,13 @@ const Token& Parser::expect(TokenType expected)
     return actual;
 }
 
-const Token& Parser::peek()
+const Token& Parser::peek(int lh)
 {
-    if (!has_tokens()) {
-        throw ParserError("Unexpected end of file. Trying to peek.");
+    size_t j = i + lh - 1;
+    if (j >= m_tokens.size()) {
+        throw ParserError(std::format("Unexpected end of file. Trying to peek {} look ahead", lh));
     }
-    return m_tokens[i];
+    return m_tokens[j];
 }
 
 int Parser::precedence(const Token& token)

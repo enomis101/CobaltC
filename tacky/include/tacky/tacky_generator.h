@@ -30,7 +30,7 @@ private:
     void transform_for_init(parser::ForInit& for_init, std::vector<std::unique_ptr<Instruction>>& instructions);
     void transform_block_item(parser::BlockItem& block_item, std::vector<std::unique_ptr<Instruction>>& instructions);
     void transform_block(parser::Block& block, std::vector<std::unique_ptr<Instruction>>& instructions);
-    std::unique_ptr<Function> transform_function(parser::Function& function);
+    std::unique_ptr<Function> transform_function(parser::FunctionDeclaration& function);
     std::unique_ptr<Program> transform_program(parser::Program& program);
 
     std::shared_ptr<parser::ParserAST> m_ast;

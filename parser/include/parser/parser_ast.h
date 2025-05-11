@@ -19,15 +19,17 @@ class UnaryExpression;
 class BinaryExpression;
 class ConstantExpression;
 class ReturnStatement;
-class Function;
+
 class Program;
 class VariableExpression;
 class AssignmentExpression;
 class ConditionalExpression;
+class FunctionCallExpression;
 class ExpressionStatement;
 class IfStatement;
 class NullStatement;
 class VariableDeclaration;
+class FunctionDeclaration;
 class Block;
 class CompoundStatement;
 class ForInit;
@@ -47,15 +49,16 @@ public:
     virtual void visit(BinaryExpression& node) = 0;
     virtual void visit(ConstantExpression& node) = 0;
     virtual void visit(ReturnStatement& node) = 0;
-    virtual void visit(Function& node) = 0;
     virtual void visit(Program& node) = 0;
     virtual void visit(VariableExpression& node) = 0;
     virtual void visit(AssignmentExpression& node) = 0;
     virtual void visit(ConditionalExpression& node) = 0;
+    virtual void visit(FunctionCallExpression& node) = 0;
     virtual void visit(ExpressionStatement& node) = 0;
     virtual void visit(IfStatement& node) = 0;
     virtual void visit(NullStatement& node) = 0;
     virtual void visit(VariableDeclaration& node) = 0;
+    virtual void visit(FunctionDeclaration& node) = 0;
     virtual void visit(Block& node) = 0;
     virtual void visit(CompoundStatement& node) = 0;
     virtual void visit(BreakStatement& node) = 0;
@@ -211,6 +214,23 @@ public:
     std::unique_ptr<Expression> condition;
     std::unique_ptr<Expression> true_expression;
     std::unique_ptr<Expression> false_expression;
+};
+
+class FunctionCallExpression : public Expression {
+public:
+    FunctionCallExpression(const std::string& n, std::vector<std::unique_ptr<Expression>> args)
+        : name(n)
+        , arguments(std::move(args))
+    {
+    }
+
+    void accept(ParserVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    Identifier name;
+    std::vector<std::unique_ptr<Expression>> arguments;
 };
 
 class BlockItem : public ParserAST {
@@ -420,6 +440,25 @@ public:
     std::optional<std::unique_ptr<Expression>> expression;
 };
 
+class FunctionDeclaration : public Declaration {
+public:
+    FunctionDeclaration(const std::string& n, std::vector<Identifier> p, std::unique_ptr<Block> b)
+        : name(n)
+        , params(p)
+        , body(b != nullptr ? std::optional<std::unique_ptr<Block>>(std::move(b)) : std::nullopt)
+    {
+    }
+
+    void accept(ParserVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    Identifier name;
+    std::vector<Identifier> params;
+    std::optional<std::unique_ptr<Block>> body;
+};
+
 class ForInit : public ParserAST {
 public:
     virtual ~ForInit() = default;
@@ -427,7 +466,7 @@ public:
 
 class ForInitDeclaration : public ForInit {
 public:
-    ForInitDeclaration(std::unique_ptr<Declaration> d)
+    ForInitDeclaration(std::unique_ptr<VariableDeclaration> d)
         : declaration { std::move(d) }
     {
     }
@@ -437,7 +476,7 @@ public:
         visitor.visit(*this);
     }
 
-    std::unique_ptr<Declaration> declaration;
+    std::unique_ptr<VariableDeclaration> declaration;
 };
 
 class ForInitExpression : public ForInit {
@@ -455,26 +494,10 @@ public:
     std::optional<std::unique_ptr<Expression>> expression;
 };
 
-class Function : public ParserAST {
-public:
-    Function(std::unique_ptr<Identifier> name, std::unique_ptr<Block> body)
-        : name(std::move(name))
-        , body(std::move(body))
-    {
-    }
-
-    void accept(ParserVisitor& visitor) override
-    {
-        visitor.visit(*this);
-    }
-    std::unique_ptr<Identifier> name;
-    std::unique_ptr<Block> body;
-};
-
 class Program : public ParserAST {
 public:
-    Program(std::unique_ptr<Function> func)
-        : function(std::move(func))
+    Program(std::vector<std::unique_ptr<FunctionDeclaration>> funcs)
+        : functions(std::move(funcs))
     {
     }
 
@@ -482,7 +505,8 @@ public:
     {
         visitor.visit(*this);
     }
-    std::unique_ptr<Function> function;
+
+    std::vector<std::unique_ptr<FunctionDeclaration>> functions;
 };
 
 }

@@ -27,15 +27,17 @@ public:
 private:
     const std::vector<Token>& m_tokens;
 
-    std::unique_ptr<Function> parse_function();
+    std::unique_ptr<Declaration> parse_declaration();
+    std::unique_ptr<FunctionDeclaration> parse_function_declaration();
+    std::unique_ptr<VariableDeclaration> parse_variable_declaration();
     std::unique_ptr<Block> parse_block();
     std::unique_ptr<BlockItem> parse_block_item();
-    std::unique_ptr<Declaration> parse_declaration();
     std::unique_ptr<ForInit> parse_for_init();
     std::unique_ptr<Statement> parse_statement();
     std::unique_ptr<Expression> parse_conditional_middle();
     std::unique_ptr<Expression> parse_expression(int min_prec = 0);
     std::unique_ptr<Expression> parse_factor();
+    std::vector<Identifier> parse_parameter_list();
     UnaryOperator parse_unary_operator();
     BinaryOperator parse_binary_operator();
 
@@ -46,7 +48,7 @@ private:
     // std::unique_ptr<Identifier> parse_identifier();
 
     const Token& expect(TokenType expected);
-    const Token& peek();
+    const Token& peek(int lh = 1);
     int precedence(const Token& token);
     void take_token();
     bool has_tokens();

@@ -47,7 +47,9 @@ enum class TokenType {
     ASSIGNMENT,         // =
     // CONDITIONAL OPERATORS
     QUESTION_MARK,
-    COLON
+    COLON,
+    // OTHERS
+    COMMA
     // Add other types as needed
 };
 class TokenTable {

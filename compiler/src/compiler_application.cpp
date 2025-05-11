@@ -34,11 +34,11 @@ CompilerApplication::CompilerApplication()
 void CompilerApplication::run(const std::string& input_file, const std::string& operation)
 {
     // Check if operation is valid
-    std::vector<std::string> valid_operations = { "--lex", "--parse", "--validate", "--tacky", "--codegen", "-S", "" };
+    std::vector<std::string> valid_operations = { "--lex", "--parse", "--validate", "--tacky", "--codegen", "-S", "-c", "" };
     if (std::find(valid_operations.begin(), valid_operations.end(), operation) == valid_operations.end()) {
         throw CompilerError(std::format(
             "Invalid operation: '{}'\n"
-            "Valid operations are: --lex, --parse, --validate, --tacky, --codegen, -S, or no operation for full compilation",
+            "Valid operations are: --lex, --parse, --validate, --tacky, --codegen, -S, -c, or no operation for full compilation",
             operation));
     }
 
@@ -249,9 +249,16 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
 
     // Assembly and linking stage
     std::string output_file = parent_path / base_name;
+
+    bool skip_linking = operation == "-c";
+
+    if (skip_linking) {
+        output_file += ".o";
+    }
+
     LOG_INFO(LOG_CONTEXT, std::format("Assembling and linking '{}' to '{}'", assembly_file, output_file));
 
-    int assemble_and_link_result = assemble_and_link(assembly_file, output_file);
+    int assemble_and_link_result = assemble_and_link(assembly_file, output_file, skip_linking);
     if (assemble_and_link_result) {
         throw CompilerError(std::format(
             "Failed to assemble and link file '{}' to '{}' with error code {}\n"
@@ -259,7 +266,7 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
             assembly_file, output_file, assemble_and_link_result));
     }
 
-    LOG_INFO(LOG_CONTEXT, std::format("Compilation successful: Generated executable '{}'", output_file));
+    LOG_INFO(LOG_CONTEXT, std::format("Compilation successful: Generated file '{}'", output_file));
 }
 
 bool CompilerApplication::create_stub_assembly_file(const std::string& filename)
@@ -305,11 +312,17 @@ int CompilerApplication::preprocess_file(const std::string& input_file, const st
     return result;
 }
 
-int CompilerApplication::assemble_and_link(const std::string& assembly_file, const std::string& output_file)
+int CompilerApplication::assemble_and_link(const std::string& assembly_file, const std::string& output_file, bool skip_linking)
 {
     // Build the command string
-    std::string command = "gcc ";
-    command += " " + assembly_file + " -o " + output_file;
+    std::string command = "gcc";
+    std::string flags = skip_linking ? " -c " : " ";
+    std::string file_extension = output_file.substr(output_file.length() - 2);
+    command += flags + assembly_file + " -o " + output_file;
+
+    if (skip_linking && file_extension != ".o") {
+        throw CompilerError(std::format("Output file must have .o extension"));
+    }
 
     LOG_DEBUG(LOG_CONTEXT, std::format("Assembling and linking command: {}", command));
 
@@ -317,7 +330,7 @@ int CompilerApplication::assemble_and_link(const std::string& assembly_file, con
     int result = std::system(command.c_str());
 
     if (result != 0) {
-        LOG_ERROR(LOG_CONTEXT, std::format("Assembling and linking failed with error code {}", result));
+        throw CompilerError(std::format("Assembling and linking failed with error code {}", result));
     }
 
     return result;

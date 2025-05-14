@@ -1,19 +1,29 @@
 #pragma once
 #include "common/data/name_generator.h"
 #include "parser/parser_ast.h"
-#include "parser/semantic_analyzer_error.h"
 #include <string>
 #include <unordered_map>
+#include <stdexcept>
 
 namespace parser {
 
-class VariableResolutionPass : public ParserVisitor {
+
+class IdentifierResolutionPassError : public std::runtime_error {
 public:
-    VariableResolutionPass(std::shared_ptr<ParserAST> ast)
+    explicit IdentifierResolutionPassError(const std::string& message)
+        : std::runtime_error(message)
+    {
+    }
+};
+
+class IdentifierResolutionPass : public ParserVisitor {
+public:
+    IdentifierResolutionPass(std::shared_ptr<ParserAST> ast)
         : m_ast { ast }
         , m_name_generator { NameGenerator::instance() }
     {
     }
+
     void run();
 
 private:
@@ -27,7 +37,7 @@ private:
     void visit(VariableExpression& node) override;
     void visit(AssignmentExpression& node) override;
     void visit(ConditionalExpression& node) override;
-    void visit(FunctionCallExpression& node) override { }
+    void visit(FunctionCallExpression& node) override;
     void visit(ExpressionStatement& node) override;
     void visit(IfStatement& node) override;
     void visit(NullStatement& node) override;
@@ -44,18 +54,45 @@ private:
 
     struct MapEntry {
         MapEntry() = default;
-        MapEntry(const std::string& name, bool flag)
-            : unique_name { name }
-            , from_current_block { flag }
+        MapEntry(const std::string& name, bool flag, bool link)
+            : new_name { name }
+            , from_current_scope { flag }
+            , has_linkage { link }
         {
         }
-        std::string unique_name;
-        bool from_current_block { false };
+        std::string new_name;
+        bool from_current_scope { false };
+        bool has_linkage { false };
     };
-    std::unordered_map<std::string, MapEntry> copy_variable_map();
-    std::unordered_map<std::string, MapEntry> m_variable_map;
+    using IdentifierMap = std::unordered_map<std::string, MapEntry>;
+
+    class IdentifierMapGuard{
+    public:
+        IdentifierMapGuard(IdentifierMap& id_map)
+            : m_identifier_map{id_map}
+            , m_old_map{id_map}
+        {
+            for (auto& p : m_identifier_map) {
+                p.second.from_current_scope = false;
+            }
+        }
+
+        ~IdentifierMapGuard(){
+            m_identifier_map = m_old_map;
+        }
+
+        IdentifierMap& m_identifier_map;
+        IdentifierMap m_old_map;
+    };
+
+    void resolve_variable_declaration(Identifier& identifier);
+
+    bool is_top_level(FunctionDeclaration& fun_decl);
+    
+    IdentifierMap m_identifier_map;
     std::shared_ptr<ParserAST> m_ast;
     NameGenerator& m_name_generator;
+    std::unordered_map<FunctionDeclaration*, bool> m_top_level_tracker;
 };
 
 }

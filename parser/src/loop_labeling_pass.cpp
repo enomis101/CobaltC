@@ -15,22 +15,13 @@ void LoopLabelingPass::visit(Identifier& node)
 
 void LoopLabelingPass::visit(UnaryExpression& node)
 {
-    if (!node.expression) {
-        throw SemanticAnalyzerError("In UnaryExpression: Expression pointer is null");
-    }
     node.expression->accept(*this);
 }
 
 void LoopLabelingPass::visit(BinaryExpression& node)
 {
-    if (!node.left_expression) {
-        throw SemanticAnalyzerError("In BinaryExpression: Left expression pointer is null");
-    }
     node.left_expression->accept(*this);
 
-    if (!node.right_expression) {
-        throw SemanticAnalyzerError("In BinaryExpression: Right expression pointer is null");
-    }
     node.right_expression->accept(*this);
 }
 
@@ -41,9 +32,6 @@ void LoopLabelingPass::visit(ConstantExpression& node)
 
 void LoopLabelingPass::visit(ReturnStatement& node)
 {
-    if (!node.expression) {
-        throw SemanticAnalyzerError("In ReturnStatement: Expression pointer is null");
-    }
     node.expression->accept(*this);
 }
 
@@ -67,57 +55,33 @@ void LoopLabelingPass::visit(VariableExpression& node)
 
 void LoopLabelingPass::visit(AssignmentExpression& node)
 {
-    if (!node.left_expression) {
-        throw SemanticAnalyzerError("In AssignmentExpression: Left expression pointer is null");
-    }
-
     if (!dynamic_cast<VariableExpression*>(node.left_expression.get())) {
         throw SemanticAnalyzerError("In AssignmentExpression: Invalid lvalue!");
     }
     node.left_expression->accept(*this);
 
-    if (!node.right_expression) {
-        throw SemanticAnalyzerError("In AssignmentExpression: Right expression pointer is null");
-    }
     node.right_expression->accept(*this);
 }
 
 void LoopLabelingPass::visit(ConditionalExpression& node)
 {
-    if (!node.condition) {
-        throw SemanticAnalyzerError("In ConditionalExpression: Condition pointer is null");
-    }
     node.condition->accept(*this);
 
-    if (!node.true_expression) {
-        throw SemanticAnalyzerError("In ConditionalExpression: True expression pointer is null");
-    }
     node.true_expression->accept(*this);
 
-    if (!node.false_expression) {
-        throw SemanticAnalyzerError("In ConditionalExpression: False expression pointer is null");
-    }
     node.false_expression->accept(*this);
 }
 
 void LoopLabelingPass::visit(ExpressionStatement& node)
 {
-    if (!node.expression) {
-        throw SemanticAnalyzerError("In ExpressionStatement: Expression pointer is null");
-    }
     node.expression->accept(*this);
 }
 
 void LoopLabelingPass::visit(IfStatement& node)
 {
-    if (!node.condition) {
-        throw SemanticAnalyzerError("In IfStatement: Condition pointer is null");
-    }
+
     node.condition->accept(*this);
 
-    if (!node.then_statement) {
-        throw SemanticAnalyzerError("In IfStatement: Then statement pointer is null");
-    }
     node.then_statement->accept(*this);
 
     if (node.else_statement.has_value()) {
@@ -140,18 +104,12 @@ void LoopLabelingPass::visit(VariableDeclaration& node)
 void LoopLabelingPass::visit(Block& node)
 {
     for (auto& item : node.items) {
-        if (!item) {
-            throw SemanticAnalyzerError("In Block: item pointer is null");
-        }
         item->accept(*this);
     }
 }
 
 void LoopLabelingPass::visit(CompoundStatement& node)
 {
-    if (!node.block) {
-        throw SemanticAnalyzerError("In CompoundStatement: block pointer is null");
-    }
     node.block->accept(*this);
 }
 
@@ -177,14 +135,8 @@ void LoopLabelingPass::visit(WhileStatement& node)
     node.label.name = label;
     m_label_stack.push(label);
 
-    if (!node.condition) {
-        throw SemanticAnalyzerError("In WhileStatement: Condition pointer is null");
-    }
     node.condition->accept(*this);
 
-    if (!node.body) {
-        throw SemanticAnalyzerError("In WhileStatement: Then body pointer is null");
-    }
     node.body->accept(*this);
 
     m_label_stack.pop();
@@ -196,14 +148,8 @@ void LoopLabelingPass::visit(DoWhileStatement& node)
     node.label.name = label;
     m_label_stack.push(label);
 
-    if (!node.condition) {
-        throw SemanticAnalyzerError("In DoWhileStatement: Condition pointer is null");
-    }
     node.condition->accept(*this);
 
-    if (!node.body) {
-        throw SemanticAnalyzerError("In DoWhileStatement: Then body pointer is null");
-    }
     node.body->accept(*this);
 
     m_label_stack.pop();
@@ -215,28 +161,16 @@ void LoopLabelingPass::visit(ForStatement& node)
     node.label.name = label;
     m_label_stack.push(label);
 
-    if (!node.init) {
-        throw SemanticAnalyzerError("In ForStatement: init pointer is null");
-    }
     node.init->accept(*this);
 
     if (node.condition.has_value()) {
-        if (!node.condition.value()) {
-            throw SemanticAnalyzerError("In ForStatement: condition pointer is null");
-        }
         node.condition.value()->accept(*this);
     }
 
     if (node.post.has_value()) {
-        if (!node.post.value()) {
-            throw SemanticAnalyzerError("In ForStatement: post pointer is null");
-        }
         node.post.value()->accept(*this);
     }
 
-    if (!node.body) {
-        throw SemanticAnalyzerError("In ForStatement: Then body pointer is null");
-    }
     node.body->accept(*this);
 
     m_label_stack.pop();
@@ -244,18 +178,12 @@ void LoopLabelingPass::visit(ForStatement& node)
 
 void LoopLabelingPass::visit(ForInitDeclaration& node)
 {
-    if (!node.declaration) {
-        throw SemanticAnalyzerError("In ForInitDeclaration: declaration pointer is null");
-    }
     node.declaration->accept(*this);
 }
 
 void LoopLabelingPass::visit(ForInitExpression& node)
 {
     if (node.expression.has_value()) {
-        if (!node.expression.value()) {
-            throw SemanticAnalyzerError("In ForInitExpression: expression pointer is null");
-        }
         node.expression.value()->accept(*this);
     }
 }

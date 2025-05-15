@@ -1,25 +1,24 @@
 #pragma once
-#include "common/data/name_generator.h"
 #include "parser/parser_ast.h"
+#include "parser/symbol_table.h"
 #include <stdexcept>
 #include <string>
-#include <unordered_map>
 
 namespace parser {
 
-class IdentifierResolutionPassError : public std::runtime_error {
+class TypeCheckPassError : public std::runtime_error {
 public:
-    explicit IdentifierResolutionPassError(const std::string& message)
+    explicit TypeCheckPassError(const std::string& message)
         : std::runtime_error(message)
     {
     }
 };
 
-class IdentifierResolutionPass : public ParserVisitor {
+class TypeCheckPass : public ParserVisitor {
 public:
-    IdentifierResolutionPass(std::shared_ptr<ParserAST> ast)
+    TypeCheckPass(std::shared_ptr<ParserAST> ast)
         : m_ast { ast }
-        , m_name_generator { NameGenerator::instance() }
+        , m_symbol_table { SymbolTable::instance() }
     {
     }
 
@@ -51,48 +50,10 @@ private:
     void visit(ForInitDeclaration& node) override;
     void visit(ForInitExpression& node) override;
 
-    struct MapEntry {
-        MapEntry() = default;
-        MapEntry(const std::string& name, bool flag, bool link)
-            : new_name { name }
-            , from_current_scope { flag }
-            , has_linkage { link }
-        {
-        }
-        std::string new_name;
-        bool from_current_scope { false };
-        bool has_linkage { false };
-    };
-    using IdentifierMap = std::unordered_map<std::string, MapEntry>;
-
-    class IdentifierMapGuard {
-    public:
-        IdentifierMapGuard(IdentifierMap& id_map)
-            : m_identifier_map { id_map }
-            , m_old_map { id_map }
-        {
-            for (auto& p : m_identifier_map) {
-                p.second.from_current_scope = false;
-            }
-        }
-
-        ~IdentifierMapGuard()
-        {
-            m_identifier_map = m_old_map;
-        }
-
-        IdentifierMap& m_identifier_map;
-        IdentifierMap m_old_map;
-    };
-
     void resolve_variable_declaration(Identifier& identifier);
 
-    bool is_top_level(FunctionDeclaration& fun_decl);
-
-    IdentifierMap m_identifier_map;
     std::shared_ptr<ParserAST> m_ast;
-    NameGenerator& m_name_generator;
-    std::unordered_map<FunctionDeclaration*, bool> m_top_level_tracker;
+    SymbolTable& m_symbol_table;
 };
 
 }

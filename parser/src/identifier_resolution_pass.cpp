@@ -38,20 +38,20 @@ void IdentifierResolutionPass::visit(ReturnStatement& node)
 void IdentifierResolutionPass::visit(FunctionDeclaration& node)
 {
     std::string& function_name = node.name.name;
-    if(m_identifier_map.contains(function_name)){
+    if (m_identifier_map.contains(function_name)) {
         auto& prev_entry = m_identifier_map.at(function_name);
-        if(prev_entry.from_current_scope && !prev_entry.has_linkage){
+        if (prev_entry.from_current_scope && !prev_entry.has_linkage) {
             throw IdentifierResolutionPassError(std::format("Function declaration {} already declared with no linkage (local variable)", function_name));
         }
     }
     m_identifier_map.insert_or_assign(function_name, MapEntry(function_name, true, true));
-    IdentifierMapGuard copy_guard(m_identifier_map);    //map is copied on construction and restored on destruction
-    for(auto& param : node.params){
+    IdentifierMapGuard copy_guard(m_identifier_map); // map is copied on construction and restored on destruction
+    for (auto& param : node.params) {
         resolve_variable_declaration(param);
     }
 
-    if(node.body.has_value()){
-        if(!is_top_level(node)){
+    if (node.body.has_value()) {
+        if (!is_top_level(node)) {
             throw IdentifierResolutionPassError(std::format("Definining function {} at local scope", function_name));
         }
         node.body.value()->accept(*this);
@@ -60,7 +60,7 @@ void IdentifierResolutionPass::visit(FunctionDeclaration& node)
 
 void IdentifierResolutionPass::visit(Program& node)
 {
-    for(auto& fun_decl : node.functions){
+    for (auto& fun_decl : node.functions) {
         m_top_level_tracker[fun_decl.get()] = true;
         fun_decl->accept(*this);
     }
@@ -102,8 +102,8 @@ void IdentifierResolutionPass::visit(FunctionCallExpression& node)
     }
     function_name = m_identifier_map.at(function_name).new_name;
 
-    //Visit arguments
-    for(auto& arg : node.arguments){
+    // Visit arguments
+    for (auto& arg : node.arguments) {
         arg->accept(*this);
     }
 }
@@ -165,7 +165,7 @@ void IdentifierResolutionPass::visit(DoWhileStatement& node)
 
 void IdentifierResolutionPass::visit(ForStatement& node)
 {
-    IdentifierMapGuard copy_guard(m_identifier_map);    //map is copied on construction and restored on destruction
+    IdentifierMapGuard copy_guard(m_identifier_map); // map is copied on construction and restored on destruction
 
     node.init->accept(*this);
 

@@ -15,7 +15,7 @@
       "file": "logs/compiler.log",
       "max_size_mb": 50,
       "max_files": 5,
-      "console": true
+      "console": false
     }
   }
 }

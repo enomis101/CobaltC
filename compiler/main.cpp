@@ -61,14 +61,14 @@ int main(int argc, char* argv[])
         CompilerApplication app;
 
         // Display compilation start message
-        std::cout << std::format("Compiling '{}'{}\n",
+        LOG_INFO(LOG_CONTEXT, std::format("Compiling '{}'{}\n",
             input_file,
-            operation.empty() ? "" : std::format(" with operation: {}", operation));
+            operation.empty() ? "" : std::format(" with operation: {}", operation)));
 
         app.run(input_file, operation);
 
         // Display compilation success message
-        std::cout << std::format("Successfully completed operation on '{}'\n", input_file);
+        LOG_INFO(LOG_CONTEXT, std::format("Successfully completed operation on '{}'\n", input_file));
 
     } catch (const CompilerError& e) {
         LOG_CRITICAL(LOG_CONTEXT, std::format("Compilation failed: {} for file: {}", e.what(), input_file));

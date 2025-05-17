@@ -1,0 +1,339 @@
+[2025-05-18 00:40:40.656] [compiler] [debug] Starting compiler with input file: './sources/print_num.c', operation: '-c'
+[2025-05-18 00:40:40.656] [compiler] [info] Starting compilation of './sources/print_num.c'
+[2025-05-18 00:40:40.656] [compiler] [info] Preprocessing './sources/print_num.c' to './sources/print_num.i'
+[2025-05-18 00:40:40.656] [compiler] [debug] Preprocessing command: gcc -E -P ./sources/print_num.c -o ./sources/print_num.i
+[2025-05-18 00:40:40.662] [compiler] [error] Preprocessing failed with error code 256
+[2025-05-18 00:40:40.662] [compiler] [critical] Compilation failed: Preprocessing failed for file './sources/print_num.c' with error code 256
+Check that the input file exists and contains valid C code for file: ./sources/print_num.c
+[2025-05-18 00:41:06.675] [compiler] [debug] Starting compiler with input file: '/home/simone/compiler/CobaltC/sources/print_num.c', operation: '-c'
+[2025-05-18 00:41:06.675] [compiler] [info] Starting compilation of '/home/simone/compiler/CobaltC/sources/print_num.c'
+[2025-05-18 00:41:06.675] [compiler] [info] Preprocessing '/home/simone/compiler/CobaltC/sources/print_num.c' to '/home/simone/compiler/CobaltC/sources/print_num.i'
+[2025-05-18 00:41:06.675] [compiler] [debug] Preprocessing command: gcc -E -P /home/simone/compiler/CobaltC/sources/print_num.c -o /home/simone/compiler/CobaltC/sources/print_num.i
+[2025-05-18 00:41:06.682] [compiler] [info] Lexing file '/home/simone/compiler/CobaltC/sources/print_num.i'
+[2025-05-18 00:41:06.683] [compiler] [info] Lexing successful: 22 tokens generated
+[2025-05-18 00:41:06.683] [compiler] [debug] Token List:
+Token{type=INT_KW, lexeme='int', line=1}
+Token{type=IDENTIFIER, lexeme='print_num', line=1}
+Token{type=OPEN_PAREN, lexeme='(', line=1}
+Token{type=INT_KW, lexeme='int', line=1}
+Token{type=IDENTIFIER, lexeme='a', line=1}
+Token{type=CLOSE_PAREN, lexeme=')', line=1}
+Token{type=SEMICOLON, lexeme=';', line=1}
+Token{type=INT_KW, lexeme='int', line=2}
+Token{type=IDENTIFIER, lexeme='main', line=2}
+Token{type=OPEN_PAREN, lexeme='(', line=2}
+Token{type=VOID_KW, lexeme='void', line=2}
+Token{type=CLOSE_PAREN, lexeme=')', line=2}
+Token{type=OPEN_BRACE, lexeme='{', line=2}
+Token{type=IDENTIFIER, lexeme='print_num', line=3}
+Token{type=OPEN_PAREN, lexeme='(', line=3}
+Token{type=CONSTANT, lexeme='42', line=3, literal=42}
+Token{type=CLOSE_PAREN, lexeme=')', line=3}
+Token{type=SEMICOLON, lexeme=';', line=3}
+Token{type=RETURN_KW, lexeme='return', line=4}
+Token{type=CONSTANT, lexeme='0', line=4, literal=0}
+Token{type=SEMICOLON, lexeme=';', line=4}
+Token{type=CLOSE_BRACE, lexeme='}', line=5}
+
+[2025-05-18 00:41:06.683] [compiler] [info] Starting parsing stage
+[2025-05-18 00:41:06.684] [compiler] [info] Parsing successful
+[2025-05-18 00:41:06.684] [compiler] [debug] Parsed Program
+
+[2025-05-18 00:41:06.684] [compiler] [debug] Generated AST visualization in 'ast.dot'
+[2025-05-18 00:41:06.684] [compiler] [info] Starting Semantic Analysis stage
+[2025-05-18 00:41:06.684] [compiler] [info] Semantic Analysis
+[2025-05-18 00:41:06.684] [compiler] [debug] Parsed Program
+
+[2025-05-18 00:41:06.684] [compiler] [debug] Generated AST visualization
+[2025-05-18 00:41:06.684] [compiler] [info] Starting tacky generation stage
+[2025-05-18 00:41:06.685] [compiler] [debug] Parsed Program
+
+[2025-05-18 00:41:06.685] [compiler] [debug] Generated AST visualization in 'ast.dot'
+[2025-05-18 00:41:06.685] [compiler] [info] Starting assembly generation stage
+[2025-05-18 00:41:06.685] [compiler] [debug] Parsed Program
+
+[2025-05-18 00:41:06.685] [compiler] [debug] Generated AssemblyAST visualization in 'ast.dot'
+[2025-05-18 00:41:06.685] [compiler] [info] Generating assembly file '/home/simone/compiler/CobaltC/sources/print_num.s'
+[2025-05-18 00:41:06.685] [compiler] [info] Assembling and linking '/home/simone/compiler/CobaltC/sources/print_num.s' to '/home/simone/compiler/CobaltC/sources/print_num.o'
+[2025-05-18 00:41:06.685] [compiler] [debug] Assembling and linking command: gcc -c /home/simone/compiler/CobaltC/sources/print_num.s -o /home/simone/compiler/CobaltC/sources/print_num.o
+[2025-05-18 00:41:06.689] [compiler] [info] Compilation successful: Generated file '/home/simone/compiler/CobaltC/sources/print_num.o'
+[2025-05-18 00:42:10.826] [compiler] [debug] Starting compiler with input file: '/home/simone/compiler/CobaltC/sources/print_num.c', operation: '-c'
+[2025-05-18 00:42:10.826] [compiler] [info] Starting compilation of '/home/simone/compiler/CobaltC/sources/print_num.c'
+[2025-05-18 00:42:10.826] [compiler] [info] Preprocessing '/home/simone/compiler/CobaltC/sources/print_num.c' to '/home/simone/compiler/CobaltC/sources/print_num.i'
+[2025-05-18 00:42:10.826] [compiler] [debug] Preprocessing command: gcc -E -P /home/simone/compiler/CobaltC/sources/print_num.c -o /home/simone/compiler/CobaltC/sources/print_num.i
+[2025-05-18 00:42:10.833] [compiler] [info] Lexing file '/home/simone/compiler/CobaltC/sources/print_num.i'
+[2025-05-18 00:42:10.834] [compiler] [info] Lexing successful: 22 tokens generated
+[2025-05-18 00:42:10.834] [compiler] [debug] Token List:
+Token{type=INT_KW, lexeme='int', line=1}
+Token{type=IDENTIFIER, lexeme='print_num', line=1}
+Token{type=OPEN_PAREN, lexeme='(', line=1}
+Token{type=INT_KW, lexeme='int', line=1}
+Token{type=IDENTIFIER, lexeme='a', line=1}
+Token{type=CLOSE_PAREN, lexeme=')', line=1}
+Token{type=SEMICOLON, lexeme=';', line=1}
+Token{type=INT_KW, lexeme='int', line=2}
+Token{type=IDENTIFIER, lexeme='main', line=2}
+Token{type=OPEN_PAREN, lexeme='(', line=2}
+Token{type=VOID_KW, lexeme='void', line=2}
+Token{type=CLOSE_PAREN, lexeme=')', line=2}
+Token{type=OPEN_BRACE, lexeme='{', line=2}
+Token{type=IDENTIFIER, lexeme='print_num', line=3}
+Token{type=OPEN_PAREN, lexeme='(', line=3}
+Token{type=CONSTANT, lexeme='118', line=3, literal=118}
+Token{type=CLOSE_PAREN, lexeme=')', line=3}
+Token{type=SEMICOLON, lexeme=';', line=3}
+Token{type=RETURN_KW, lexeme='return', line=4}
+Token{type=CONSTANT, lexeme='0', line=4, literal=0}
+Token{type=SEMICOLON, lexeme=';', line=4}
+Token{type=CLOSE_BRACE, lexeme='}', line=5}
+
+[2025-05-18 00:42:10.834] [compiler] [info] Starting parsing stage
+[2025-05-18 00:42:10.834] [compiler] [info] Parsing successful
+[2025-05-18 00:42:10.834] [compiler] [debug] Parsed Program
+
+[2025-05-18 00:42:10.834] [compiler] [debug] Generated AST visualization in 'ast.dot'
+[2025-05-18 00:42:10.834] [compiler] [info] Starting Semantic Analysis stage
+[2025-05-18 00:42:10.835] [compiler] [info] Semantic Analysis
+[2025-05-18 00:42:10.835] [compiler] [debug] Parsed Program
+
+[2025-05-18 00:42:10.835] [compiler] [debug] Generated AST visualization
+[2025-05-18 00:42:10.835] [compiler] [info] Starting tacky generation stage
+[2025-05-18 00:42:10.835] [compiler] [debug] Parsed Program
+
+[2025-05-18 00:42:10.835] [compiler] [debug] Generated AST visualization in 'ast.dot'
+[2025-05-18 00:42:10.835] [compiler] [info] Starting assembly generation stage
+[2025-05-18 00:42:10.835] [compiler] [debug] Parsed Program
+
+[2025-05-18 00:42:10.835] [compiler] [debug] Generated AssemblyAST visualization in 'ast.dot'
+[2025-05-18 00:42:10.835] [compiler] [info] Generating assembly file '/home/simone/compiler/CobaltC/sources/print_num.s'
+[2025-05-18 00:42:10.836] [compiler] [info] Assembling and linking '/home/simone/compiler/CobaltC/sources/print_num.s' to '/home/simone/compiler/CobaltC/sources/print_num.o'
+[2025-05-18 00:42:10.836] [compiler] [debug] Assembling and linking command: gcc -c /home/simone/compiler/CobaltC/sources/print_num.s -o /home/simone/compiler/CobaltC/sources/print_num.o
+[2025-05-18 00:42:10.839] [compiler] [info] Compilation successful: Generated file '/home/simone/compiler/CobaltC/sources/print_num.o'
+[2025-05-18 00:42:29.077] [compiler] [debug] Starting compiler with input file: '/home/simone/compiler/CobaltC/sources/print_num.c', operation: '-c'
+[2025-05-18 00:42:29.077] [compiler] [info] Starting compilation of '/home/simone/compiler/CobaltC/sources/print_num.c'
+[2025-05-18 00:42:29.077] [compiler] [info] Preprocessing '/home/simone/compiler/CobaltC/sources/print_num.c' to '/home/simone/compiler/CobaltC/sources/print_num.i'
+[2025-05-18 00:42:29.077] [compiler] [debug] Preprocessing command: gcc -E -P /home/simone/compiler/CobaltC/sources/print_num.c -o /home/simone/compiler/CobaltC/sources/print_num.i
+[2025-05-18 00:42:29.084] [compiler] [info] Lexing file '/home/simone/compiler/CobaltC/sources/print_num.i'
+[2025-05-18 00:42:29.085] [compiler] [info] Lexing successful: 22 tokens generated
+[2025-05-18 00:42:29.085] [compiler] [debug] Token List:
+Token{type=INT_KW, lexeme='int', line=1}
+Token{type=IDENTIFIER, lexeme='print_num', line=1}
+Token{type=OPEN_PAREN, lexeme='(', line=1}
+Token{type=INT_KW, lexeme='int', line=1}
+Token{type=IDENTIFIER, lexeme='a', line=1}
+Token{type=CLOSE_PAREN, lexeme=')', line=1}
+Token{type=SEMICOLON, lexeme=';', line=1}
+Token{type=INT_KW, lexeme='int', line=2}
+Token{type=IDENTIFIER, lexeme='main', line=2}
+Token{type=OPEN_PAREN, lexeme='(', line=2}
+Token{type=VOID_KW, lexeme='void', line=2}
+Token{type=CLOSE_PAREN, lexeme=')', line=2}
+Token{type=OPEN_BRACE, lexeme='{', line=2}
+Token{type=IDENTIFIER, lexeme='print_num', line=3}
+Token{type=OPEN_PAREN, lexeme='(', line=3}
+Token{type=CONSTANT, lexeme='118', line=3, literal=118}
+Token{type=CLOSE_PAREN, lexeme=')', line=3}
+Token{type=SEMICOLON, lexeme=';', line=3}
+Token{type=RETURN_KW, lexeme='return', line=4}
+Token{type=CONSTANT, lexeme='0', line=4, literal=0}
+Token{type=SEMICOLON, lexeme=';', line=4}
+Token{type=CLOSE_BRACE, lexeme='}', line=5}
+
+[2025-05-18 00:42:29.085] [compiler] [info] Starting parsing stage
+[2025-05-18 00:42:29.085] [compiler] [info] Parsing successful
+[2025-05-18 00:42:29.085] [compiler] [debug] Parsed Program
+
+[2025-05-18 00:42:29.086] [compiler] [debug] Generated AST visualization in 'ast.dot'
+[2025-05-18 00:42:29.086] [compiler] [info] Starting Semantic Analysis stage
+[2025-05-18 00:42:29.086] [compiler] [info] Semantic Analysis
+[2025-05-18 00:42:29.086] [compiler] [debug] Parsed Program
+
+[2025-05-18 00:42:29.086] [compiler] [debug] Generated AST visualization
+[2025-05-18 00:42:29.086] [compiler] [info] Starting tacky generation stage
+[2025-05-18 00:42:29.086] [compiler] [debug] Parsed Program
+
+[2025-05-18 00:42:29.086] [compiler] [debug] Generated AST visualization in 'ast.dot'
+[2025-05-18 00:42:29.086] [compiler] [info] Starting assembly generation stage
+[2025-05-18 00:42:29.087] [compiler] [debug] Parsed Program
+
+[2025-05-18 00:42:29.087] [compiler] [debug] Generated AssemblyAST visualization in 'ast.dot'
+[2025-05-18 00:42:29.087] [compiler] [info] Generating assembly file '/home/simone/compiler/CobaltC/sources/print_num.s'
+[2025-05-18 00:42:29.087] [compiler] [info] Assembling and linking '/home/simone/compiler/CobaltC/sources/print_num.s' to '/home/simone/compiler/CobaltC/sources/print_num.o'
+[2025-05-18 00:42:29.087] [compiler] [debug] Assembling and linking command: gcc -c /home/simone/compiler/CobaltC/sources/print_num.s -o /home/simone/compiler/CobaltC/sources/print_num.o
+[2025-05-18 00:42:29.091] [compiler] [info] Compilation successful: Generated file '/home/simone/compiler/CobaltC/sources/print_num.o'
+[2025-05-18 00:43:56.186] [compiler] [debug] Starting compiler with input file: '/home/simone/compiler/CobaltC/sources/print_num.c', operation: '-c'
+[2025-05-18 00:43:56.186] [compiler] [info] Starting compilation of '/home/simone/compiler/CobaltC/sources/print_num.c'
+[2025-05-18 00:43:56.186] [compiler] [info] Preprocessing '/home/simone/compiler/CobaltC/sources/print_num.c' to '/home/simone/compiler/CobaltC/sources/print_num.i'
+[2025-05-18 00:43:56.186] [compiler] [debug] Preprocessing command: gcc -E -P /home/simone/compiler/CobaltC/sources/print_num.c -o /home/simone/compiler/CobaltC/sources/print_num.i
+[2025-05-18 00:43:56.193] [compiler] [info] Lexing file '/home/simone/compiler/CobaltC/sources/print_num.i'
+[2025-05-18 00:43:56.194] [compiler] [info] Lexing successful: 22 tokens generated
+[2025-05-18 00:43:56.194] [compiler] [debug] Token List:
+Token{type=INT_KW, lexeme='int', line=1}
+Token{type=IDENTIFIER, lexeme='print_num', line=1}
+Token{type=OPEN_PAREN, lexeme='(', line=1}
+Token{type=INT_KW, lexeme='int', line=1}
+Token{type=IDENTIFIER, lexeme='a', line=1}
+Token{type=CLOSE_PAREN, lexeme=')', line=1}
+Token{type=SEMICOLON, lexeme=';', line=1}
+Token{type=INT_KW, lexeme='int', line=2}
+Token{type=IDENTIFIER, lexeme='main', line=2}
+Token{type=OPEN_PAREN, lexeme='(', line=2}
+Token{type=VOID_KW, lexeme='void', line=2}
+Token{type=CLOSE_PAREN, lexeme=')', line=2}
+Token{type=OPEN_BRACE, lexeme='{', line=2}
+Token{type=IDENTIFIER, lexeme='print_num', line=3}
+Token{type=OPEN_PAREN, lexeme='(', line=3}
+Token{type=CONSTANT, lexeme='118', line=3, literal=118}
+Token{type=CLOSE_PAREN, lexeme=')', line=3}
+Token{type=SEMICOLON, lexeme=';', line=3}
+Token{type=RETURN_KW, lexeme='return', line=4}
+Token{type=CONSTANT, lexeme='0', line=4, literal=0}
+Token{type=SEMICOLON, lexeme=';', line=4}
+Token{type=CLOSE_BRACE, lexeme='}', line=5}
+
+[2025-05-18 00:43:56.194] [compiler] [info] Starting parsing stage
+[2025-05-18 00:43:56.194] [compiler] [info] Parsing successful
+[2025-05-18 00:43:56.194] [compiler] [debug] Parsed Program
+
+[2025-05-18 00:43:56.194] [compiler] [debug] Generated AST visualization in 'ast.dot'
+[2025-05-18 00:43:56.194] [compiler] [info] Starting Semantic Analysis stage
+[2025-05-18 00:43:56.194] [compiler] [info] Semantic Analysis
+[2025-05-18 00:43:56.194] [compiler] [debug] Parsed Program
+
+[2025-05-18 00:43:56.194] [compiler] [debug] Generated AST visualization
+[2025-05-18 00:43:56.195] [compiler] [info] Starting tacky generation stage
+[2025-05-18 00:43:56.195] [compiler] [debug] Parsed Program
+
+[2025-05-18 00:43:56.195] [compiler] [debug] Generated AST visualization in 'ast.dot'
+[2025-05-18 00:43:56.195] [compiler] [info] Starting assembly generation stage
+[2025-05-18 00:43:56.195] [compiler] [debug] Parsed Program
+
+[2025-05-18 00:43:56.195] [compiler] [debug] Generated AssemblyAST visualization in 'ast.dot'
+[2025-05-18 00:43:56.195] [compiler] [info] Generating assembly file '/home/simone/compiler/CobaltC/sources/print_num.s'
+[2025-05-18 00:43:56.195] [compiler] [info] Assembling and linking '/home/simone/compiler/CobaltC/sources/print_num.s' to '/home/simone/compiler/CobaltC/sources/print_num.o'
+[2025-05-18 00:43:56.195] [compiler] [debug] Assembling and linking command: gcc -c /home/simone/compiler/CobaltC/sources/print_num.s -o /home/simone/compiler/CobaltC/sources/print_num.o
+[2025-05-18 00:43:56.199] [compiler] [info] Compilation successful: Generated file '/home/simone/compiler/CobaltC/sources/print_num.o'
+[2025-05-18 00:44:12.887] [compiler] [debug] Starting compiler with input file: '/home/simone/compiler/CobaltC/sources/print_num.c', operation: '-c'
+[2025-05-18 00:44:12.887] [compiler] [info] Compiling '/home/simone/compiler/CobaltC/sources/print_num.c' with operation: -c
+
+[2025-05-18 00:44:12.887] [compiler] [info] Starting compilation of '/home/simone/compiler/CobaltC/sources/print_num.c'
+[2025-05-18 00:44:12.887] [compiler] [info] Preprocessing '/home/simone/compiler/CobaltC/sources/print_num.c' to '/home/simone/compiler/CobaltC/sources/print_num.i'
+[2025-05-18 00:44:12.887] [compiler] [debug] Preprocessing command: gcc -E -P /home/simone/compiler/CobaltC/sources/print_num.c -o /home/simone/compiler/CobaltC/sources/print_num.i
+[2025-05-18 00:44:12.894] [compiler] [info] Lexing file '/home/simone/compiler/CobaltC/sources/print_num.i'
+[2025-05-18 00:44:12.895] [compiler] [info] Lexing successful: 22 tokens generated
+[2025-05-18 00:44:12.895] [compiler] [debug] Token List:
+Token{type=INT_KW, lexeme='int', line=1}
+Token{type=IDENTIFIER, lexeme='print_num', line=1}
+Token{type=OPEN_PAREN, lexeme='(', line=1}
+Token{type=INT_KW, lexeme='int', line=1}
+Token{type=IDENTIFIER, lexeme='a', line=1}
+Token{type=CLOSE_PAREN, lexeme=')', line=1}
+Token{type=SEMICOLON, lexeme=';', line=1}
+Token{type=INT_KW, lexeme='int', line=2}
+Token{type=IDENTIFIER, lexeme='main', line=2}
+Token{type=OPEN_PAREN, lexeme='(', line=2}
+Token{type=VOID_KW, lexeme='void', line=2}
+Token{type=CLOSE_PAREN, lexeme=')', line=2}
+Token{type=OPEN_BRACE, lexeme='{', line=2}
+Token{type=IDENTIFIER, lexeme='print_num', line=3}
+Token{type=OPEN_PAREN, lexeme='(', line=3}
+Token{type=CONSTANT, lexeme='118', line=3, literal=118}
+Token{type=CLOSE_PAREN, lexeme=')', line=3}
+Token{type=SEMICOLON, lexeme=';', line=3}
+Token{type=RETURN_KW, lexeme='return', line=4}
+Token{type=CONSTANT, lexeme='0', line=4, literal=0}
+Token{type=SEMICOLON, lexeme=';', line=4}
+Token{type=CLOSE_BRACE, lexeme='}', line=5}
+
+[2025-05-18 00:44:12.895] [compiler] [info] Starting parsing stage
+[2025-05-18 00:44:12.895] [compiler] [info] Parsing successful
+[2025-05-18 00:44:12.895] [compiler] [debug] Parsed Program
+
+[2025-05-18 00:44:12.896] [compiler] [debug] Generated AST visualization in 'ast.dot'
+[2025-05-18 00:44:12.896] [compiler] [info] Starting Semantic Analysis stage
+[2025-05-18 00:44:12.896] [compiler] [info] Semantic Analysis
+[2025-05-18 00:44:12.896] [compiler] [debug] Parsed Program
+
+[2025-05-18 00:44:12.896] [compiler] [debug] Generated AST visualization
+[2025-05-18 00:44:12.896] [compiler] [info] Starting tacky generation stage
+[2025-05-18 00:44:12.896] [compiler] [debug] Parsed Program
+
+[2025-05-18 00:44:12.896] [compiler] [debug] Generated AST visualization in 'ast.dot'
+[2025-05-18 00:44:12.896] [compiler] [info] Starting assembly generation stage
+[2025-05-18 00:44:12.897] [compiler] [debug] Parsed Program
+
+[2025-05-18 00:44:12.897] [compiler] [debug] Generated AssemblyAST visualization in 'ast.dot'
+[2025-05-18 00:44:12.897] [compiler] [info] Generating assembly file '/home/simone/compiler/CobaltC/sources/print_num.s'
+[2025-05-18 00:44:12.897] [compiler] [info] Assembling and linking '/home/simone/compiler/CobaltC/sources/print_num.s' to '/home/simone/compiler/CobaltC/sources/print_num.o'
+[2025-05-18 00:44:12.897] [compiler] [debug] Assembling and linking command: gcc -c /home/simone/compiler/CobaltC/sources/print_num.s -o /home/simone/compiler/CobaltC/sources/print_num.o
+[2025-05-18 00:44:12.900] [compiler] [info] Compilation successful: Generated file '/home/simone/compiler/CobaltC/sources/print_num.o'
+[2025-05-18 00:44:12.901] [compiler] [info] Successfully completed operation on '/home/simone/compiler/CobaltC/sources/print_num.c'
+
+[2025-05-18 00:44:49.261] [compiler] [debug] Starting compiler with input file: '/home/simone/compiler/CobaltC/sources/print_num.c', operation: '-c'
+[2025-05-18 00:44:49.261] [compiler] [info] Compiling '/home/simone/compiler/CobaltC/sources/print_num.c' with operation: -c
+
+[2025-05-18 00:44:49.261] [compiler] [info] Starting compilation of '/home/simone/compiler/CobaltC/sources/print_num.c'
+[2025-05-18 00:44:49.261] [compiler] [info] Preprocessing '/home/simone/compiler/CobaltC/sources/print_num.c' to '/home/simone/compiler/CobaltC/sources/print_num.i'
+[2025-05-18 00:44:49.261] [compiler] [debug] Preprocessing command: gcc -E -P /home/simone/compiler/CobaltC/sources/print_num.c -o /home/simone/compiler/CobaltC/sources/print_num.i
+[2025-05-18 00:44:49.268] [compiler] [info] Lexing file '/home/simone/compiler/CobaltC/sources/print_num.i'
+[2025-05-18 00:44:49.269] [compiler] [info] Lexing successful: 34 tokens generated
+[2025-05-18 00:44:49.269] [compiler] [debug] Token List:
+Token{type=INT_KW, lexeme='int', line=1}
+Token{type=IDENTIFIER, lexeme='print_num', line=1}
+Token{type=OPEN_PAREN, lexeme='(', line=1}
+Token{type=INT_KW, lexeme='int', line=1}
+Token{type=IDENTIFIER, lexeme='a', line=1}
+Token{type=CLOSE_PAREN, lexeme=')', line=1}
+Token{type=SEMICOLON, lexeme=';', line=1}
+Token{type=INT_KW, lexeme='int', line=2}
+Token{type=IDENTIFIER, lexeme='main', line=2}
+Token{type=OPEN_PAREN, lexeme='(', line=2}
+Token{type=VOID_KW, lexeme='void', line=2}
+Token{type=CLOSE_PAREN, lexeme=')', line=2}
+Token{type=OPEN_BRACE, lexeme='{', line=2}
+Token{type=INT_KW, lexeme='int', line=3}
+Token{type=IDENTIFIER, lexeme='a', line=3}
+Token{type=ASSIGNMENT, lexeme='=', line=3}
+Token{type=CONSTANT, lexeme='10', line=3, literal=10}
+Token{type=SEMICOLON, lexeme=';', line=3}
+Token{type=INT_KW, lexeme='int', line=4}
+Token{type=IDENTIFIER, lexeme='b', line=4}
+Token{type=ASSIGNMENT, lexeme='=', line=4}
+Token{type=CONSTANT, lexeme='5', line=4, literal=5}
+Token{type=SEMICOLON, lexeme=';', line=4}
+Token{type=IDENTIFIER, lexeme='print_num', line=5}
+Token{type=OPEN_PAREN, lexeme='(', line=5}
+Token{type=IDENTIFIER, lexeme='a', line=5}
+Token{type=FORWARD_SLASH, lexeme='/', line=5}
+Token{type=IDENTIFIER, lexeme='b', line=5}
+Token{type=CLOSE_PAREN, lexeme=')', line=5}
+Token{type=SEMICOLON, lexeme=';', line=5}
+Token{type=RETURN_KW, lexeme='return', line=6}
+Token{type=CONSTANT, lexeme='0', line=6, literal=0}
+Token{type=SEMICOLON, lexeme=';', line=6}
+Token{type=CLOSE_BRACE, lexeme='}', line=7}
+
+[2025-05-18 00:44:49.269] [compiler] [info] Starting parsing stage
+[2025-05-18 00:44:49.269] [compiler] [info] Parsing successful
+[2025-05-18 00:44:49.269] [compiler] [debug] Parsed Program
+
+[2025-05-18 00:44:49.269] [compiler] [debug] Generated AST visualization in 'ast.dot'
+[2025-05-18 00:44:49.269] [compiler] [info] Starting Semantic Analysis stage
+[2025-05-18 00:44:49.270] [compiler] [info] Semantic Analysis
+[2025-05-18 00:44:49.270] [compiler] [debug] Parsed Program
+
+[2025-05-18 00:44:49.270] [compiler] [debug] Generated AST visualization
+[2025-05-18 00:44:49.270] [compiler] [info] Starting tacky generation stage
+[2025-05-18 00:44:49.270] [compiler] [debug] Parsed Program
+
+[2025-05-18 00:44:49.270] [compiler] [debug] Generated AST visualization in 'ast.dot'
+[2025-05-18 00:44:49.270] [compiler] [info] Starting assembly generation stage
+[2025-05-18 00:44:49.271] [compiler] [debug] Parsed Program
+
+[2025-05-18 00:44:49.271] [compiler] [debug] Generated AssemblyAST visualization in 'ast.dot'
+[2025-05-18 00:44:49.271] [compiler] [info] Generating assembly file '/home/simone/compiler/CobaltC/sources/print_num.s'
+[2025-05-18 00:44:49.271] [compiler] [info] Assembling and linking '/home/simone/compiler/CobaltC/sources/print_num.s' to '/home/simone/compiler/CobaltC/sources/print_num.o'
+[2025-05-18 00:44:49.271] [compiler] [debug] Assembling and linking command: gcc -c /home/simone/compiler/CobaltC/sources/print_num.s -o /home/simone/compiler/CobaltC/sources/print_num.o
+[2025-05-18 00:44:49.275] [compiler] [info] Compilation successful: Generated file '/home/simone/compiler/CobaltC/sources/print_num.o'
+[2025-05-18 00:44:49.275] [compiler] [info] Successfully completed operation on '/home/simone/compiler/CobaltC/sources/print_num.c'
+

@@ -67,6 +67,13 @@ enum class RegisterName {
     R11
 };
 
+enum class RegisterType {
+    BYTE,  // 1-byte registers (AL, BL, CL, DL, etc.)
+    WORD,  // 2-byte registers (AX, BX, CX, DX, etc.)
+    DWORD, // 4-byte registers (EAX, EBX, ECX, EDX, etc.)
+    QWORD, // 8-byte registers (RAX, RBX, RCX, RDX, etc.)
+};
+
 // Abstract base class for all AssemblyAST nodes
 class AssemblyAST {
 public:
@@ -143,9 +150,9 @@ public:
 
 class Register : public Operand {
 public:
-    Register(RegisterName r, bool b = false)
+    Register(RegisterName r, RegisterType t = RegisterType::DWORD)
         : reg { r }
-        , single_byte { b }
+        , type { t }
     {
     }
 
@@ -156,11 +163,11 @@ public:
 
     std::unique_ptr<Operand> clone() const override
     {
-        return std::make_unique<Register>(reg, single_byte);
+        return std::make_unique<Register>(reg, type);
     }
 
     RegisterName reg;
-    bool single_byte; // set to true by the SetCC instruction
+    RegisterType type;
 };
 
 class PseudoRegister : public Operand {
@@ -407,7 +414,7 @@ public:
         , destination(std::move(dst))
     {
         if (Register* reg = dynamic_cast<Register*>(destination.get())) {
-            reg->single_byte = true;
+            reg->type = RegisterType::BYTE;
         }
     }
 
@@ -493,6 +500,9 @@ public:
     PushInstruction(std::unique_ptr<Operand> dst)
         : destination(std::move(dst))
     {
+        if (Register* reg = dynamic_cast<Register*>(destination.get())) {
+            reg->type = RegisterType::QWORD;
+        }
     }
 
     void accept(AssemblyVisitor& visitor) override

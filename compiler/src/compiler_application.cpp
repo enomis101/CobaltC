@@ -15,8 +15,8 @@
 #include <filesystem> // Requires C++17 or later
 #include <format>
 #include <fstream>
-#include <sstream>
 #include <vector>
+#include "parser/semantic_analyzer_error.h"
 
 CompilerApplication::CompilerApplication()
 {

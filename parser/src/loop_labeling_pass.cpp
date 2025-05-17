@@ -55,7 +55,7 @@ void LoopLabelingPass::visit(VariableExpression& node)
 void LoopLabelingPass::visit(AssignmentExpression& node)
 {
     if (!dynamic_cast<VariableExpression*>(node.left_expression.get())) {
-        throw SemanticAnalyzerError("In AssignmentExpression: Invalid lvalue!");
+        throw LoopLabelingPassError("In AssignmentExpression: Invalid lvalue!");
     }
     node.left_expression->accept(*this);
 
@@ -115,7 +115,7 @@ void LoopLabelingPass::visit(CompoundStatement& node)
 void LoopLabelingPass::visit(BreakStatement& node)
 {
     if (m_label_stack.empty()) {
-        throw SemanticAnalyzerError("In BreakStatement: found break statement with no parent loop");
+        throw LoopLabelingPassError("In BreakStatement: found break statement with no parent loop");
     }
     node.label.name = m_label_stack.top();
 }
@@ -123,7 +123,7 @@ void LoopLabelingPass::visit(BreakStatement& node)
 void LoopLabelingPass::visit(ContinueStatement& node)
 {
     if (m_label_stack.empty()) {
-        throw SemanticAnalyzerError("In ContinueStatement: found continue statement with no parent loop");
+        throw LoopLabelingPassError("In ContinueStatement: found continue statement with no parent loop");
     }
     node.label.name = m_label_stack.top();
 }

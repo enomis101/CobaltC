@@ -7,6 +7,14 @@
 
 namespace parser {
 
+class LoopLabelingPassError : public SemanticAnalyzerError {
+public:
+    explicit LoopLabelingPassError(const std::string& message)
+        : SemanticAnalyzerError(message)
+    {
+    }
+};
+
 class LoopLabelingPass : public ParserVisitor {
 public:
     LoopLabelingPass(std::shared_ptr<ParserAST> ast)

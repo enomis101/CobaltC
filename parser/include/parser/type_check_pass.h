@@ -1,15 +1,15 @@
 #pragma once
 #include "parser/parser_ast.h"
 #include "parser/symbol_table.h"
-#include <stdexcept>
+#include "parser/semantic_analyzer_error.h"
 #include <string>
 
 namespace parser {
 
-class TypeCheckPassError : public std::runtime_error {
+class TypeCheckPassError : public SemanticAnalyzerError {
 public:
     explicit TypeCheckPassError(const std::string& message)
-        : std::runtime_error(message)
+        : SemanticAnalyzerError(message)
     {
     }
 };

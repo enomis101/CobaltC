@@ -57,14 +57,50 @@ void PrinterVisitor::visit(Register& node)
     case RegisterName::DX:
         reg_name = "DX";
         break;
+    case RegisterName::CX:
+        reg_name = "CX";
+        break;
+    case RegisterName::DI:
+        reg_name = "DI";
+        break;
+    case RegisterName::SI:
+        reg_name = "SI";
+        break;
+    case RegisterName::R8:
+        reg_name = "R8";
+        break;
+    case RegisterName::R9:
+        reg_name = "R9";
+        break;
     case RegisterName::R10:
         reg_name = "R10";
         break;
     case RegisterName::R11:
         reg_name = "R11";
         break;
+    default:
+        reg_name = "UNKNOWN";
+        break;
     }
-    m_dot_content << "  node" << id << " [label=\"Register\\nname: " << reg_name << "\"];\n";
+
+    std::string type_name;
+    switch (node.type) {
+    case RegisterType::QWORD:
+        type_name = "QWORD (8-byte)";
+        break;
+    case RegisterType::DWORD:
+        type_name = "DWORD (4-byte)";
+        break;
+    case RegisterType::BYTE:
+        type_name = "BYTE (1-byte)";
+        break;
+    default:
+        type_name = "UNKNOWN";
+        break;
+    }
+
+    m_dot_content << "  node" << id << " [label=\"Register\\nname: " << reg_name
+                  << "\\ntype: " << type_name << "\"];\n";
 }
 
 void PrinterVisitor::visit(PseudoRegister& node)

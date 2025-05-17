@@ -1,4 +1,5 @@
 #include "assembly/code_emitter.h"
+#include "parser/symbol_table.h"
 #include <filesystem>
 #include <format>
 
@@ -51,24 +52,151 @@ void CodeEmitter::visit(Register& node)
 {
     switch (node.reg) {
     case RegisterName::AX: {
-        *m_file_stream << (node.single_byte ? "%al" : "%eax");
+        switch (node.type) {
+        case RegisterType::QWORD:
+            *m_file_stream << "%rax";
+            break;
+        case RegisterType::DWORD:
+            *m_file_stream << "%eax";
+            break;
+        case RegisterType::BYTE:
+            *m_file_stream << "%al";
+            break;
+        default:
+            throw CodeEmitterError("CodeEmitter: Unsupported RegisterType for AX");
+        }
         break;
     }
     case RegisterName::DX: {
-        *m_file_stream << (node.single_byte ? "%dl" : "%edx");
+        switch (node.type) {
+        case RegisterType::QWORD:
+            *m_file_stream << "%rdx";
+            break;
+        case RegisterType::DWORD:
+            *m_file_stream << "%edx";
+            break;
+        case RegisterType::BYTE:
+            *m_file_stream << "%dl";
+            break;
+        default:
+            throw CodeEmitterError("CodeEmitter: Unsupported RegisterType for DX");
+        }
+        break;
+    }
+    case RegisterName::CX: {
+        switch (node.type) {
+        case RegisterType::QWORD:
+            *m_file_stream << "%rcx";
+            break;
+        case RegisterType::DWORD:
+            *m_file_stream << "%ecx";
+            break;
+        case RegisterType::BYTE:
+            *m_file_stream << "%cl";
+            break;
+        default:
+            throw CodeEmitterError("CodeEmitter: Unsupported RegisterType for CX");
+        }
+        break;
+    }
+    case RegisterName::DI: {
+        switch (node.type) {
+        case RegisterType::QWORD:
+            *m_file_stream << "%rdi";
+            break;
+        case RegisterType::DWORD:
+            *m_file_stream << "%edi";
+            break;
+        case RegisterType::BYTE:
+            *m_file_stream << "%dil";
+            break;
+        default:
+            throw CodeEmitterError("CodeEmitter: Unsupported RegisterType for DI");
+        }
+        break;
+    }
+    case RegisterName::SI: {
+        switch (node.type) {
+        case RegisterType::QWORD:
+            *m_file_stream << "%rsi";
+            break;
+        case RegisterType::DWORD:
+            *m_file_stream << "%esi";
+            break;
+        case RegisterType::BYTE:
+            *m_file_stream << "%sil";
+            break;
+        default:
+            throw CodeEmitterError("CodeEmitter: Unsupported RegisterType for SI");
+        }
+        break;
+    }
+    case RegisterName::R8: {
+        switch (node.type) {
+        case RegisterType::QWORD:
+            *m_file_stream << "%r8";
+            break;
+        case RegisterType::DWORD:
+            *m_file_stream << "%r8d";
+            break;
+        case RegisterType::BYTE:
+            *m_file_stream << "%r8b";
+            break;
+        default:
+            throw CodeEmitterError("CodeEmitter: Unsupported RegisterType for R8");
+        }
+        break;
+    }
+    case RegisterName::R9: {
+        switch (node.type) {
+        case RegisterType::QWORD:
+            *m_file_stream << "%r9";
+            break;
+        case RegisterType::DWORD:
+            *m_file_stream << "%r9d";
+            break;
+        case RegisterType::BYTE:
+            *m_file_stream << "%r9b";
+            break;
+        default:
+            throw CodeEmitterError("CodeEmitter: Unsupported RegisterType for R9");
+        }
         break;
     }
     case RegisterName::R10: {
-        *m_file_stream << (node.single_byte ? "%r10b" : "%r10d");
+        switch (node.type) {
+        case RegisterType::QWORD:
+            *m_file_stream << "%r10";
+            break;
+        case RegisterType::DWORD:
+            *m_file_stream << "%r10d";
+            break;
+        case RegisterType::BYTE:
+            *m_file_stream << "%r10b";
+            break;
+        default:
+            throw CodeEmitterError("CodeEmitter: Unsupported RegisterType for R10");
+        }
         break;
     }
     case RegisterName::R11: {
-        *m_file_stream << (node.single_byte ? "%r11b" : "%r11d");
+        switch (node.type) {
+        case RegisterType::QWORD:
+            *m_file_stream << "%r11";
+            break;
+        case RegisterType::DWORD:
+            *m_file_stream << "%r11d";
+            break;
+        case RegisterType::BYTE:
+            *m_file_stream << "%r11b";
+            break;
+        default:
+            throw CodeEmitterError("CodeEmitter: Unsupported RegisterType for R11");
+        }
         break;
     }
     default:
         throw CodeEmitterError("CodeEmitter: Unsupported RegisterName");
-        break;
     }
 }
 
@@ -157,6 +285,21 @@ void CodeEmitter::visit(AllocateStackInstruction& node)
     *m_file_stream << std::format("\tsubq\t${}, %rsp\n", node.value);
 }
 
+void CodeEmitter::visit(DeallocateStackInstruction& node)
+{
+    *m_file_stream << std::format("\taddq\t${}, %rsp\n", node.value);
+}
+void CodeEmitter::visit(PushInstruction& node)
+{
+    *m_file_stream << "\tpushq\t";
+    node.destination->accept(*this);
+    *m_file_stream << "\n";
+}
+void CodeEmitter::visit(CallInstruction& node)
+{
+    *m_file_stream << std::format("\tcall\t{}\n", get_function_name(node.identifier.name));
+}
+
 void CodeEmitter::visit(FunctionDefinition& node)
 {
     *m_file_stream << std::format("\t.globl {}\n{}:\n", node.name.name, node.name.name);
@@ -169,7 +312,9 @@ void CodeEmitter::visit(FunctionDefinition& node)
 
 void CodeEmitter::visit(Program& node)
 {
-    // node.function->accept(*this);
+    for (auto& func : node.function_definitions) {
+        func->accept(*this);
+    }
     *m_file_stream << std::format("\t.section .note.GNU-stack,\"\",@progbits\n");
 }
 
@@ -217,4 +362,10 @@ std::string CodeEmitter::to_instruction_suffix(ConditionCode cc)
     default:
         return "unknown";
     }
+}
+
+std::string CodeEmitter::get_function_name(const std::string& in_name)
+{
+    std::string suffix = parser::SymbolTable::instance().symbols().at(in_name).defined ? "" : "@PLT";
+    return in_name + suffix;
 }

@@ -1,9 +1,6 @@
 #pragma once
 #include "common/data/name_generator.h"
 #include "parser/parser_ast.h"
-#include "parser/semantic_analyzer_error.h"
-#include <string>
-#include <unordered_map>
 
 namespace parser {
 

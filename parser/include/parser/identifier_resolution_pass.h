@@ -1,16 +1,16 @@
 #pragma once
 #include "common/data/name_generator.h"
 #include "parser/parser_ast.h"
-#include <stdexcept>
 #include <string>
 #include <unordered_map>
+#include "parser/semantic_analyzer_error.h"
 
 namespace parser {
 
-class IdentifierResolutionPassError : public std::runtime_error {
+class IdentifierResolutionPassError : public SemanticAnalyzerError {
 public:
     explicit IdentifierResolutionPassError(const std::string& message)
-        : std::runtime_error(message)
+        : SemanticAnalyzerError(message)
     {
     }
 };

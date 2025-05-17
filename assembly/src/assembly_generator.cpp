@@ -385,7 +385,7 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_function_
 
     // retrieve return value
     std::unique_ptr<Operand> dst = transform_operand(*function_call_instruction.destination);
-    res.emplace_back(std::make_unique<MovInstruction>(std::move(dst), std::make_unique<Register>(RegisterName::AX)));
+    res.emplace_back(std::make_unique<MovInstruction>(std::make_unique<Register>(RegisterName::AX), std::move(dst)));
     return res;
 }
 

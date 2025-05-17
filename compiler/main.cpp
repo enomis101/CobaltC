@@ -1,7 +1,6 @@
 #include "common/log/log.h"
 #include "compiler/compiler_application.h"
 #include <format>
-#include <iomanip>
 #include <iostream>
 #include <string>
 

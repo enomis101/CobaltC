@@ -8,6 +8,7 @@
 #include "parser/parser.h"
 #include "parser/parser_printer.h"
 #include "parser/semantic_analyzer.h"
+#include "parser/semantic_analyzer_error.h"
 #include "tacky/tacky_generator.h"
 #include "tacky/tacky_printer.h"
 #include <algorithm>
@@ -16,7 +17,6 @@
 #include <format>
 #include <fstream>
 #include <vector>
-#include "parser/semantic_analyzer_error.h"
 
 CompilerApplication::CompilerApplication()
 {

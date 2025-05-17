@@ -1,7 +1,7 @@
 #pragma once
 #include "parser/parser_ast.h"
-#include "parser/symbol_table.h"
 #include "parser/semantic_analyzer_error.h"
+#include "parser/symbol_table.h"
 #include <string>
 
 namespace parser {

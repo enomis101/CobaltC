@@ -265,6 +265,35 @@ void PrinterVisitor::visit(AllocateStackInstruction& node)
     m_dot_content << "  node" << id << " [label=\"AllocateStackInstruction\\nvalue: " << node.value << "\"];\n";
 }
 
+void PrinterVisitor::visit(DeallocateStackInstruction& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"DeallocateStackInstruction\\nvalue: " << node.value << "\"];\n";
+}
+
+void PrinterVisitor::visit(PushInstruction& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"PushInstruction\"];\n";
+
+    if (node.destination) {
+        node.destination->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.destination.get())
+                      << " [label=\"destination\"];\n";
+    }
+}
+
+void PrinterVisitor::visit(CallInstruction& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"CallInstruction\"];\n";
+
+    // Visit the contained identifier
+    node.identifier.accept(*this);
+    m_dot_content << "  node" << id << " -> node" << get_node_id(&node.identifier)
+                  << " [label=\"identifier\"];\n";
+}
+
 void PrinterVisitor::visit(FunctionDefinition& node)
 {
     int id = get_node_id(&node);
@@ -290,13 +319,14 @@ void PrinterVisitor::visit(Program& node)
     int id = get_node_id(&node);
     m_dot_content << "  node" << id << " [label=\"Program\", color=blue, style=filled, fillcolor=lightblue];\n";
 
-    /*TODO: fix printer
-    if (node.function) {
-        node.function->accept(*this);
-        m_dot_content << "  node" << id << " -> node" << get_node_id(node.function.get())
-                      << " [label=\"function\"];\n";
+    // Process each function definition in the vector
+    for (size_t i = 0; i < node.function_definitions.size(); ++i) {
+        if (node.function_definitions[i]) {
+            node.function_definitions[i]->accept(*this);
+            m_dot_content << "  node" << id << " -> node" << get_node_id(node.function_definitions[i].get())
+                          << " [label=\"function_definitions[" << i << "]\"];\n";
+        }
     }
-                      */
 }
 
 int PrinterVisitor::get_node_id(const AssemblyAST* node)

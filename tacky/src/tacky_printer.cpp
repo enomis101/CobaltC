@@ -220,13 +220,41 @@ void PrinterVisitor::visit(Program& node)
     int id = get_node_id(&node);
     m_dot_content << "  node" << id << " [label=\"Program\", color=blue, style=filled, fillcolor=lightblue];\n";
 
-    /*TODO: FIX PRINTER
-    if (node.function) {
-        node.function->accept(*this);
-        m_dot_content << "  node" << id << " -> node" << get_node_id(node.function.get())
-                      << " [label=\"function\"];\n";
+    // Process each function in the vector
+    for (size_t i = 0; i < node.functions.size(); ++i) {
+        if (node.functions[i]) {
+            node.functions[i]->accept(*this);
+            m_dot_content << "  node" << id << " -> node" << get_node_id(node.functions[i].get())
+                          << " [label=\"functions[" << i << "]\"];\n";
+        }
     }
-    */
+}
+
+void PrinterVisitor::visit(FunctionCallInstruction& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"FunctionCallInstruction\"];\n";
+
+    // Visit the function name
+    node.name.accept(*this);
+    m_dot_content << "  node" << id << " -> node" << get_node_id(&node.name)
+                  << " [label=\"name\"];\n";
+
+    // Visit each argument
+    for (size_t i = 0; i < node.arguments.size(); ++i) {
+        if (node.arguments[i]) {
+            node.arguments[i]->accept(*this);
+            m_dot_content << "  node" << id << " -> node" << get_node_id(node.arguments[i].get())
+                          << " [label=\"arguments[" << i << "]\"];\n";
+        }
+    }
+
+    // Visit the destination
+    if (node.destination) {
+        node.destination->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.destination.get())
+                      << " [label=\"destination\"];\n";
+    }
 }
 
 int PrinterVisitor::get_node_id(const TackyAST* node)

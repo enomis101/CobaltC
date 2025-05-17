@@ -151,6 +151,26 @@ void PrinterVisitor::visit(ConditionalExpression& node)
     }
 }
 
+void PrinterVisitor::visit(FunctionCallExpression& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"FunctionCallExpression\"];\n";
+
+    // Visit the function name identifier
+    node.name.accept(*this);
+    m_dot_content << "  node" << id << " -> node" << get_node_id(&node.name)
+                  << " [label=\"name\"];\n";
+
+    // Visit each argument
+    for (size_t i = 0; i < node.arguments.size(); ++i) {
+        if (node.arguments[i]) {
+            node.arguments[i]->accept(*this);
+            m_dot_content << "  node" << id << " -> node" << get_node_id(node.arguments[i].get())
+                          << " [label=\"arguments[" << i << "]\"];\n";
+        }
+    }
+}
+
 void PrinterVisitor::visit(ExpressionStatement& node)
 {
     int id = get_node_id(&node);
@@ -288,37 +308,42 @@ void PrinterVisitor::visit(CompoundStatement& node)
 
 void PrinterVisitor::visit(FunctionDeclaration& node)
 {
-    /*
     int id = get_node_id(&node);
-    m_dot_content << "  node" << id << " [label=\"FunctionDeclaration\"];\n";
+    m_dot_content << "  node" << id << " [label=\"FunctionDeclaration\\nname: " << node.name.name << "\"];\n";
 
-    if (node.name) {
-        node.name->accept(*this);
-        m_dot_content << "  node" << id << " -> node" << get_node_id(node.name.get())
-                      << " [label=\"name\"];\n";
+    // Visit the name identifier
+    node.name.accept(*this);
+    m_dot_content << "  node" << id << " -> node" << get_node_id(&node.name)
+                  << " [label=\"name\"];\n";
+
+    // Visit each parameter
+    for (size_t i = 0; i < node.params.size(); ++i) {
+        node.params[i].accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(&node.params[i])
+                      << " [label=\"params[" << i << "]\"];\n";
     }
 
-    // Visit each block item in the body
-    if (node.body) {
-        node.body->accept(*this);
-        m_dot_content << "  node" << id << " -> node" << get_node_id(node.body.get())
+    // Visit the body if present
+    if (node.body.has_value() && node.body.value()) {
+        node.body.value()->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.body.value().get())
                       << " [label=\"body\"];\n";
     }
-    */
 }
 
 void PrinterVisitor::visit(Program& node)
 {
-    /*
     int id = get_node_id(&node);
     m_dot_content << "  node" << id << " [label=\"Program\", color=blue, style=filled, fillcolor=lightblue];\n";
 
-    if (node.function) {
-        node.function->accept(*this);
-        m_dot_content << "  node" << id << " -> node" << get_node_id(node.function.get())
-                      << " [label=\"function\"];\n";
+    // Process each function in the vector
+    for (size_t i = 0; i < node.functions.size(); ++i) {
+        if (node.functions[i]) {
+            node.functions[i]->accept(*this);
+            m_dot_content << "  node" << id << " -> node" << get_node_id(node.functions[i].get())
+                          << " [label=\"functions[" << i << "]\"];\n";
+        }
     }
-    */
 }
 
 int PrinterVisitor::get_node_id(const ParserAST* node)

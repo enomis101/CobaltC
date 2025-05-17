@@ -115,7 +115,7 @@ void FixUpInstructionsStep::visit(FunctionDefinition& node)
     node.instructions.clear();
 
     parser::SymbolTable& symbol_table = parser::SymbolTable::instance();
-    int stack_offset = -round_up_to_16(symbol_table.symbols().at(node.name.name).stack_size);
+    int stack_offset = round_up_to_16(symbol_table.symbols().at(node.name.name).stack_size);
     node.instructions.emplace_back(std::make_unique<AllocateStackInstruction>(stack_offset));
     for (auto& i : tmp_instructions) {
         if (dynamic_cast<MovInstruction*>(i.get())) {

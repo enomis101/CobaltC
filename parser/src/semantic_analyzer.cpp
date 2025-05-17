@@ -2,7 +2,6 @@
 #include "parser/identifier_resolution_pass.h"
 #include "parser/loop_labeling_pass.h"
 #include "parser/type_check_pass.h"
-#include <format>
 
 using namespace parser;
 

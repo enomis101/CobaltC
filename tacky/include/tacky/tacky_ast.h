@@ -24,8 +24,9 @@ class JumpInstruction;
 class JumpIfZeroInstruction;
 class JumpIfNotZeroInstruction;
 class LabelInstruction;
-class Function;
+class FunctionDefinition;
 class Program;
+class FunctionCallInstruction;
 
 // TackyVisitor interface
 class TackyVisitor {
@@ -41,7 +42,8 @@ public:
     virtual void visit(JumpIfZeroInstruction& node) = 0;
     virtual void visit(JumpIfNotZeroInstruction& node) = 0;
     virtual void visit(LabelInstruction& node) = 0;
-    virtual void visit(Function& node) = 0;
+    virtual void visit(FunctionCallInstruction& node) = 0;
+    virtual void visit(FunctionDefinition& node) = 0;
     virtual void visit(Program& node) = 0;
     virtual ~TackyVisitor() = default;
 };
@@ -262,10 +264,30 @@ public:
     Identifier identifier;
 };
 
-class Function : public TackyAST {
+class FunctionCallInstruction : public Instruction {
 public:
-    Function(const std::string& n, std::vector<std::unique_ptr<Instruction>> b)
+    FunctionCallInstruction(const std::string& n, std::vector<std::unique_ptr<Value>> args, std::unique_ptr<Value> dst)
         : name { n }
+        , arguments { std::move(args) }
+        , destination(std::move(dst))
+    {
+    }
+
+    void accept(TackyVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    Identifier name;
+    std::vector<std::unique_ptr<Value>> arguments;
+    std::unique_ptr<Value> destination;
+};
+
+class FunctionDefinition : public TackyAST {
+public:
+    FunctionDefinition(const std::string& n, const std::vector<Identifier>& params, std::vector<std::unique_ptr<Instruction>> b)
+        : name { n }
+        , parameters { params }
         , body(std::move(b))
     {
     }
@@ -276,13 +298,14 @@ public:
     }
 
     Identifier name;
+    std::vector<Identifier> parameters;
     std::vector<std::unique_ptr<Instruction>> body;
 };
 
 class Program : public TackyAST {
 public:
-    Program(std::unique_ptr<Function> func)
-        : function(std::move(func))
+    Program(std::vector<std::unique_ptr<FunctionDefinition>> funcs)
+        : functions(std::move(funcs))
     {
     }
 
@@ -291,7 +314,7 @@ public:
         visitor.visit(*this);
     }
 
-    std::unique_ptr<Function> function;
+    std::vector<std::unique_ptr<FunctionDefinition>> functions;
 };
 
 }

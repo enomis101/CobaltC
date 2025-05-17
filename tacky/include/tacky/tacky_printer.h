@@ -24,7 +24,8 @@ public:
     void visit(JumpIfZeroInstruction& node) override;
     void visit(JumpIfNotZeroInstruction& node) override;
     void visit(LabelInstruction& node) override;
-    void visit(Function& node) override;
+    void visit(FunctionCallInstruction& node) override { } // TODO: IMPLEMENT
+    void visit(FunctionDefinition& node) override;
     void visit(Program& node) override;
 
 private:

@@ -114,7 +114,7 @@ private:
     std::vector<std::unique_ptr<Instruction>> transform_unary_instruction(tacky::UnaryInstruction& unary_instruction);
     std::vector<std::unique_ptr<Instruction>> transform_binary_instruction(tacky::BinaryInstruction& binary_instruction);
     std::vector<std::unique_ptr<Instruction>> transform_jump_instruction(tacky::Instruction& jump_instruction);
-    std::unique_ptr<Function> transform_function(tacky::Function& function);
+    std::unique_ptr<Function> transform_function(tacky::FunctionDefinition& function);
     std::unique_ptr<Program> transform_program(tacky::Program& program);
 
     bool is_relational_operator(tacky::BinaryOperator op);

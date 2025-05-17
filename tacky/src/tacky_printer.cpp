@@ -195,10 +195,10 @@ void PrinterVisitor::visit(LabelInstruction& node)
                   << " [label=\"identifier\"];\n";
 }
 
-void PrinterVisitor::visit(Function& node)
+void PrinterVisitor::visit(FunctionDefinition& node)
 {
     int id = get_node_id(&node);
-    m_dot_content << "  node" << id << " [label=\"Function\"];\n";
+    m_dot_content << "  node" << id << " [label=\"FunctionDefinition\"];\n";
 
     // Process the name identifier
     node.name.accept(*this);
@@ -220,11 +220,13 @@ void PrinterVisitor::visit(Program& node)
     int id = get_node_id(&node);
     m_dot_content << "  node" << id << " [label=\"Program\", color=blue, style=filled, fillcolor=lightblue];\n";
 
+    /*TODO: FIX PRINTER
     if (node.function) {
         node.function->accept(*this);
         m_dot_content << "  node" << id << " -> node" << get_node_id(node.function.get())
                       << " [label=\"function\"];\n";
     }
+    */
 }
 
 int PrinterVisitor::get_node_id(const TackyAST* node)

@@ -1,6 +1,5 @@
 #include "assembly/assembly_generator.h"
 #include <cassert>
-#include <fstream>
 #include <string>
 
 using namespace assembly;
@@ -320,7 +319,7 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_jump_inst
     return res;
 }
 
-std::unique_ptr<Function> AssemblyGenerator::transform_function(tacky::Function& function)
+std::unique_ptr<Function> AssemblyGenerator::transform_function(tacky::FunctionDefinition& function)
 {
     std::vector<std::unique_ptr<Instruction>> instructions;
     for (auto& i : function.body) {
@@ -334,7 +333,8 @@ std::unique_ptr<Function> AssemblyGenerator::transform_function(tacky::Function&
 
 std::unique_ptr<Program> AssemblyGenerator::transform_program(tacky::Program& program)
 {
-    return std::make_unique<Program>(transform_function(*program.function));
+    //return std::make_unique<Program>(transform_function(*program.function)); TODO: FIX THIS
+    return nullptr;
 }
 
 bool AssemblyGenerator::is_relational_operator(tacky::BinaryOperator op)

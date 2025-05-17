@@ -1,5 +1,7 @@
 #include "tacky/tacky_generator.h"
-#include <fstream>
+#include "parser/parser_ast.h"
+#include "tacky/tacky_ast.h"
+#include <memory>
 #include <string>
 #include <unordered_map>
 
@@ -168,6 +170,22 @@ std::unique_ptr<Value> TackyGenerator::transform_expression(parser::Expression& 
         instructions.emplace_back(std::make_unique<LabelInstruction>(end_label));
         std::unique_ptr<TemporaryVariable> result_var = std::make_unique<TemporaryVariable>(result);
         return result_var;
+    } else if (parser::FunctionCallExpression* function_call_expression = dynamic_cast<parser::FunctionCallExpression*>(&expression)) {
+
+        std::vector<std::unique_ptr<Value>> args;
+        for (auto& arg : function_call_expression->arguments) {
+            args.emplace_back(transform_expression((*arg.get()), instructions));
+        }
+
+        std::string result = m_name_generator.make_temporary();
+
+        {
+            std::unique_ptr<TemporaryVariable> result_var = std::make_unique<TemporaryVariable>(result);
+            instructions.emplace_back(std::make_unique<FunctionCallInstruction>(function_call_expression->name.name, std::move(args), std::move(result_var)));
+        }
+        // TODO: check this
+        std::unique_ptr<TemporaryVariable> result_var = std::make_unique<TemporaryVariable>(result);
+        return result_var;
     } else {
         throw TackyGeneratorError("TackyGenerator: Invalid or Unsuppored Expression");
     }
@@ -263,6 +281,8 @@ void TackyGenerator::transform_declaration(parser::Declaration& declaration, std
             std::unique_ptr<Value> value = transform_expression(*variable_declaration->expression.value(), instructions);
             instructions.emplace_back(std::make_unique<CopyInstruction>(std::move(value), std::make_unique<TemporaryVariable>(variable_declaration->identifier.name)));
         }
+    } else if (dynamic_cast<parser::FunctionDeclaration*>(&declaration)) {
+        //DO NOTHING
     } else {
         throw TackyGeneratorError("TackyGenerator: Invalid or Unsuppored Declaration");
     }
@@ -299,18 +319,32 @@ void TackyGenerator::transform_block(parser::Block& block, std::vector<std::uniq
     }
 }
 
-std::unique_ptr<Function> TackyGenerator::transform_function(parser::FunctionDeclaration& function)
+std::unique_ptr<FunctionDefinition> TackyGenerator::transform_function(parser::FunctionDeclaration& function)
 {
-    /*
-    std::vector<std::unique_ptr<Instruction>> body;
-    transform_block(*function.body.get(), body);
-    body.emplace_back(std::make_unique<ReturnInstruction>(std::make_unique<Constant>(0)));
-    return std::make_unique<Function>(function.name->name, std::move(body));
-    */
+    if (function.body.has_value()) {
+        std::vector<Identifier> params;
+        params.reserve(function.params.size());
+        for (auto& parser_param : function.params) {
+            params.emplace_back(parser_param.name);
+        }
+
+        std::vector<std::unique_ptr<Instruction>> body;
+        transform_block(*function.body.value().get(), body);
+        body.emplace_back(std::make_unique<ReturnInstruction>(std::make_unique<Constant>(0)));
+        return std::make_unique<FunctionDefinition>(function.name.name, params, std::move(body));
+    }
+
     return nullptr;
 }
 
 std::unique_ptr<Program> TackyGenerator::transform_program(parser::Program& program)
 {
-    return std::make_unique<Program>(transform_function(*(program.functions[0].get())));
+    std::vector<std::unique_ptr<FunctionDefinition>> functions;
+    for (auto& parser_func : program.functions) {
+        std::unique_ptr<FunctionDefinition> func = transform_function(*parser_func);
+        if (func) {
+            functions.emplace_back(std::move(func));
+        }
+    }
+    return std::make_unique<Program>(std::move(functions));
 }

@@ -491,7 +491,7 @@ public:
 
 class FunctionDeclaration : public Declaration {
 public:
-    FunctionDeclaration(const std::string& n, std::vector<Identifier> p, std::unique_ptr<Block> b)
+    FunctionDeclaration(const std::string& n, const std::vector<Identifier>& p, std::unique_ptr<Block> b)
         : name(n)
         , params(p)
         , body(b != nullptr ? std::optional<std::unique_ptr<Block>>(std::move(b)) : std::nullopt)

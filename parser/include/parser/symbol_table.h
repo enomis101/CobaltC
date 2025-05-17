@@ -15,6 +15,7 @@ public:
         }
         std::unique_ptr<Type> type;
         bool defined;
+        size_t stack_size; // used in assembly step
     };
 
 private:

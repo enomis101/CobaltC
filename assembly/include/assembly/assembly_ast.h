@@ -22,8 +22,11 @@ class JmpCCInstruction;
 class SetCCInstruction;
 class LabelInstruction;
 class AllocateStackInstruction;
-class Function;
+class FunctionDefinition;
 class Program;
+class DeallocateStackInstruction;
+class PushInstruction;
+class CallInstruction;
 
 class AssemblyVisitor {
 public:
@@ -43,15 +46,23 @@ public:
     virtual void visit(JmpCCInstruction& node) = 0;
     virtual void visit(SetCCInstruction& node) = 0;
     virtual void visit(LabelInstruction& node) = 0;
+    virtual void visit(DeallocateStackInstruction& node) = 0;
+    virtual void visit(PushInstruction& node) = 0;
+    virtual void visit(CallInstruction& node) = 0;
     virtual void visit(AllocateStackInstruction& node) = 0;
-    virtual void visit(Function& node) = 0;
+    virtual void visit(FunctionDefinition& node) = 0;
     virtual void visit(Program& node) = 0;
     virtual ~AssemblyVisitor() = default;
 };
 
 enum class RegisterName {
     AX,
+    CX,
     DX,
+    DI,
+    SI,
+    R8,
+    R9,
     R10,
     R11
 };
@@ -457,9 +468,71 @@ public:
     int value;
 };
 
-class Function : public AssemblyAST {
+class DeallocateStackInstruction : public Instruction {
 public:
-    Function(const std::string& n, std::vector<std::unique_ptr<Instruction>> i)
+    DeallocateStackInstruction(int value)
+        : value(value)
+    {
+    }
+
+    void accept(AssemblyVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    std::unique_ptr<Instruction> clone() const override
+    {
+        return std::make_unique<DeallocateStackInstruction>(value);
+    }
+
+    int value;
+};
+
+class PushInstruction : public Instruction {
+public:
+    PushInstruction(std::unique_ptr<Operand> dst)
+        : destination(std::move(dst))
+    {
+    }
+
+    void accept(AssemblyVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    std::unique_ptr<Instruction> clone() const override
+    {
+        return std::make_unique<PushInstruction>(
+            destination->clone());
+    }
+
+    std::unique_ptr<Operand> destination;
+};
+
+class CallInstruction : public Instruction {
+public:
+    CallInstruction(const std::string& id)
+        : identifier { id }
+    {
+    }
+
+    void accept(AssemblyVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    std::unique_ptr<Instruction> clone() const override
+    {
+        return std::make_unique<CallInstruction>(
+            identifier.name);
+    }
+
+    Identifier identifier;
+};
+
+class FunctionDefinition : public AssemblyAST {
+public:
+    FunctionDefinition(const std::string& n, std::vector<std::unique_ptr<Instruction>> i)
         : name { n }
         , instructions(std::move(i))
     {
@@ -470,7 +543,7 @@ public:
         visitor.visit(*this);
     }
 
-    std::unique_ptr<Function> clone() const
+    std::unique_ptr<FunctionDefinition> clone() const
     {
         std::vector<std::unique_ptr<Instruction>> cloned_instructions;
         cloned_instructions.reserve(instructions.size());
@@ -479,7 +552,7 @@ public:
             cloned_instructions.push_back(instruction->clone());
         }
 
-        return std::make_unique<Function>(name.name, std::move(cloned_instructions));
+        return std::make_unique<FunctionDefinition>(name.name, std::move(cloned_instructions));
     }
 
     Identifier name;
@@ -488,8 +561,8 @@ public:
 
 class Program : public AssemblyAST {
 public:
-    Program(std::unique_ptr<Function> func)
-        : function(std::move(func))
+    Program(std::vector<std::unique_ptr<FunctionDefinition>> funcs)
+        : function_definitions(std::move(funcs))
     {
     }
 
@@ -498,12 +571,7 @@ public:
         visitor.visit(*this);
     }
 
-    std::unique_ptr<Program> clone() const
-    {
-        return std::make_unique<Program>(function->clone());
-    }
-
-    std::unique_ptr<Function> function;
+    std::vector<std::unique_ptr<FunctionDefinition>> function_definitions;
 };
 
 } // assembly namespace

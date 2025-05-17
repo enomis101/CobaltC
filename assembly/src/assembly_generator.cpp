@@ -1,5 +1,9 @@
 #include "assembly/assembly_generator.h"
+#include "assembly/assembly_ast.h"
+#include "parser/symbol_table.h"
+#include "tacky/tacky_ast.h"
 #include <cassert>
+#include <memory>
 #include <string>
 
 using namespace assembly;
@@ -12,11 +16,9 @@ PseudoRegisterReplaceStep::PseudoRegisterReplaceStep(std::shared_ptr<AssemblyAST
     }
 }
 
-int PseudoRegisterReplaceStep::replace()
+void PseudoRegisterReplaceStep::replace()
 {
-    m_stack_offsets.clear();
     m_ast->accept(*this);
-    return m_stack_offsets.size() * -4;
 }
 
 void PseudoRegisterReplaceStep::visit(MovInstruction& node)
@@ -52,7 +54,12 @@ void PseudoRegisterReplaceStep::visit(IdivInstruction& node)
     check_and_replace(node.operand);
 }
 
-void PseudoRegisterReplaceStep::visit(Function& node)
+void PseudoRegisterReplaceStep::visit(PushInstruction& node)
+{
+    check_and_replace(node.destination);
+}
+
+void PseudoRegisterReplaceStep::visit(FunctionDefinition& node)
 {
     for (auto& i : node.instructions) {
         i->accept(*this);
@@ -61,7 +68,13 @@ void PseudoRegisterReplaceStep::visit(Function& node)
 
 void PseudoRegisterReplaceStep::visit(Program& node)
 {
-    node.function->accept(*this);
+    parser::SymbolTable& symbol_table = parser::SymbolTable::instance();
+    for (auto& func : node.function_definitions) {
+        m_stack_offsets.clear();
+        func->accept(*this);
+        size_t stack_size = m_stack_offsets.size() * 4;
+        symbol_table.symbols().at(func->name.name).stack_size = stack_size;
+    }
 }
 
 void PseudoRegisterReplaceStep::check_and_replace(std::unique_ptr<Operand>& op)
@@ -83,9 +96,8 @@ int PseudoRegisterReplaceStep::get_offset(const std::string& name)
     return m_stack_offsets[name] * -4;
 }
 
-FixUpInstructionsStep::FixUpInstructionsStep(std::shared_ptr<AssemblyAST> ast, int stack_offset)
+FixUpInstructionsStep::FixUpInstructionsStep(std::shared_ptr<AssemblyAST> ast)
     : m_ast { ast }
-    , m_stack_offset { stack_offset }
 {
     if (!m_ast || !dynamic_cast<Program*>(m_ast.get())) {
         throw AssemblyGeneratorError("FixUpInstructionsStep: Invalid AST");
@@ -97,12 +109,14 @@ void FixUpInstructionsStep::fixup()
     m_ast->accept(*this);
 }
 
-void FixUpInstructionsStep::visit(Function& node)
+void FixUpInstructionsStep::visit(FunctionDefinition& node)
 {
     std::vector<std::unique_ptr<Instruction>> tmp_instructions = std::move(node.instructions);
     node.instructions.clear();
 
-    node.instructions.emplace_back(std::make_unique<AllocateStackInstruction>(m_stack_offset));
+    parser::SymbolTable& symbol_table = parser::SymbolTable::instance();
+    int stack_offset = -round_up_to_16(symbol_table.symbols().at(node.name.name).stack_size);
+    node.instructions.emplace_back(std::make_unique<AllocateStackInstruction>(stack_offset));
     for (auto& i : tmp_instructions) {
         if (dynamic_cast<MovInstruction*>(i.get())) {
             fixup_double_stack_address_instruction<MovInstruction>(i, node.instructions);
@@ -145,11 +159,14 @@ void FixUpInstructionsStep::visit(Function& node)
 
 void FixUpInstructionsStep::visit(Program& node)
 {
-    node.function->accept(*this);
+    for (auto& func : node.function_definitions) {
+        func->accept(*this);
+    }
 }
 
 AssemblyGenerator::AssemblyGenerator(std::shared_ptr<tacky::TackyAST> ast)
     : m_ast { ast }
+    , FUN_REGISTERS { RegisterName::DI, RegisterName::SI, RegisterName::DX, RegisterName::CX, RegisterName::R8, RegisterName::R9 }
 {
     if (!m_ast || !dynamic_cast<tacky::Program*>(m_ast.get())) {
         throw AssemblyGeneratorError("AssemblyGenerator: Invalid AST");
@@ -161,8 +178,8 @@ std::shared_ptr<AssemblyAST> AssemblyGenerator::generate()
     std::shared_ptr<AssemblyAST> m_assembly_ast = transform_program(*dynamic_cast<tacky::Program*>(m_ast.get()));
 
     PseudoRegisterReplaceStep step1(m_assembly_ast);
-    int offset = step1.replace();
-    FixUpInstructionsStep step2(m_assembly_ast, offset);
+    step1.replace();
+    FixUpInstructionsStep step2(m_assembly_ast);
     step2.fixup();
     return m_assembly_ast;
 }
@@ -233,6 +250,8 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_instructi
         std::vector<std::unique_ptr<Instruction>> res;
         res.emplace_back(std::make_unique<LabelInstruction>(label_instruction->identifier.name));
         return res;
+    } else if (tacky::FunctionCallInstruction* function_call_instruction = dynamic_cast<tacky::FunctionCallInstruction*>(&instruction)) {
+        return transform_function_call_instruction(*function_call_instruction);
     } else {
         throw AssemblyGeneratorError("AssemblyGenerator: Invalid or Unsupported tacky::Instruction");
     }
@@ -319,22 +338,101 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_jump_inst
     return res;
 }
 
-std::unique_ptr<Function> AssemblyGenerator::transform_function(tacky::FunctionDefinition& function)
+std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_function_call_instruction(tacky::FunctionCallInstruction& function_call_instruction)
+{
+    std::vector<std::unique_ptr<Instruction>> res;
+
+    std::vector<std::unique_ptr<tacky::Value>>& tacky_arguments = function_call_instruction.arguments;
+    const size_t max_reg_args_size = FUN_REGISTERS.size();
+    const size_t reg_args_size = std::min(max_reg_args_size, tacky_arguments.size());
+    const size_t stack_args_size = std::max(0, (int)tacky_arguments.size() - (int)max_reg_args_size);
+
+    // adjust stack alignment
+    int stack_padding = 0;
+    if (stack_args_size % 2 != 0) {
+        stack_padding = 8;
+    }
+
+    if (stack_padding != 0) {
+        res.emplace_back(std::make_unique<AllocateStackInstruction>(stack_padding));
+    }
+
+    for (size_t i = 0; i < reg_args_size; ++i) {
+        RegisterName reg_name = FUN_REGISTERS[i];
+        std::unique_ptr<Operand> assembly_arg = transform_operand(*tacky_arguments[i].get());
+        res.emplace_back(std::make_unique<MovInstruction>(std::move(assembly_arg), std::make_unique<Register>(reg_name)));
+    }
+
+    for (size_t i = 0; i < stack_args_size; ++i) {
+        int j = tacky_arguments.size() - 1 - i; // reverse
+        std::unique_ptr<Operand> assembly_arg = transform_operand(*tacky_arguments[j].get());
+        if (dynamic_cast<Register*>(assembly_arg.get()) || dynamic_cast<ImmediateValue*>(assembly_arg.get())) {
+            res.emplace_back(std::make_unique<PushInstruction>(std::move(assembly_arg)));
+        } else {
+            res.emplace_back(std::make_unique<MovInstruction>(std::move(assembly_arg), std::make_unique<Register>(RegisterName::AX)));
+            res.emplace_back(std::make_unique<PushInstruction>(std::make_unique<Register>(RegisterName::AX)));
+        }
+    }
+
+    // emit call instruciton
+    res.emplace_back(std::make_unique<CallInstruction>(function_call_instruction.name.name));
+
+    // adjust stack pointer
+    int bytes_to_remove = 8 * stack_args_size + stack_padding;
+    if (bytes_to_remove != 0) {
+        res.emplace_back(std::make_unique<DeallocateStackInstruction>(bytes_to_remove));
+    }
+
+    // retrieve return value
+    std::unique_ptr<Operand> dst = transform_operand(*function_call_instruction.destination);
+    res.emplace_back(std::make_unique<MovInstruction>(std::move(dst), std::make_unique<Register>(RegisterName::AX)));
+    return res;
+}
+
+std::unique_ptr<FunctionDefinition> AssemblyGenerator::transform_function(tacky::FunctionDefinition& function_definition)
 {
     std::vector<std::unique_ptr<Instruction>> instructions;
-    for (auto& i : function.body) {
+
+    std::vector<std::string> tacky_parameters;
+    for (auto& par : function_definition.parameters) {
+        tacky_parameters.emplace_back(par.name);
+    }
+
+    const size_t max_reg_args_size = FUN_REGISTERS.size();
+    const size_t reg_args_size = std::min(max_reg_args_size, tacky_parameters.size());
+
+    // move register parameters from registers to pseudo registers
+    for (size_t i = 0; i < reg_args_size; ++i) {
+        std::unique_ptr<Register> reg = std::make_unique<Register>(FUN_REGISTERS[i]);
+        std::unique_ptr<PseudoRegister> pseudo_reg = std::make_unique<PseudoRegister>(tacky_parameters[i]);
+        instructions.emplace_back(std::make_unique<MovInstruction>(std::move(reg), std::move(pseudo_reg)));
+    }
+
+    int stack_offset = 16;
+    for (size_t i = reg_args_size; i < tacky_parameters.size(); ++i, stack_offset += 8) {
+        std::unique_ptr<StackAddress> stack_addr = std::make_unique<StackAddress>(stack_offset);
+        std::unique_ptr<PseudoRegister> pseudo_reg = std::make_unique<PseudoRegister>(tacky_parameters[i]);
+        instructions.emplace_back(std::make_unique<MovInstruction>(std::move(stack_addr), std::move(pseudo_reg)));
+    }
+
+    for (auto& i : function_definition.body) {
         std::vector<std::unique_ptr<Instruction>> tmp_instrucitons = transform_instruction(*i);
         for (auto& tmp_i : tmp_instrucitons) {
             instructions.push_back(std::move(tmp_i));
         }
     }
-    return std::make_unique<Function>(function.name.name, std::move(instructions));
+    return std::make_unique<FunctionDefinition>(function_definition.name.name, std::move(instructions));
 }
 
 std::unique_ptr<Program> AssemblyGenerator::transform_program(tacky::Program& program)
 {
-    //return std::make_unique<Program>(transform_function(*program.function)); TODO: FIX THIS
-    return nullptr;
+    std::vector<std::unique_ptr<FunctionDefinition>> functions;
+
+    for (auto& func : program.functions) {
+        functions.emplace_back(transform_function(*func));
+    }
+
+    return std::make_unique<Program>(std::move(functions));
 }
 
 bool AssemblyGenerator::is_relational_operator(tacky::BinaryOperator op)

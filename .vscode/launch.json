@@ -6,7 +6,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/compiler/cobaltc-compiler",
-            "args": ["/home/simone/compiler/writing-a-c-compiler-tests/tests/chapter_7/valid/assign_to_self_2.c"],
+            "args": ["/home/simone/compiler/writing-a-c-compiler-tests/tests/chapter_9/valid/libraries/many_args_client.c"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/build/",
             "environment": [],

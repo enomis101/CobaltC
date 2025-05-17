@@ -19,7 +19,7 @@ class PseudoRegisterReplaceStep : public AssemblyVisitor {
 public:
     PseudoRegisterReplaceStep(std::shared_ptr<AssemblyAST> ast);
 
-    int replace();
+    void replace();
 
 private:
     // Assembly Visitor Interface
@@ -40,7 +40,10 @@ private:
     void visit(SetCCInstruction& node) override;
     void visit(LabelInstruction& node) override { }
     void visit(AllocateStackInstruction& node) override { }
-    void visit(Function& node) override;
+    void visit(DeallocateStackInstruction& node) override { }
+    void visit(PushInstruction& node) override;
+    void visit(CallInstruction& node) override { }
+    void visit(FunctionDefinition& node) override;
     void visit(Program& node) override;
 
     int get_offset(const std::string& name);
@@ -52,7 +55,7 @@ private:
 
 class FixUpInstructionsStep : public AssemblyVisitor {
 public:
-    FixUpInstructionsStep(std::shared_ptr<AssemblyAST> ast, int stack_offset);
+    FixUpInstructionsStep(std::shared_ptr<AssemblyAST> ast);
 
     void fixup();
 
@@ -75,7 +78,10 @@ private:
     void visit(SetCCInstruction& node) override { }
     void visit(LabelInstruction& node) override { }
     void visit(AllocateStackInstruction& node) override { }
-    void visit(Function& node) override;
+    void visit(DeallocateStackInstruction& node) override { }
+    void visit(PushInstruction& node) override { }
+    void visit(CallInstruction& node) override { }
+    void visit(FunctionDefinition& node) override;
     void visit(Program& node) override;
 
     template<typename I>
@@ -96,7 +102,11 @@ private:
     }
 
     std::shared_ptr<AssemblyAST> m_ast;
-    int m_stack_offset;
+
+    int round_up_to_16(int x)
+    {
+        return ((x + 15) / 16) * 16;
+    }
 };
 
 // Generate an AssemblyAST from a TackyAST
@@ -114,12 +124,14 @@ private:
     std::vector<std::unique_ptr<Instruction>> transform_unary_instruction(tacky::UnaryInstruction& unary_instruction);
     std::vector<std::unique_ptr<Instruction>> transform_binary_instruction(tacky::BinaryInstruction& binary_instruction);
     std::vector<std::unique_ptr<Instruction>> transform_jump_instruction(tacky::Instruction& jump_instruction);
-    std::unique_ptr<Function> transform_function(tacky::FunctionDefinition& function);
+    std::vector<std::unique_ptr<Instruction>> transform_function_call_instruction(tacky::FunctionCallInstruction& function_call_instruction);
+    std::unique_ptr<FunctionDefinition> transform_function(tacky::FunctionDefinition& function);
     std::unique_ptr<Program> transform_program(tacky::Program& program);
 
     bool is_relational_operator(tacky::BinaryOperator op);
     ConditionCode to_condition_code(tacky::BinaryOperator op);
     std::shared_ptr<tacky::TackyAST> m_ast;
+    const std::vector<RegisterName> FUN_REGISTERS;
 };
 
 } // namespace assembly

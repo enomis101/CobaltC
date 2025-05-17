@@ -168,24 +168,17 @@ std::unique_ptr<Value> TackyGenerator::transform_expression(parser::Expression& 
         }
 
         instructions.emplace_back(std::make_unique<LabelInstruction>(end_label));
-        std::unique_ptr<TemporaryVariable> result_var = std::make_unique<TemporaryVariable>(result);
-        return result_var;
+        return std::make_unique<TemporaryVariable>(result);
     } else if (parser::FunctionCallExpression* function_call_expression = dynamic_cast<parser::FunctionCallExpression*>(&expression)) {
 
         std::vector<std::unique_ptr<Value>> args;
         for (auto& arg : function_call_expression->arguments) {
             args.emplace_back(transform_expression((*arg.get()), instructions));
         }
-
         std::string result = m_name_generator.make_temporary();
-
-        {
-            std::unique_ptr<TemporaryVariable> result_var = std::make_unique<TemporaryVariable>(result);
-            instructions.emplace_back(std::make_unique<FunctionCallInstruction>(function_call_expression->name.name, std::move(args), std::move(result_var)));
-        }
-        // TODO: check this
         std::unique_ptr<TemporaryVariable> result_var = std::make_unique<TemporaryVariable>(result);
-        return result_var;
+        instructions.emplace_back(std::make_unique<FunctionCallInstruction>(function_call_expression->name.name, std::move(args), std::move(result_var)));
+        return std::make_unique<TemporaryVariable>(result);
     } else {
         throw TackyGeneratorError("TackyGenerator: Invalid or Unsuppored Expression");
     }
@@ -282,7 +275,7 @@ void TackyGenerator::transform_declaration(parser::Declaration& declaration, std
             instructions.emplace_back(std::make_unique<CopyInstruction>(std::move(value), std::make_unique<TemporaryVariable>(variable_declaration->identifier.name)));
         }
     } else if (dynamic_cast<parser::FunctionDeclaration*>(&declaration)) {
-        //DO NOTHING
+        // DO NOTHING
     } else {
         throw TackyGeneratorError("TackyGenerator: Invalid or Unsuppored Declaration");
     }

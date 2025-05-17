@@ -157,7 +157,7 @@ void CodeEmitter::visit(AllocateStackInstruction& node)
     *m_file_stream << std::format("\tsubq\t${}, %rsp\n", node.value);
 }
 
-void CodeEmitter::visit(Function& node)
+void CodeEmitter::visit(FunctionDefinition& node)
 {
     *m_file_stream << std::format("\t.globl {}\n{}:\n", node.name.name, node.name.name);
     *m_file_stream << "\tpushq\t%rbp\n";
@@ -169,7 +169,7 @@ void CodeEmitter::visit(Function& node)
 
 void CodeEmitter::visit(Program& node)
 {
-    node.function->accept(*this);
+    // node.function->accept(*this);
     *m_file_stream << std::format("\t.section .note.GNU-stack,\"\",@progbits\n");
 }
 

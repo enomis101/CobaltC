@@ -38,7 +38,10 @@ private:
     void visit(SetCCInstruction& node) override;
     void visit(LabelInstruction& node) override;
     void visit(AllocateStackInstruction& node) override;
-    void visit(Function& node) override;
+    void visit(DeallocateStackInstruction& node) override { }
+    void visit(PushInstruction& node) override { }
+    void visit(CallInstruction& node) override { }
+    void visit(FunctionDefinition& node) override;
     void visit(Program& node) override;
 
     std::string operator_instruction(UnaryOperator op);

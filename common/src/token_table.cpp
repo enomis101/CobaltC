@@ -91,7 +91,9 @@ TokenTable::TokenTable()
         { "while", TokenType::WHILE_KW },
         { "for", TokenType::FOR_KW },
         { "break", TokenType::BREAK_KW },
-        { "continue", TokenType::CONTINUE_KW }
+        { "continue", TokenType::CONTINUE_KW },
+        { "static", TokenType::STATIC_KW },
+        { "extern", TokenType::EXTERN_KW }
     };
 
     // Initialize single-character tokens for optimization

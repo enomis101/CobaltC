@@ -19,6 +19,8 @@ enum class TokenType {
     FOR_KW,
     BREAK_KW,
     CONTINUE_KW,
+    STATIC_KW,
+    EXTERN_KW,
     OPEN_PAREN,
     CLOSE_PAREN,
     OPEN_BRACE,

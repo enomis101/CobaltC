@@ -61,9 +61,7 @@ int main(int argc, char* argv[])
         CompilerApplication app;
 
         // Display compilation start message
-        LOG_INFO(LOG_CONTEXT, std::format("Compiling '{}'{}\n",
-            input_file,
-            operation.empty() ? "" : std::format(" with operation: {}", operation)));
+        LOG_INFO(LOG_CONTEXT, std::format("Compiling '{}'{}\n", input_file, operation.empty() ? "" : std::format(" with operation: {}", operation)));
 
         app.run(input_file, operation);
 

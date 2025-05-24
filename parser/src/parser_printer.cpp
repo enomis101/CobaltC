@@ -337,11 +337,11 @@ void PrinterVisitor::visit(Program& node)
     m_dot_content << "  node" << id << " [label=\"Program\", color=blue, style=filled, fillcolor=lightblue];\n";
 
     // Process each function in the vector
-    for (size_t i = 0; i < node.functions.size(); ++i) {
-        if (node.functions[i]) {
-            node.functions[i]->accept(*this);
-            m_dot_content << "  node" << id << " -> node" << get_node_id(node.functions[i].get())
-                          << " [label=\"functions[" << i << "]\"];\n";
+    for (size_t i = 0; i < node.declarations.size(); ++i) {
+        if (node.declarations[i]) {
+            node.declarations[i]->accept(*this);
+            m_dot_content << "  node" << id << " -> node" << get_node_id(node.declarations[i].get())
+                          << " [label=\"declarations[" << i << "]\"];\n";
         }
     }
 }

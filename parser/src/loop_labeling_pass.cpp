@@ -43,9 +43,9 @@ void LoopLabelingPass::visit(FunctionDeclaration& node)
 
 void LoopLabelingPass::visit(Program& node)
 {
-    for (auto& fun_decl : node.functions) {
-        fun_decl->accept(*this);
-    }
+    // for (auto& fun_decl : node.functions) {
+    //     fun_decl->accept(*this);
+    // }
 }
 
 void LoopLabelingPass::visit(VariableExpression& node)

@@ -76,9 +76,9 @@ void TypeCheckPass::visit(VariableDeclaration& node)
 
 void TypeCheckPass::visit(Program& node)
 {
-    for (auto& fun_decl : node.functions) {
-        fun_decl->accept(*this);
-    }
+    // for (auto& fun_decl : node.functions) {
+    //     fun_decl->accept(*this);
+    // }
 }
 
 void TypeCheckPass::visit(VariableExpression& node)

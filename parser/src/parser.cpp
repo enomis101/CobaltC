@@ -1,4 +1,6 @@
 #include "parser/parser.h"
+#include "common/data/token_table.h"
+#include "parser/parser_ast.h"
 #include <format>
 #include <vector>
 
@@ -6,11 +8,11 @@ using namespace parser;
 
 std::shared_ptr<Program> Parser::parse_program()
 {
-    std::vector<std::unique_ptr<FunctionDeclaration>> funcs;
+    std::vector<std::unique_ptr<Declaration>> decls;
     while (has_tokens()) {
-        funcs.emplace_back(parse_function_declaration());
+        decls.emplace_back(parse_declaration());
     }
-    return std::make_shared<Program>(std::move(funcs));
+    return std::make_shared<Program>(std::move(decls));
 }
 
 std::unique_ptr<Block> Parser::parse_block()
@@ -29,7 +31,7 @@ std::unique_ptr<Block> Parser::parse_block()
 std::unique_ptr<BlockItem> Parser::parse_block_item()
 {
     const Token& next_token = peek();
-    if (next_token.type() == TokenType::INT_KW) {
+    if (is_specificer(next_token.type())) {
         return parse_declaration();
     } else {
         return parse_statement();
@@ -61,56 +63,55 @@ std::vector<Identifier> Parser::parse_parameter_list()
 
 std::unique_ptr<Declaration> Parser::parse_declaration()
 {
-    const Token& next_token = peek(3); // Look ahead 3 tokens
-    if (next_token.type() == TokenType::OPEN_PAREN) {
-        return parse_function_declaration();
-    }
-    return parse_variable_declaration();
-}
-
-std::unique_ptr<FunctionDeclaration> Parser::parse_function_declaration()
-{
-    expect(TokenType::INT_KW);
+    std::pair<std::unique_ptr<Type>, StorageClass> type_and_storage = parse_type_and_storage_class();
+    StorageClass storage_class = type_and_storage.second;
     const Token& identifier_token = expect(TokenType::IDENTIFIER);
+    const Token* next_token = &peek();
+    if (next_token->type() == TokenType::OPEN_PAREN) {
+        expect(TokenType::OPEN_PAREN);
+        std::vector<Identifier> param_list = parse_parameter_list();
+        expect(TokenType::CLOSE_PAREN);
 
-    expect(TokenType::OPEN_PAREN);
-    std::vector<Identifier> param_list = parse_parameter_list();
-    expect(TokenType::CLOSE_PAREN);
+        next_token = &peek();
+        std::unique_ptr<Block> body = nullptr;
+        if (next_token->type() == TokenType::SEMICOLON) {
+            expect(TokenType::SEMICOLON);
+        } else {
+            body = parse_block();
+        }
 
-    const Token& next_token = peek();
-    std::unique_ptr<Block> body = nullptr;
-    if (next_token.type() == TokenType::SEMICOLON) {
-        expect(TokenType::SEMICOLON);
+        return std::make_unique<FunctionDeclaration>(identifier_token.lexeme(), param_list, std::move(body), storage_class);
     } else {
-        body = parse_block();
-    }
+        next_token = &peek();
 
-    return std::make_unique<FunctionDeclaration>(identifier_token.lexeme(), param_list, std::move(body));
-}
+        if (next_token->type() == TokenType::SEMICOLON) {
+            expect(TokenType::SEMICOLON);
+            return std::make_unique<VariableDeclaration>(identifier_token.lexeme());
+        }
 
-std::unique_ptr<VariableDeclaration> Parser::parse_variable_declaration()
-{
-    expect(TokenType::INT_KW);
-    const Token& identifier_token = expect(TokenType::IDENTIFIER);
-    const Token& next_token = peek();
-
-    if (next_token.type() == TokenType::SEMICOLON) {
+        expect(TokenType::ASSIGNMENT);
+        std::unique_ptr<Expression> init_expr = parse_expression();
         expect(TokenType::SEMICOLON);
-        return std::make_unique<VariableDeclaration>(identifier_token.lexeme());
+        return std::make_unique<VariableDeclaration>(identifier_token.lexeme(), std::move(init_expr), storage_class);
     }
-
-    expect(TokenType::ASSIGNMENT);
-    std::unique_ptr<Expression> init_expr = parse_expression();
-    expect(TokenType::SEMICOLON);
-    return std::make_unique<VariableDeclaration>(identifier_token.lexeme(), std::move(init_expr));
 }
 
 std::unique_ptr<ForInit> Parser::parse_for_init()
 {
     const Token& next_token = peek();
-    if (next_token.type() == TokenType::INT_KW) {
-        std::unique_ptr<VariableDeclaration> decl = parse_variable_declaration();
-        return std::make_unique<ForInitDeclaration>(std::move(decl));
+    if (is_specificer(next_token.type())) {
+        std::unique_ptr<Declaration> decl = parse_declaration();
+
+        if (!dynamic_cast<VariableDeclaration*>(decl.get())) {
+            throw ParserError("In parse_for_init: got FunctionDeclaration, expected VariableDeclaration");
+        }
+
+        // Release from original unique_ptr and wrap in new one
+        std::unique_ptr<VariableDeclaration> var_decl(dynamic_cast<VariableDeclaration*>(decl.release()));
+        // if (var_decl->storage_class != StorageClass::NONE) {
+        //     throw ParserError("In parse_for_init: a variable declaration in a for loop cannot have a storage class");
+        // }
+        return std::make_unique<ForInitDeclaration>(std::move(var_decl));
     } else {
         std::unique_ptr<Expression> e = (next_token.type() == TokenType::SEMICOLON) ? nullptr : parse_expression();
         expect(TokenType::SEMICOLON);
@@ -441,4 +442,65 @@ bool Parser::is_unary_operator(TokenType type)
     default:
         return false;
     }
+}
+
+bool Parser::is_specificer(TokenType type)
+{
+    switch (type) {
+    case TokenType::INT_KW:
+    case TokenType::STATIC_KW:
+    case TokenType::EXTERN_KW:
+        return true;
+    default:
+        return false;
+    }
+}
+
+StorageClass Parser::to_storage_class(TokenType tt)
+{
+    switch (tt) {
+    case TokenType::STATIC_KW:
+        return StorageClass::STATIC;
+    case TokenType::EXTERN_KW:
+        return StorageClass::EXTERN;
+    default:
+        return StorageClass::NONE;
+    }
+}
+
+std::pair<std::unique_ptr<Type>, StorageClass> Parser::parse_type_and_storage_class()
+{
+    std::vector<TokenType> types;
+    std::vector<TokenType> storage_classes;
+    const Token* next_token = &peek();
+    while (next_token->type() != TokenType::IDENTIFIER) {
+
+        TokenType token_type = next_token->type();
+        if (token_type == TokenType::INT_KW) {
+            types.push_back(token_type);
+        } else if (token_type == TokenType::STATIC_KW || token_type == TokenType::EXTERN_KW) {
+            storage_classes.push_back(token_type);
+        } else {
+            throw ParserError(std::format("In parse_type_and_storage_class: Invalid specifier {}", next_token->to_string()));
+        }
+        take_token();
+        next_token = &peek();
+    }
+    if (types.size() != 1) {
+        throw ParserError(std::format("In parse_type_and_storage_class: specified too many tipes {}", types.size()));
+    }
+
+    if (storage_classes.size() > 1) {
+        throw ParserError(std::format("In parse_type_and_storage_class: specified too many storage_classes {}", storage_classes.size()));
+    }
+
+    std::pair<std::unique_ptr<Type>, StorageClass> res(std::make_pair(std::make_unique<PrimitiveType>(PrimitiveTypeEnum::INT), StorageClass::NONE));
+    if (storage_classes.size() == 1) {
+        StorageClass storage_class = to_storage_class(storage_classes.at(0));
+        if (storage_class == StorageClass::NONE) {
+            throw ParserError(std::format("In parse_type_and_storage_class: unsopported storage class of type {}", Token::type_to_string(storage_classes.at(0))));
+        }
+        res.second = storage_class;
+    }
+    return res;
 }

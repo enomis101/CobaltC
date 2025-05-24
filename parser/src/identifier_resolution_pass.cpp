@@ -60,10 +60,10 @@ void IdentifierResolutionPass::visit(FunctionDeclaration& node)
 
 void IdentifierResolutionPass::visit(Program& node)
 {
-    for (auto& fun_decl : node.functions) {
-        m_top_level_tracker[fun_decl.get()] = true;
-        fun_decl->accept(*this);
-    }
+    // for (auto& fun_decl : node.functions) {
+    //     m_top_level_tracker[fun_decl.get()] = true;
+    //     fun_decl->accept(*this);
+    // }
 }
 
 void IdentifierResolutionPass::visit(VariableExpression& node)

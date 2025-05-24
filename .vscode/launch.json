@@ -6,7 +6,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/compiler/cobaltc-compiler",
-            "args": ["/home/simone/compiler/writing-a-c-compiler-tests/tests/chapter_9/valid/arguments_in_registers/dont_clobber_edx.c"],
+            "args": ["/home/simone/compiler/writing-a-c-compiler-tests/tests/chapter_10/invalid_types/static_for_loop_counter.c"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/build/",
             "environment": [],

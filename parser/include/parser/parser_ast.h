@@ -98,6 +98,12 @@ enum class BinaryOperator {
     GREATER_OR_EQUAL
 };
 
+enum class StorageClass {
+    NONE,
+    STATIC,
+    EXTERN
+};
+
 class Identifier : public ParserAST {
 public:
     Identifier(const std::string& name)
@@ -474,9 +480,10 @@ public:
 
 class VariableDeclaration : public Declaration {
 public:
-    VariableDeclaration(const std::string& id, std::unique_ptr<Expression> expr = nullptr)
+    VariableDeclaration(const std::string& id, std::unique_ptr<Expression> expr = nullptr, StorageClass sc = StorageClass::NONE)
         : identifier { id }
         , expression(expr ? std::optional<std::unique_ptr<Expression>>(std::move(expr)) : std::nullopt)
+        , storage_class(sc)
     {
     }
 
@@ -487,14 +494,16 @@ public:
 
     Identifier identifier;
     std::optional<std::unique_ptr<Expression>> expression;
+    StorageClass storage_class;
 };
 
 class FunctionDeclaration : public Declaration {
 public:
-    FunctionDeclaration(const std::string& n, const std::vector<Identifier>& p, std::unique_ptr<Block> b)
+    FunctionDeclaration(const std::string& n, const std::vector<Identifier>& p, std::unique_ptr<Block> b, StorageClass sc = StorageClass::NONE)
         : name(n)
         , params(p)
         , body(b != nullptr ? std::optional<std::unique_ptr<Block>>(std::move(b)) : std::nullopt)
+        , storage_class(sc)
     {
     }
 
@@ -506,6 +515,7 @@ public:
     Identifier name;
     std::vector<Identifier> params;
     std::optional<std::unique_ptr<Block>> body;
+    StorageClass storage_class;
 };
 
 class ForInit : public ParserAST {
@@ -545,8 +555,8 @@ public:
 
 class Program : public ParserAST {
 public:
-    Program(std::vector<std::unique_ptr<FunctionDeclaration>> funcs)
-        : functions(std::move(funcs))
+    Program(std::vector<std::unique_ptr<Declaration>> decls)
+        : declarations(std::move(decls))
     {
     }
 
@@ -555,7 +565,7 @@ public:
         visitor.visit(*this);
     }
 
-    std::vector<std::unique_ptr<FunctionDeclaration>> functions;
+    std::vector<std::unique_ptr<Declaration>> declarations;
 };
 
 }

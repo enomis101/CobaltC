@@ -333,11 +333,11 @@ std::unique_ptr<FunctionDefinition> TackyGenerator::transform_function(parser::F
 std::unique_ptr<Program> TackyGenerator::transform_program(parser::Program& program)
 {
     std::vector<std::unique_ptr<FunctionDefinition>> functions;
-    for (auto& parser_func : program.functions) {
-        std::unique_ptr<FunctionDefinition> func = transform_function(*parser_func);
-        if (func) {
-            functions.emplace_back(std::move(func));
-        }
-    }
+    // for (auto& parser_func : program.functions) {
+    //     std::unique_ptr<FunctionDefinition> func = transform_function(*parser_func);
+    //     if (func) {
+    //         functions.emplace_back(std::move(func));
+    //     }
+    // }
     return std::make_unique<Program>(std::move(functions));
 }

@@ -1,4 +1,5 @@
 #include "parser/identifier_resolution_pass.h"
+#include "parser/parser_ast.h"
 #include <format>
 
 using namespace parser;
@@ -47,11 +48,17 @@ void IdentifierResolutionPass::visit(FunctionDeclaration& node)
     m_identifier_map.insert_or_assign(function_name, MapEntry(function_name, true, true));
     IdentifierMapGuard copy_guard(m_identifier_map); // map is copied on construction and restored on destruction
     for (auto& param : node.params) {
-        resolve_variable_declaration(param);
+        resolve_variable_identifier(param);
+    }
+
+    if (!m_symbol_table.is_top_level(node)) {
+        if (node.storage_class == StorageClass::STATIC) {
+            throw IdentifierResolutionPassError(std::format("Function {} at local scope has static specifier", function_name));
+        }
     }
 
     if (node.body.has_value()) {
-        if (!is_top_level(node)) {
+        if (!m_symbol_table.is_top_level(node)) {
             throw IdentifierResolutionPassError(std::format("Definining function {} at local scope", function_name));
         }
         node.body.value()->accept(*this);
@@ -60,10 +67,10 @@ void IdentifierResolutionPass::visit(FunctionDeclaration& node)
 
 void IdentifierResolutionPass::visit(Program& node)
 {
-    // for (auto& fun_decl : node.functions) {
-    //     m_top_level_tracker[fun_decl.get()] = true;
-    //     fun_decl->accept(*this);
-    // }
+    for (auto& decl : node.declarations) {
+        m_symbol_table.set_top_level(*decl.get());
+        decl->accept(*this);
+    }
 }
 
 void IdentifierResolutionPass::visit(VariableExpression& node)
@@ -131,10 +138,10 @@ void IdentifierResolutionPass::visit(NullStatement& node)
 
 void IdentifierResolutionPass::visit(VariableDeclaration& node)
 {
-    resolve_variable_declaration(node.identifier);
-
-    if (node.expression.has_value()) {
-        node.expression.value()->accept(*this);
+    if (m_symbol_table.is_top_level(node)) {
+        resolve_file_scope_variable_declaration(node);
+    } else {
+        resolve_local_variable_declaration(node);
     }
 }
 
@@ -185,7 +192,7 @@ void IdentifierResolutionPass::visit(ForInitDeclaration& node)
     node.declaration->accept(*this);
 }
 
-void IdentifierResolutionPass::resolve_variable_declaration(Identifier& identifier)
+void IdentifierResolutionPass::resolve_variable_identifier(Identifier& identifier)
 {
     const std::string& variable_name = identifier.name;
     if (m_identifier_map.contains(variable_name) && m_identifier_map.at(variable_name).from_current_scope) { // throw error only if the other declaration is from the same block
@@ -197,9 +204,34 @@ void IdentifierResolutionPass::resolve_variable_declaration(Identifier& identifi
     identifier.name = new_name;
 }
 
-bool IdentifierResolutionPass::is_top_level(FunctionDeclaration& fun_decl)
+void IdentifierResolutionPass::resolve_file_scope_variable_declaration(VariableDeclaration& var_decl)
 {
-    return m_top_level_tracker.contains(&fun_decl) && m_top_level_tracker[&fun_decl];
+    const std::string& var_name = var_decl.identifier.name;
+    // We dont need to rename it or check previous declarations, other conflicts will be detected during Type Check stage
+    m_identifier_map.insert_or_assign(var_name, MapEntry(var_name, true, true));
+}
+
+void IdentifierResolutionPass::resolve_local_variable_declaration(VariableDeclaration& var_decl)
+{
+    const std::string& variable_name = var_decl.identifier.name;
+    if (m_identifier_map.contains(variable_name)) {
+        const auto& prev_decl = m_identifier_map.at(variable_name);
+        if (prev_decl.from_current_scope) {
+            if (!(prev_decl.has_linkage && var_decl.storage_class == StorageClass::EXTERN)) {
+                throw IdentifierResolutionPassError(std::format("Conflicting local declaration of: {}", variable_name));
+            }
+        }
+    }
+
+    if (var_decl.storage_class == StorageClass::EXTERN) { //  Declaration has linkage
+        m_identifier_map.insert_or_assign(variable_name, MapEntry(variable_name, true, true));
+        // Do not check initializer handled by type check
+    } else {
+        resolve_variable_identifier(var_decl.identifier); // Static variable have no linkage and should be renamed
+        if (var_decl.expression.has_value()) {
+            var_decl.expression.value()->accept(*this);
+        }
+    }
 }
 
 void IdentifierResolutionPass::visit(ForInitExpression& node)

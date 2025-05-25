@@ -6,7 +6,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/compiler/cobaltc-compiler",
-            "args": ["/home/simone/compiler/writing-a-c-compiler-tests/tests/chapter_10/invalid_types/static_for_loop_counter.c"],
+            "args": ["/home/simone/compiler/writing-a-c-compiler-tests/tests/chapter_10/valid/libraries/internal_linkage_function.c"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/build/",
             "environment": [],
@@ -21,6 +21,11 @@
                 {
                     "description": "Set disassembly flavor to Intel",
                     "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Break on all exceptions",
+                    "text": "catch throw",
                     "ignoreFailures": true
                 }
             ],

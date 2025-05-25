@@ -2,6 +2,7 @@
 #include "common/data/name_generator.h"
 #include "parser/parser_ast.h"
 #include "parser/semantic_analyzer_error.h"
+#include "parser/symbol_table.h"
 #include <string>
 #include <unordered_map>
 
@@ -20,6 +21,7 @@ public:
     IdentifierResolutionPass(std::shared_ptr<ParserAST> ast)
         : m_ast { ast }
         , m_name_generator { NameGenerator::instance() }
+        , m_symbol_table { SymbolTable::instance() }
     {
     }
 
@@ -85,14 +87,14 @@ private:
         IdentifierMap m_old_map;
     };
 
-    void resolve_variable_declaration(Identifier& identifier);
-
-    bool is_top_level(FunctionDeclaration& fun_decl);
+    void resolve_variable_identifier(Identifier& identifier);
+    void resolve_file_scope_variable_declaration(VariableDeclaration& var_decl);
+    void resolve_local_variable_declaration(VariableDeclaration& var_decl);
 
     IdentifierMap m_identifier_map;
     std::shared_ptr<ParserAST> m_ast;
     NameGenerator& m_name_generator;
-    std::unordered_map<FunctionDeclaration*, bool> m_top_level_tracker;
+    SymbolTable& m_symbol_table;
 };
 
 }

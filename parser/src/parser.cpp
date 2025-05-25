@@ -86,7 +86,7 @@ std::unique_ptr<Declaration> Parser::parse_declaration()
 
         if (next_token->type() == TokenType::SEMICOLON) {
             expect(TokenType::SEMICOLON);
-            return std::make_unique<VariableDeclaration>(identifier_token.lexeme());
+            return std::make_unique<VariableDeclaration>(identifier_token.lexeme(), nullptr, storage_class);
         }
 
         expect(TokenType::ASSIGNMENT);
@@ -494,7 +494,7 @@ std::pair<std::unique_ptr<Type>, StorageClass> Parser::parse_type_and_storage_cl
         throw ParserError(std::format("In parse_type_and_storage_class: specified too many storage_classes {}", storage_classes.size()));
     }
 
-    std::pair<std::unique_ptr<Type>, StorageClass> res(std::make_pair(std::make_unique<PrimitiveType>(PrimitiveTypeEnum::INT), StorageClass::NONE));
+    std::pair<std::unique_ptr<Type>, StorageClass> res(std::make_pair(std::make_unique<IntType>(), StorageClass::NONE));
     if (storage_classes.size() == 1) {
         StorageClass storage_class = to_storage_class(storage_classes.at(0));
         if (storage_class == StorageClass::NONE) {

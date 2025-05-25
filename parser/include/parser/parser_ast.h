@@ -40,8 +40,6 @@ class DoWhileStatement;
 class ForStatement;
 class ForInitDeclaration;
 class ForInitExpression;
-class PrimitiveType;
-class FunctionType;
 
 // ParserVisitor interface
 class ParserVisitor {
@@ -70,8 +68,6 @@ public:
     virtual void visit(ForStatement& node) = 0;
     virtual void visit(ForInitDeclaration& node) = 0;
     virtual void visit(ForInitExpression& node) = 0;
-    virtual void visit(PrimitiveType& node) {};
-    virtual void visit(FunctionType& node) {};
 
     virtual ~ParserVisitor() = default;
 };
@@ -119,27 +115,13 @@ public:
     std::string name;
 };
 
-class Type : public ParserAST {
+class Type {
 public:
     virtual ~Type() = default;
 };
 
-enum class PrimitiveTypeEnum {
-    INT
-};
-
-class PrimitiveType : public Type {
+class IntType : public Type {
 public:
-    PrimitiveType(PrimitiveTypeEnum t)
-        : type { t }
-    {
-    }
-    void accept(ParserVisitor& visitor) override
-    {
-        visitor.visit(*this);
-    }
-
-    PrimitiveTypeEnum type;
 };
 
 class FunctionType : public Type {
@@ -147,11 +129,6 @@ public:
     FunctionType(size_t pc)
         : parameters_count { pc }
     {
-    }
-
-    void accept(ParserVisitor& visitor) override
-    {
-        visitor.visit(*this);
     }
 
     size_t parameters_count;

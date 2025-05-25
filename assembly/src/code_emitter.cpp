@@ -366,6 +366,7 @@ std::string CodeEmitter::to_instruction_suffix(ConditionCode cc)
 
 std::string CodeEmitter::get_function_name(const std::string& in_name)
 {
-    std::string suffix = parser::SymbolTable::instance().symbols().at(in_name).defined ? "" : "@PLT";
+    // std::string suffix = parser::SymbolTable::instance().symbols().at(in_name).defined ? "" : "@PLT"; //TODO FIX
+    std::string suffix = "";
     return in_name + suffix;
 }

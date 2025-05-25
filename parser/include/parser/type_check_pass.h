@@ -50,7 +50,10 @@ private:
     void visit(ForInitDeclaration& node) override;
     void visit(ForInitExpression& node) override;
 
-    void resolve_variable_declaration(Identifier& identifier);
+    void resolve_function_param_declaration(Identifier& identifier);
+
+    void typecheck_file_scope_variable_declaration(VariableDeclaration& variable_declaration);
+    void typecheck_local_variable_declaration(VariableDeclaration& variable_declaration);
 
     std::shared_ptr<ParserAST> m_ast;
     SymbolTable& m_symbol_table;

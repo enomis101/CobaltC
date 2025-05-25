@@ -257,7 +257,7 @@ void TypeCheckPass::typecheck_file_scope_variable_declaration(VariableDeclaratio
             } else {
                 initial_value = old_attr.init;
             }
-        } else if (std::holds_alternative<InitialValue>(initial_value) && std::holds_alternative<TentativeInit>(old_attr.init)) {
+        } else if (!std::holds_alternative<InitialValue>(initial_value) && std::holds_alternative<TentativeInit>(old_attr.init)) {
             initial_value = TentativeInit {};
         }
     }

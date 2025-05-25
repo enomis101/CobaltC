@@ -205,6 +205,11 @@ void CodeEmitter::visit(StackAddress& node)
     *m_file_stream << std::format("{}(%rbp)", node.offset);
 }
 
+void CodeEmitter::visit(DataOperand& node)
+{
+    *m_file_stream << std::format("{}(%rip)", node.identifier.name);
+}
+
 void CodeEmitter::visit(ReturnInstruction& node)
 {
     *m_file_stream << "\tmovq\t%rbp, %rsp\n";
@@ -302,7 +307,11 @@ void CodeEmitter::visit(CallInstruction& node)
 
 void CodeEmitter::visit(FunctionDefinition& node)
 {
-    *m_file_stream << std::format("\t.globl {}\n{}:\n", node.name.name, node.name.name);
+    if (node.global) {
+        *m_file_stream << std::format("\t.globl {}\n", node.name.name);
+    }
+    *m_file_stream << "\t.text\n";
+    *m_file_stream << std::format("{}:\n", node.name.name);
     *m_file_stream << "\tpushq\t%rbp\n";
     *m_file_stream << "\tmovq\t%rsp, %rbp\n";
     for (auto& instruction : node.instructions) {
@@ -310,11 +319,23 @@ void CodeEmitter::visit(FunctionDefinition& node)
     }
 }
 
+void CodeEmitter::visit(StaticVariable& node)
+{
+    if (node.global) {
+        *m_file_stream << std::format("\t.globl {}\n", node.name.name);
+    }
+    bool init_to_zero = node.initializer == 0;
+    *m_file_stream << std::format("\t{}\n", (init_to_zero ? ".bss" : ".data"));
+    *m_file_stream << "\t.balign 4\n";
+    *m_file_stream << std::format("{}:\n", node.name.name);
+    *m_file_stream << std::format("\t{} {}\n", (init_to_zero ? ".zero" : ".long"), (init_to_zero ? 4 : node.initializer));
+}
+
 void CodeEmitter::visit(Program& node)
 {
-    // for (auto& func : node.function_definitions) {
-    //     func->accept(*this);
-    // }
+    for (auto& def : node.definitions) {
+        def->accept(*this);
+    }
     *m_file_stream << std::format("\t.section .note.GNU-stack,\"\",@progbits\n");
 }
 
@@ -366,7 +387,7 @@ std::string CodeEmitter::to_instruction_suffix(ConditionCode cc)
 
 std::string CodeEmitter::get_function_name(const std::string& in_name)
 {
-    // std::string suffix = parser::SymbolTable::instance().symbols().at(in_name).defined ? "" : "@PLT"; //TODO FIX
-    std::string suffix = "";
+    parser::FunctionAttribute& fun_attr = std::get<parser::FunctionAttribute>(parser::SymbolTable::instance().symbols().at(in_name).attribute);
+    std::string suffix = fun_attr.defined ? "" : "@PLT";
     return in_name + suffix;
 }

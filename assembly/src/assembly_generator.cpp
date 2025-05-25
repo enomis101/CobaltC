@@ -86,8 +86,7 @@ void PseudoRegisterReplaceStep::check_and_replace(std::unique_ptr<Operand>& op)
     if (PseudoRegister* reg = dynamic_cast<PseudoRegister*>(op.get())) {
         const std::string& pseudo_reg_name = reg->identifier.name;
         std::unique_ptr<Operand> new_op = nullptr;
-        if (!m_stack_offsets.contains(pseudo_reg_name) &&
-         s_symbol_table.symbols().contains(pseudo_reg_name) && std::holds_alternative<parser::StaticAttribute>(s_symbol_table.symbols().at(pseudo_reg_name).attribute)) {
+        if (!m_stack_offsets.contains(pseudo_reg_name) && s_symbol_table.symbols().contains(pseudo_reg_name) && std::holds_alternative<parser::StaticAttribute>(s_symbol_table.symbols().at(pseudo_reg_name).attribute)) {
             new_op = std::make_unique<DataOperand>(pseudo_reg_name);
         } else {
             int offset = get_offset(pseudo_reg_name);

@@ -1,5 +1,6 @@
 #pragma once
 #include "assembly/assembly_ast.h"
+#include "parser/symbol_table.h"
 #include "tacky/tacky_ast.h"
 #include <stdexcept>
 #include <unordered_map>
@@ -28,6 +29,7 @@ private:
     void visit(Register& node) override { }
     void visit(PseudoRegister& node) override { }
     void visit(StackAddress& node) override { }
+    void visit(DataOperand& node) override { }
     void visit(ReturnInstruction& node) override { }
     void visit(MovInstruction& node) override;
     void visit(UnaryInstruction& node) override;
@@ -44,6 +46,7 @@ private:
     void visit(PushInstruction& node) override;
     void visit(CallInstruction& node) override { }
     void visit(FunctionDefinition& node) override;
+    void visit(StaticVariable& node) override { }
     void visit(Program& node) override;
 
     int get_offset(const std::string& name);
@@ -51,6 +54,7 @@ private:
 
     std::shared_ptr<AssemblyAST> m_ast;
     std::unordered_map<std::string, int> m_stack_offsets;
+    parser::SymbolTable& s_symbol_table;
 };
 
 class FixUpInstructionsStep : public AssemblyVisitor {
@@ -66,6 +70,7 @@ private:
     void visit(Register& node) override { }
     void visit(PseudoRegister& node) override { }
     void visit(StackAddress& node) override { }
+    void visit(DataOperand& node) override { }
     void visit(ReturnInstruction& node) override { }
     void visit(MovInstruction& node) override { }
     void visit(UnaryInstruction& node) override { }
@@ -82,15 +87,15 @@ private:
     void visit(PushInstruction& node) override { }
     void visit(CallInstruction& node) override { }
     void visit(FunctionDefinition& node) override;
+    void visit(StaticVariable& node) override { }
     void visit(Program& node) override;
 
     template<typename I>
-    void fixup_double_stack_address_instruction(std::unique_ptr<Instruction>& i, std::vector<std::unique_ptr<Instruction>>& instructions)
+    void fixup_double_memory_address_instruction(std::unique_ptr<Instruction>& i, std::vector<std::unique_ptr<Instruction>>& instructions)
     {
         if (I* instruction = dynamic_cast<I*>(i.get())) {
-            StackAddress* source = dynamic_cast<StackAddress*>(instruction->source.get());
-            StackAddress* destination = dynamic_cast<StackAddress*>(instruction->destination.get());
-            if (source && destination) {
+            if ((dynamic_cast<StackAddress*>(instruction->source.get()) || dynamic_cast<DataOperand*>(instruction->source.get()))
+                && (dynamic_cast<StackAddress*>(instruction->destination.get()) || dynamic_cast<DataOperand*>(instruction->destination.get()))) {
                 instructions.emplace_back(std::make_unique<MovInstruction>(std::move(instruction->source), std::make_unique<Register>(RegisterName::R10)));
                 instruction->source = std::make_unique<Register>(RegisterName::R10);
             }
@@ -126,6 +131,7 @@ private:
     std::vector<std::unique_ptr<Instruction>> transform_jump_instruction(tacky::Instruction& jump_instruction);
     std::vector<std::unique_ptr<Instruction>> transform_function_call_instruction(tacky::FunctionCallInstruction& function_call_instruction);
     std::unique_ptr<FunctionDefinition> transform_function(tacky::FunctionDefinition& function);
+    std::unique_ptr<TopLevel> transform_top_level(tacky::TopLevel& top_level);
     std::unique_ptr<Program> transform_program(tacky::Program& program);
 
     bool is_relational_operator(tacky::BinaryOperator op);

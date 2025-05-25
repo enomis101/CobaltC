@@ -1,15 +1,18 @@
 #include "assembly/assembly_generator.h"
 #include "assembly/assembly_ast.h"
+
 #include "parser/symbol_table.h"
 #include "tacky/tacky_ast.h"
 #include <cassert>
 #include <memory>
 #include <string>
+#include <variant>
 
 using namespace assembly;
 
 PseudoRegisterReplaceStep::PseudoRegisterReplaceStep(std::shared_ptr<AssemblyAST> ast)
     : m_ast { ast }
+    , s_symbol_table { parser::SymbolTable::instance() }
 {
     if (!m_ast || !dynamic_cast<Program*>(m_ast.get())) {
         throw AssemblyGeneratorError("PseudoRegisterReplaceStep: Invalid AST");
@@ -61,29 +64,36 @@ void PseudoRegisterReplaceStep::visit(PushInstruction& node)
 
 void PseudoRegisterReplaceStep::visit(FunctionDefinition& node)
 {
+    m_stack_offsets.clear();
+
     for (auto& i : node.instructions) {
         i->accept(*this);
     }
+
+    size_t stack_size = m_stack_offsets.size() * 4;
+    s_symbol_table.symbols().at(node.name.name).stack_size = stack_size;
 }
 
 void PseudoRegisterReplaceStep::visit(Program& node)
 {
-    parser::SymbolTable& symbol_table = parser::SymbolTable::instance();
-    for (auto& func : node.function_definitions) {
-        m_stack_offsets.clear();
-        func->accept(*this);
-        size_t stack_size = m_stack_offsets.size() * 4;
-        symbol_table.symbols().at(func->name.name).stack_size = stack_size;
+    for (auto& def : node.definitions) {
+        def->accept(*this);
     }
 }
 
 void PseudoRegisterReplaceStep::check_and_replace(std::unique_ptr<Operand>& op)
 {
     if (PseudoRegister* reg = dynamic_cast<PseudoRegister*>(op.get())) {
-        int offset = get_offset(reg->identifier.name);
-
-        std::unique_ptr<Operand> stack = std::make_unique<StackAddress>(offset);
-        op = std::move(stack);
+        const std::string& pseudo_reg_name = reg->identifier.name;
+        std::unique_ptr<Operand> new_op = nullptr;
+        if (!m_stack_offsets.contains(pseudo_reg_name) &&
+         s_symbol_table.symbols().contains(pseudo_reg_name) && std::holds_alternative<parser::StaticAttribute>(s_symbol_table.symbols().at(pseudo_reg_name).attribute)) {
+            new_op = std::make_unique<DataOperand>(pseudo_reg_name);
+        } else {
+            int offset = get_offset(pseudo_reg_name);
+            new_op = std::make_unique<StackAddress>(offset);
+        }
+        op = std::move(new_op);
     }
 }
 
@@ -119,7 +129,7 @@ void FixUpInstructionsStep::visit(FunctionDefinition& node)
     node.instructions.emplace_back(std::make_unique<AllocateStackInstruction>(stack_offset));
     for (auto& i : tmp_instructions) {
         if (dynamic_cast<MovInstruction*>(i.get())) {
-            fixup_double_stack_address_instruction<MovInstruction>(i, node.instructions);
+            fixup_double_memory_address_instruction<MovInstruction>(i, node.instructions);
         } else if (CmpInstruction* cmp_instruction = dynamic_cast<CmpInstruction*>(i.get())) {
             if (dynamic_cast<ImmediateValue*>(cmp_instruction->destination.get())) {
                 // destination of cmp cant be a constant
@@ -127,12 +137,12 @@ void FixUpInstructionsStep::visit(FunctionDefinition& node)
                 cmp_instruction->destination = std::make_unique<Register>(RegisterName::R11);
                 node.instructions.emplace_back(std::move(i));
             } else {
-                fixup_double_stack_address_instruction<CmpInstruction>(i, node.instructions);
+                fixup_double_memory_address_instruction<CmpInstruction>(i, node.instructions);
             }
 
         } else if (BinaryInstruction* binary_instruction = dynamic_cast<BinaryInstruction*>(i.get())) {
             if ((binary_instruction->binary_operator == BinaryOperator::ADD) || (binary_instruction->binary_operator == BinaryOperator::SUB)) {
-                fixup_double_stack_address_instruction<BinaryInstruction>(i, node.instructions);
+                fixup_double_memory_address_instruction<BinaryInstruction>(i, node.instructions);
             } else if (binary_instruction->binary_operator == BinaryOperator::MULT) {
                 // imul cant use memory addresses as its destination
                 std::unique_ptr<Operand> destination_copy = binary_instruction->destination->clone();
@@ -159,8 +169,8 @@ void FixUpInstructionsStep::visit(FunctionDefinition& node)
 
 void FixUpInstructionsStep::visit(Program& node)
 {
-    for (auto& func : node.function_definitions) {
-        func->accept(*this);
+    for (auto& def : node.definitions) {
+        def->accept(*this);
     }
 }
 
@@ -421,18 +431,29 @@ std::unique_ptr<FunctionDefinition> AssemblyGenerator::transform_function(tacky:
             instructions.push_back(std::move(tmp_i));
         }
     }
-    return std::make_unique<FunctionDefinition>(function_definition.name.name, std::move(instructions));
+    return std::make_unique<FunctionDefinition>(function_definition.name.name, function_definition.global, std::move(instructions));
+}
+
+std::unique_ptr<TopLevel> AssemblyGenerator::transform_top_level(tacky::TopLevel& top_level)
+{
+    if (tacky::FunctionDefinition* fun = dynamic_cast<tacky::FunctionDefinition*>(&top_level)) {
+        return transform_function(*fun);
+    } else if (tacky::StaticVariable* static_var = dynamic_cast<tacky::StaticVariable*>(&top_level)) {
+        return std::make_unique<StaticVariable>(static_var->name.name, static_var->global, static_var->init);
+    } else {
+        throw AssemblyGeneratorError("In transform_top_level: invalid top level class");
+    }
 }
 
 std::unique_ptr<Program> AssemblyGenerator::transform_program(tacky::Program& program)
 {
-    std::vector<std::unique_ptr<FunctionDefinition>> functions;
+    std::vector<std::unique_ptr<TopLevel>> definitions;
 
-    // for (auto& func : program.functions) {
-    //     functions.emplace_back(transform_function(*func));
-    // }
+    for (auto& def : program.definitions) {
+        definitions.emplace_back(transform_top_level(*def));
+    }
 
-    return std::make_unique<Program>(std::move(functions));
+    return std::make_unique<Program>(std::move(definitions));
 }
 
 bool AssemblyGenerator::is_relational_operator(tacky::BinaryOperator op)

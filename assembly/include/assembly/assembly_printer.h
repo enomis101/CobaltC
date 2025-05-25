@@ -18,6 +18,7 @@ public:
     void visit(Register& node) override;
     void visit(PseudoRegister& node) override;
     void visit(StackAddress& node) override;
+    void visit(DataOperand& node) override { } // TODO: Implement it
     void visit(ReturnInstruction& node) override;
     void visit(MovInstruction& node) override;
     void visit(UnaryInstruction& node) override;
@@ -34,6 +35,7 @@ public:
     void visit(PushInstruction& node) override;
     void visit(CallInstruction& node) override;
     void visit(FunctionDefinition& node) override;
+    void visit(StaticVariable& node) override { } // TODO: Implement it
     void visit(Program& node) override;
 
 private:

@@ -6,7 +6,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/compiler/cobaltc-compiler",
-            "args": ["/home/simone/compiler/writing-a-c-compiler-tests/tests/chapter_10/valid/libraries/internal_linkage_function.c"],
+            "args": ["/home/simone/compiler/writing-a-c-compiler-tests/tests/chapter_10/valid/type_before_storage_class.c"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/build/",
             "environment": [],

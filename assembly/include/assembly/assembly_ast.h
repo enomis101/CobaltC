@@ -27,6 +27,8 @@ class Program;
 class DeallocateStackInstruction;
 class PushInstruction;
 class CallInstruction;
+class StaticVariable;
+class DataOperand;
 
 class AssemblyVisitor {
 public:
@@ -35,6 +37,7 @@ public:
     virtual void visit(Register& node) = 0;
     virtual void visit(PseudoRegister& node) = 0;
     virtual void visit(StackAddress& node) = 0;
+    virtual void visit(DataOperand& node) = 0;
     virtual void visit(ReturnInstruction& node) = 0;
     virtual void visit(MovInstruction& node) = 0;
     virtual void visit(UnaryInstruction& node) = 0;
@@ -51,6 +54,7 @@ public:
     virtual void visit(CallInstruction& node) = 0;
     virtual void visit(AllocateStackInstruction& node) = 0;
     virtual void visit(FunctionDefinition& node) = 0;
+    virtual void visit(StaticVariable& node) = 0;
     virtual void visit(Program& node) = 0;
     virtual ~AssemblyVisitor() = default;
 };
@@ -208,6 +212,26 @@ public:
     }
 
     int offset;
+};
+
+class DataOperand : public Operand {
+public:
+    DataOperand(const std::string& id)
+        : identifier { id }
+    {
+    }
+
+    void accept(AssemblyVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    std::unique_ptr<Operand> clone() const override
+    {
+        return std::make_unique<DataOperand>(identifier.name);
+    }
+
+    Identifier identifier;
 };
 
 class Instruction : public AssemblyAST {
@@ -540,10 +564,16 @@ public:
     Identifier identifier;
 };
 
-class FunctionDefinition : public AssemblyAST {
+class TopLevel : public AssemblyAST {
 public:
-    FunctionDefinition(const std::string& n, std::vector<std::unique_ptr<Instruction>> i)
+    virtual ~TopLevel() = default;
+};
+
+class FunctionDefinition : public TopLevel {
+public:
+    FunctionDefinition(const std::string& n, bool glbl, std::vector<std::unique_ptr<Instruction>> i)
         : name { n }
+        , global { glbl }
         , instructions(std::move(i))
     {
     }
@@ -553,7 +583,7 @@ public:
         visitor.visit(*this);
     }
 
-    std::unique_ptr<FunctionDefinition> clone() const
+    std::unique_ptr<TopLevel> clone() const
     {
         std::vector<std::unique_ptr<Instruction>> cloned_instructions;
         cloned_instructions.reserve(instructions.size());
@@ -562,17 +592,20 @@ public:
             cloned_instructions.push_back(instruction->clone());
         }
 
-        return std::make_unique<FunctionDefinition>(name.name, std::move(cloned_instructions));
+        return std::make_unique<FunctionDefinition>(name.name, global, std::move(cloned_instructions));
     }
 
     Identifier name;
+    bool global;
     std::vector<std::unique_ptr<Instruction>> instructions;
 };
 
-class Program : public AssemblyAST {
+class StaticVariable : public TopLevel {
 public:
-    Program(std::vector<std::unique_ptr<FunctionDefinition>> funcs)
-        : function_definitions(std::move(funcs))
+    StaticVariable(const std::string& n, bool glbl, int init)
+        : name { n }
+        , global { glbl }
+        , initializer(init)
     {
     }
 
@@ -581,7 +614,29 @@ public:
         visitor.visit(*this);
     }
 
-    std::vector<std::unique_ptr<FunctionDefinition>> function_definitions;
+    std::unique_ptr<TopLevel> clone() const
+    {
+        return std::make_unique<StaticVariable>(name.name, global, initializer);
+    }
+
+    Identifier name;
+    bool global;
+    int initializer;
+};
+
+class Program : public AssemblyAST {
+public:
+    Program(std::vector<std::unique_ptr<TopLevel>> defs)
+        : definitions(std::move(defs))
+    {
+    }
+
+    void accept(AssemblyVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    std::vector<std::unique_ptr<TopLevel>> definitions;
 };
 
 } // assembly namespace

@@ -312,9 +312,9 @@ void CodeEmitter::visit(FunctionDefinition& node)
 
 void CodeEmitter::visit(Program& node)
 {
-    for (auto& func : node.function_definitions) {
-        func->accept(*this);
-    }
+    // for (auto& func : node.function_definitions) {
+    //     func->accept(*this);
+    // }
     *m_file_stream << std::format("\t.section .note.GNU-stack,\"\",@progbits\n");
 }
 

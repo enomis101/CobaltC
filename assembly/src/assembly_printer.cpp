@@ -319,14 +319,14 @@ void PrinterVisitor::visit(Program& node)
     int id = get_node_id(&node);
     m_dot_content << "  node" << id << " [label=\"Program\", color=blue, style=filled, fillcolor=lightblue];\n";
 
-    // Process each function definition in the vector
-    for (size_t i = 0; i < node.function_definitions.size(); ++i) {
-        if (node.function_definitions[i]) {
-            node.function_definitions[i]->accept(*this);
-            m_dot_content << "  node" << id << " -> node" << get_node_id(node.function_definitions[i].get())
-                          << " [label=\"function_definitions[" << i << "]\"];\n";
-        }
-    }
+    // Process each function definition in the vector TODO: fix that
+    // for (size_t i = 0; i < node.function_definitions.size(); ++i) {
+    //     if (node.function_definitions[i]) {
+    //         node.function_definitions[i]->accept(*this);
+    //         m_dot_content << "  node" << id << " -> node" << get_node_id(node.function_definitions[i].get())
+    //                       << " [label=\"function_definitions[" << i << "]\"];\n";
+    //     }
+    // }
 }
 
 int PrinterVisitor::get_node_id(const AssemblyAST* node)

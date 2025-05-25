@@ -1,15 +1,18 @@
 #include "tacky/tacky_generator.h"
 #include "parser/parser_ast.h"
+#include "parser/symbol_table.h"
 #include "tacky/tacky_ast.h"
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <variant>
 
 using namespace tacky;
 
 TackyGenerator::TackyGenerator(std::shared_ptr<parser::ParserAST> ast)
     : m_ast { ast }
     , m_name_generator { NameGenerator::instance() }
+    , m_symbol_table { parser::SymbolTable::instance() }
 {
     if (!m_ast || !dynamic_cast<parser::Program*>(m_ast.get())) {
         throw TackyGeneratorError("TackyGenerator: Invalid AST");
@@ -18,7 +21,31 @@ TackyGenerator::TackyGenerator(std::shared_ptr<parser::ParserAST> ast)
 
 std::shared_ptr<TackyAST> TackyGenerator::generate()
 {
-    return transform_program(*dynamic_cast<parser::Program*>(m_ast.get()));
+    std::shared_ptr<TackyAST> program = transform_program(*dynamic_cast<parser::Program*>(m_ast.get()));
+    transform_symbols_to_tacky(program);
+    return program;
+}
+
+void TackyGenerator::transform_symbols_to_tacky(std::shared_ptr<TackyAST> tacky_ast)
+{
+    auto& top_levels = dynamic_cast<Program*>(tacky_ast.get())->definitions;
+
+    for (const auto& p : m_symbol_table.symbols()) {
+        const auto& entry = p.second;
+        if (std::holds_alternative<parser::StaticAttribute>(entry.attribute)) {
+            const auto& static_attr = std::get<parser::StaticAttribute>(entry.attribute);
+            bool global = static_attr.global;
+            const std::string& variable_name = p.first;
+            if (std::holds_alternative<parser::InitialValue>(static_attr.init)) {
+                int initial_value = std::get<parser::InitialValue>(static_attr.init).value;
+                top_levels.emplace_back(std::make_unique<StaticVariable>(variable_name, global, initial_value));
+            } else if (std::holds_alternative<parser::TentativeInit>(static_attr.init)) {
+                top_levels.emplace_back(std::make_unique<StaticVariable>(variable_name, global, 0));
+            } else if (std::holds_alternative<parser::NoInit>(static_attr.init)) {
+                continue;
+            }
+        }
+    }
 }
 
 UnaryOperator TackyGenerator::transform_unary_operator(parser::UnaryOperator& unary_operator)
@@ -324,20 +351,30 @@ std::unique_ptr<FunctionDefinition> TackyGenerator::transform_function(parser::F
         std::vector<std::unique_ptr<Instruction>> body;
         transform_block(*function.body.value().get(), body);
         body.emplace_back(std::make_unique<ReturnInstruction>(std::make_unique<Constant>(0)));
-        return std::make_unique<FunctionDefinition>(function.name.name, params, std::move(body));
+        bool global = std::get<parser::FunctionAttribute>(m_symbol_table.symbols().at(function.name.name).attribute).global;
+        return std::make_unique<FunctionDefinition>(function.name.name, global, params, std::move(body));
     }
 
     return nullptr;
 }
+std::unique_ptr<TopLevel> TackyGenerator::transform_top_level_declaraiton(parser::Declaration& declaration)
+{
+    if (parser::FunctionDeclaration* fun_decl = dynamic_cast<parser::FunctionDeclaration*>(&declaration)) {
+        return transform_function(*fun_decl);
+    } else {
+        // Top Level VariableDeclaration are handled in a later step and converted to StaticVariable
+        return nullptr;
+    }
+}
 
 std::unique_ptr<Program> TackyGenerator::transform_program(parser::Program& program)
 {
-    std::vector<std::unique_ptr<FunctionDefinition>> functions;
-    // for (auto& parser_func : program.functions) {
-    //     std::unique_ptr<FunctionDefinition> func = transform_function(*parser_func);
-    //     if (func) {
-    //         functions.emplace_back(std::move(func));
-    //     }
-    // }
-    return std::make_unique<Program>(std::move(functions));
+    std::vector<std::unique_ptr<TopLevel>> definitions;
+    for (auto& parser_decl : program.declarations) {
+        std::unique_ptr<TopLevel> def = transform_top_level_declaraiton(*parser_decl);
+        if (def) {
+            definitions.emplace_back(std::move(def));
+        }
+    }
+    return std::make_unique<Program>(std::move(definitions));
 }

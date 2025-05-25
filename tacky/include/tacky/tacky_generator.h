@@ -1,15 +1,18 @@
 #pragma once
 #include "common/data/name_generator.h"
 #include "parser/parser_ast.h"
+#include "parser/symbol_table.h"
 #include "tacky/tacky_ast.h"
 #include <stdexcept>
 #include <vector>
+
 namespace tacky {
 
 class TackyGeneratorError : public std::runtime_error {
 public:
     explicit TackyGeneratorError(const std::string& message)
         : std::runtime_error(message)
+
     {
     }
 };
@@ -31,10 +34,14 @@ private:
     void transform_block_item(parser::BlockItem& block_item, std::vector<std::unique_ptr<Instruction>>& instructions);
     void transform_block(parser::Block& block, std::vector<std::unique_ptr<Instruction>>& instructions);
     std::unique_ptr<FunctionDefinition> transform_function(parser::FunctionDeclaration& function);
+    std::unique_ptr<TopLevel> transform_top_level_declaraiton(parser::Declaration& declaration);
     std::unique_ptr<Program> transform_program(parser::Program& program);
+
+    void transform_symbols_to_tacky(std::shared_ptr<TackyAST> tacky_ast);
 
     std::shared_ptr<parser::ParserAST> m_ast;
     NameGenerator& m_name_generator;
+    parser::SymbolTable& m_symbol_table;
 };
 
 } // namespace tacky

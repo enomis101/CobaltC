@@ -428,9 +428,9 @@ std::unique_ptr<Program> AssemblyGenerator::transform_program(tacky::Program& pr
 {
     std::vector<std::unique_ptr<FunctionDefinition>> functions;
 
-    for (auto& func : program.functions) {
-        functions.emplace_back(transform_function(*func));
-    }
+    // for (auto& func : program.functions) {
+    //     functions.emplace_back(transform_function(*func));
+    // }
 
     return std::make_unique<Program>(std::move(functions));
 }

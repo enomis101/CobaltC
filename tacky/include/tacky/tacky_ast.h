@@ -27,6 +27,7 @@ class LabelInstruction;
 class FunctionDefinition;
 class Program;
 class FunctionCallInstruction;
+class StaticVariable;
 
 // TackyVisitor interface
 class TackyVisitor {
@@ -44,6 +45,7 @@ public:
     virtual void visit(LabelInstruction& node) = 0;
     virtual void visit(FunctionCallInstruction& node) = 0;
     virtual void visit(FunctionDefinition& node) = 0;
+    virtual void visit(StaticVariable& node) = 0;
     virtual void visit(Program& node) = 0;
     virtual ~TackyVisitor() = default;
 };
@@ -283,10 +285,16 @@ public:
     std::unique_ptr<Value> destination;
 };
 
-class FunctionDefinition : public TackyAST {
+class TopLevel : public TackyAST {
 public:
-    FunctionDefinition(const std::string& n, const std::vector<Identifier>& params, std::vector<std::unique_ptr<Instruction>> b)
+    virtual ~TopLevel() = default;
+};
+
+class FunctionDefinition : public TopLevel {
+public:
+    FunctionDefinition(const std::string& n, bool glbl, const std::vector<Identifier>& params, std::vector<std::unique_ptr<Instruction>> b)
         : name { n }
+        , global { glbl }
         , parameters { params }
         , body(std::move(b))
     {
@@ -298,14 +306,17 @@ public:
     }
 
     Identifier name;
+    bool global;
     std::vector<Identifier> parameters;
     std::vector<std::unique_ptr<Instruction>> body;
 };
 
-class Program : public TackyAST {
+class StaticVariable : public TopLevel {
 public:
-    Program(std::vector<std::unique_ptr<FunctionDefinition>> funcs)
-        : functions(std::move(funcs))
+    StaticVariable(const std::string& n, bool glbl, int i)
+        : name { n }
+        , global { glbl }
+        , init { i }
     {
     }
 
@@ -314,7 +325,24 @@ public:
         visitor.visit(*this);
     }
 
-    std::vector<std::unique_ptr<FunctionDefinition>> functions;
+    Identifier name;
+    bool global;
+    int init;
+};
+
+class Program : public TackyAST {
+public:
+    Program(std::vector<std::unique_ptr<TopLevel>> defs)
+        : definitions(std::move(defs))
+    {
+    }
+
+    void accept(TackyVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    std::vector<std::unique_ptr<TopLevel>> definitions;
 };
 
 }

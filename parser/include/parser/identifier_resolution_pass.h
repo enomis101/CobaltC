@@ -55,9 +55,9 @@ private:
 
     struct MapEntry {
         MapEntry() = default;
-        MapEntry(const std::string& name, bool flag, bool link)
+        MapEntry(const std::string& name, bool current_scope, bool link)
             : new_name { name }
-            , from_current_scope { flag }
+            , from_current_scope { current_scope }
             , has_linkage { link }
         {
         }

@@ -314,19 +314,43 @@ void PrinterVisitor::visit(FunctionDefinition& node)
     }
 }
 
+void PrinterVisitor::visit(DataOperand& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"DataOperand\"];\n";
+
+    // Visit the contained identifier
+    node.identifier.accept(*this);
+    m_dot_content << "  node" << id << " -> node" << get_node_id(&node.identifier)
+                  << " [label=\"identifier\"];\n";
+}
+
+void PrinterVisitor::visit(StaticVariable& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"StaticVariable\\nglobal: "
+                  << (node.global ? "true" : "false")
+                  << "\\ninitializer: " << node.initializer << "\"];\n";
+
+    // Visit the contained identifier
+    node.name.accept(*this);
+    m_dot_content << "  node" << id << " -> node" << get_node_id(&node.name)
+                  << " [label=\"name\"];\n";
+}
+
 void PrinterVisitor::visit(Program& node)
 {
     int id = get_node_id(&node);
     m_dot_content << "  node" << id << " [label=\"Program\", color=blue, style=filled, fillcolor=lightblue];\n";
 
-    // Process each function definition in the vector TODO: fix that
-    // for (size_t i = 0; i < node.function_definitions.size(); ++i) {
-    //     if (node.function_definitions[i]) {
-    //         node.function_definitions[i]->accept(*this);
-    //         m_dot_content << "  node" << id << " -> node" << get_node_id(node.function_definitions[i].get())
-    //                       << " [label=\"function_definitions[" << i << "]\"];\n";
-    //     }
-    // }
+    // Process each definition in the vector
+    for (size_t i = 0; i < node.definitions.size(); ++i) {
+        if (node.definitions[i]) {
+            node.definitions[i]->accept(*this);
+            m_dot_content << "  node" << id << " -> node" << get_node_id(node.definitions[i].get())
+                          << " [label=\"definitions[" << i << "]\"];\n";
+        }
+    }
 }
 
 int PrinterVisitor::get_node_id(const AssemblyAST* node)

@@ -195,18 +195,27 @@ void PrinterVisitor::visit(LabelInstruction& node)
                   << " [label=\"identifier\"];\n";
 }
 
+// In tacky/src/tacky_printer.cpp
+// Replace the FunctionDefinition visit method with:
+
 void PrinterVisitor::visit(FunctionDefinition& node)
 {
     int id = get_node_id(&node);
-    m_dot_content << "  node" << id << " [label=\"FunctionDefinition\"];\n";
+    m_dot_content << "  node" << id << " [label=\"FunctionDefinition\\nglobal: "
+                  << (node.global ? "true" : "false") << "\"];\n";
 
     // Process the name identifier
     node.name.accept(*this);
     m_dot_content << "  node" << id << " -> node" << get_node_id(&node.name)
                   << " [label=\"name\"];\n";
 
-    //TODO print glbl
-    
+    // Process the parameters
+    for (size_t i = 0; i < node.parameters.size(); ++i) {
+        node.parameters[i].accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(&node.parameters[i])
+                      << " [label=\"parameters[" << i << "]\"];\n";
+    }
+
     // Process the instruction vector
     for (size_t i = 0; i < node.body.size(); ++i) {
         if (node.body[i]) {
@@ -217,34 +226,34 @@ void PrinterVisitor::visit(FunctionDefinition& node)
     }
 }
 
+// Replace the StaticVariable visit method with:
 void PrinterVisitor::visit(StaticVariable& node)
 {
     int id = get_node_id(&node);
-    m_dot_content << "  node" << id << " [label=\"StaticVariable\"];\n";
+    m_dot_content << "  node" << id << " [label=\"StaticVariable\\nglobal: "
+                  << (node.global ? "true" : "false")
+                  << "\\ninit: " << node.init << "\"];\n";
 
     // Process the name identifier
     node.name.accept(*this);
     m_dot_content << "  node" << id << " -> node" << get_node_id(&node.name)
                   << " [label=\"name\"];\n";
-
-
-    //TODO fix missing
 }
 
+// Replace the Program visit method with:
 void PrinterVisitor::visit(Program& node)
 {
     int id = get_node_id(&node);
     m_dot_content << "  node" << id << " [label=\"Program\", color=blue, style=filled, fillcolor=lightblue];\n";
 
-    //TODO fix
-    // Process each function in the vector
-    // for (size_t i = 0; i < node.functions.size(); ++i) {
-    //     if (node.functions[i]) {
-    //         node.functions[i]->accept(*this);
-    //         m_dot_content << "  node" << id << " -> node" << get_node_id(node.functions[i].get())
-    //                       << " [label=\"functions[" << i << "]\"];\n";
-    //     }
-    // }
+    // Process each definition in the vector
+    for (size_t i = 0; i < node.definitions.size(); ++i) {
+        if (node.definitions[i]) {
+            node.definitions[i]->accept(*this);
+            m_dot_content << "  node" << id << " -> node" << get_node_id(node.definitions[i].get())
+                          << " [label=\"definitions[" << i << "]\"];\n";
+        }
+    }
 }
 
 void PrinterVisitor::visit(FunctionCallInstruction& node)

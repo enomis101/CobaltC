@@ -29,24 +29,5 @@ echo "Running tests with $COMPILER..."
 $TEST_PROG $COMPILER "$@"
 TEST_RESULT=$?
 
-# Generate graph only if tests passed and debug files exist
-# if [ "$(ls -A ./debug 2>/dev/null)" ]; then
-#     echo "Tests passed. Generating graph from debug files..."
-#     ./scripts/generate_graph.sh ./debug/* > /dev/null 2>&1
-#     GRAPH_RESULT=$?
-    
-#     if [ $GRAPH_RESULT -ne 0 ]; then
-#         echo "Warning: Graph generation failed with exit code $GRAPH_RESULT"
-#     else
-#         echo "Graph generation completed successfully"
-#     fi
-# else
-#     if [ $TEST_RESULT -ne 0 ]; then
-#         echo "Tests failed with exit code $TEST_RESULT. Skipping graph generation."
-#     elif [ ! "$(ls -A ./debug 2>/dev/null)" ]; then
-#         echo "No debug files found. Skipping graph generation."
-#     fi
-# fi
-
 # Exit with the test program's exit code
 exit $TEST_RESULT

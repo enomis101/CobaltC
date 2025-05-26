@@ -213,11 +213,29 @@ void PrinterVisitor::visit(NullStatement& node)
     m_dot_content << "  node" << id << " [label=\"NullStatement\"];\n";
 }
 
+// In parser/src/parser_printer.cpp
+// Add this helper function to convert StorageClass to string:
+
+std::string PrinterVisitor::storage_class_to_string(StorageClass sc)
+{
+    switch (sc) {
+    case StorageClass::NONE:
+        return "NONE";
+    case StorageClass::STATIC:
+        return "STATIC";
+    case StorageClass::EXTERN:
+        return "EXTERN";
+    default:
+        return "UNKNOWN";
+    }
+}
+
+// Update the VariableDeclaration visit method to include storage class:
 void PrinterVisitor::visit(VariableDeclaration& node)
 {
-    //TODO: print storage class
     int id = get_node_id(&node);
-    m_dot_content << "  node" << id << " [label=\"VariableDeclaration\"];\n";
+    m_dot_content << "  node" << id << " [label=\"VariableDeclaration\\nstorage_class: "
+                  << storage_class_to_string(node.storage_class) << "\"];\n";
 
     // Visit the identifier
     node.identifier.accept(*this);
@@ -229,6 +247,33 @@ void PrinterVisitor::visit(VariableDeclaration& node)
         node.expression.value()->accept(*this);
         m_dot_content << "  node" << id << " -> node" << get_node_id(node.expression.value().get())
                       << " [label=\"initializer\"];\n";
+    }
+}
+
+// Update the FunctionDeclaration visit method to include storage class:
+void PrinterVisitor::visit(FunctionDeclaration& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"FunctionDeclaration\\nname: " << node.name.name
+                  << "\\nstorage_class: " << storage_class_to_string(node.storage_class) << "\"];\n";
+
+    // Visit the name identifier
+    node.name.accept(*this);
+    m_dot_content << "  node" << id << " -> node" << get_node_id(&node.name)
+                  << " [label=\"name\"];\n";
+
+    // Visit each parameter
+    for (size_t i = 0; i < node.params.size(); ++i) {
+        node.params[i].accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(&node.params[i])
+                      << " [label=\"params[" << i << "]\"];\n";
+    }
+
+    // Visit the body if present
+    if (node.body.has_value() && node.body.value()) {
+        node.body.value()->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.body.value().get())
+                      << " [label=\"body\"];\n";
     }
 }
 
@@ -304,31 +349,6 @@ void PrinterVisitor::visit(CompoundStatement& node)
         node.block->accept(*this);
         m_dot_content << "  node" << id << " -> node" << get_node_id(node.block.get())
                       << " [label=\"block\"];\n";
-    }
-}
-
-void PrinterVisitor::visit(FunctionDeclaration& node)
-{
-    int id = get_node_id(&node);
-    m_dot_content << "  node" << id << " [label=\"FunctionDeclaration\\nname: " << node.name.name << "\"];\n";
-
-    // Visit the name identifier
-    node.name.accept(*this);
-    m_dot_content << "  node" << id << " -> node" << get_node_id(&node.name)
-                  << " [label=\"name\"];\n";
-
-    // Visit each parameter
-    for (size_t i = 0; i < node.params.size(); ++i) {
-        node.params[i].accept(*this);
-        m_dot_content << "  node" << id << " -> node" << get_node_id(&node.params[i])
-                      << " [label=\"params[" << i << "]\"];\n";
-    }
-
-    // Visit the body if present
-    if (node.body.has_value() && node.body.value()) {
-        node.body.value()->accept(*this);
-        m_dot_content << "  node" << id << " -> node" << get_node_id(node.body.value().get())
-                      << " [label=\"body\"];\n";
     }
 }
 

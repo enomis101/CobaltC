@@ -26,7 +26,7 @@ public:
     void visit(LabelInstruction& node) override;
     void visit(FunctionCallInstruction& node) override;
     void visit(FunctionDefinition& node) override;
-    void visit(StaticVariable& node) override { } // TODO IMPLEMENT
+    void visit(StaticVariable& node) override;
     void visit(Program& node) override;
 
 private:

@@ -215,6 +215,7 @@ void PrinterVisitor::visit(NullStatement& node)
 
 void PrinterVisitor::visit(VariableDeclaration& node)
 {
+    //TODO: print storage class
     int id = get_node_id(&node);
     m_dot_content << "  node" << id << " [label=\"VariableDeclaration\"];\n";
 

@@ -205,6 +205,8 @@ void PrinterVisitor::visit(FunctionDefinition& node)
     m_dot_content << "  node" << id << " -> node" << get_node_id(&node.name)
                   << " [label=\"name\"];\n";
 
+    //TODO print glbl
+    
     // Process the instruction vector
     for (size_t i = 0; i < node.body.size(); ++i) {
         if (node.body[i]) {
@@ -215,11 +217,26 @@ void PrinterVisitor::visit(FunctionDefinition& node)
     }
 }
 
+void PrinterVisitor::visit(StaticVariable& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"StaticVariable\"];\n";
+
+    // Process the name identifier
+    node.name.accept(*this);
+    m_dot_content << "  node" << id << " -> node" << get_node_id(&node.name)
+                  << " [label=\"name\"];\n";
+
+
+    //TODO fix missing
+}
+
 void PrinterVisitor::visit(Program& node)
 {
     int id = get_node_id(&node);
     m_dot_content << "  node" << id << " [label=\"Program\", color=blue, style=filled, fillcolor=lightblue];\n";
 
+    //TODO fix
     // Process each function in the vector
     // for (size_t i = 0; i < node.functions.size(); ++i) {
     //     if (node.functions[i]) {

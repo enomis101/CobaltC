@@ -3,6 +3,7 @@
 /outputs/*
 /debug/*
 /.cache/
+/external/**
 
 # Prerequisites
 *.d

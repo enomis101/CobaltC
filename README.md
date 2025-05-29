@@ -2,6 +2,8 @@
 
 A personal C compiler implementation written in modern C++, based on the book "Writing a C Compiler" by Nora Sandler. This project serves as a learning exercise in compiler construction and demonstrates the implementation of a complete C compiler from scratch.
 
+**Status**: Work in progress - currently implemented Chapter 10
+
 ## Getting Started
 
 Clone the test suite repository to verify compiler functionality:
@@ -15,9 +17,6 @@ git clone https://github.com/nlsandler/writing-a-c-compiler-tests/
 - [ ] Unit tests
 - [ ] Tacky IR with std::variant
 - [ ] Improved Error Reporting, store SourceRange or Token ranges for every AST node
-
-### Extra Credit Features
-
 - [ ] Bitwise Operations
 - [ ] `typedef` support
 - [ ] Compound Assignment
@@ -29,3 +28,6 @@ git clone https://github.com/nlsandler/writing-a-c-compiler-tests/
 
 See [docs/gcc-reference.md](docs/gcc-reference.md) for GCC compilation examples and reference.
 
+## About
+
+This compiler implementation follows the structure and approach outlined in "Writing a C Compiler", providing hands-on experience with lexical analysis, parsing, semantic analysis, and code generation phases of compilation.

@@ -2,7 +2,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Debug compiler",
+            "name": "Debug Compiler",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/compiler/cobaltc-compiler",
@@ -32,10 +32,10 @@
             "miDebuggerPath": "/usr/bin/gdb"
         },
         {
-            "name": "Debug Common Test",
+            "name": "Debug Test",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/lexer/tests/lexer_test",
+            "program": "${workspaceFolder}/build/parser/tests/parser_test",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/build/",
@@ -51,6 +51,11 @@
                 {
                     "description": "Set disassembly flavor to Intel",
                     "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Break on all exceptions",
+                    "text": "catch throw",
                     "ignoreFailures": true
                 }
             ],

@@ -3,6 +3,7 @@ include(GoogleTest)
 
 # Define the list of test files
 set(TEST_FILES
+    parser_test.cpp
     # Add other test files here
 )
 
@@ -19,6 +20,7 @@ foreach(TEST_FILE ${TEST_FILES})
     target_link_libraries(${TEST_NAME}
         PRIVATE
         ${COMMON_LIB_TARGET}
+        ${LEXER_LIB_TARGET}
         ${PARSER_LIB_TARGET}
         gtest
         gtest_main

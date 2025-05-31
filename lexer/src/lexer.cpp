@@ -1,15 +1,17 @@
 #include "lexer/lexer.h"
+#include "common/data/token_table.h"
 #include <filesystem>
 #include <format>
 #include <fstream>
-#include <sstream>
 #include <string>
+#include <variant>
 
 namespace fs = std::filesystem;
 
 const std::string Lexer::file_extension = ".i";
 
-Lexer::Lexer(const std::string& file_path)
+Lexer::Lexer(const std::string& file_path, std::shared_ptr<TokenTable> token_table)
+    : m_token_table { token_table }
 {
     // Check if file exists
     if (!fs::exists(file_path)) {
@@ -49,7 +51,6 @@ std::vector<Token> Lexer::tokenize()
     const std::string& input = m_file_content;
     std::vector<Token> res;
     size_t i = 0;
-    TokenTable& tb = TokenTable::instance();
     size_t line_num = 1;
     size_t col_num = 1;
     size_t line_start = 0; // Track start of current line
@@ -71,7 +72,7 @@ std::vector<Token> Lexer::tokenize()
         }
 
         std::string_view curr_str(input.begin() + i, input.end());
-        size_t search_res = tb.search(curr_str);
+        size_t search_res = m_token_table->search(curr_str);
         if (search_res == 0) {
             // Create a context snippet showing the error location
             std::string line_snippet;
@@ -102,16 +103,27 @@ std::vector<Token> Lexer::tokenize()
         }
 
         std::string lexeme = input.substr(i, search_res);
-        try {
-            Token t(lexeme, line_num);
-            res.push_back(t);
-        } catch (const TokenError& e) {
-            throw LexerError(std::format(
-                "Failed to create token at line {} column {}:\n"
-                "Lexeme: '{}'\n"
-                "Error: {}",
-                line_num, col_num, lexeme, e.what()));
+        std::optional<TokenType> result = m_token_table->match(lexeme);
+        if (!result.has_value()) {
+
+            throw LexerError(std::format("TokenTable::match failed after valid search!"));
         }
+
+        TokenType type = result.value();
+        Token::LiteralType literal;
+
+        if (type == TokenType::CONSTANT) {
+            // With error handling
+            try {
+                int num = std::stoi(lexeme); // This will throw an exception
+                literal = num;
+            } catch (const std::exception& e) {
+                throw LexerError(std::format("Error while parsing constant in Token constructor: {}", e.what()));
+            }
+        }
+
+        Token t(type, lexeme, literal, line_num);
+        res.push_back(t);
         i += search_res;
         col_num += search_res;
     }

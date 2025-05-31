@@ -55,14 +55,13 @@ enum class TokenType {
 };
 class TokenTable {
 public:
-    // Delete copy and move operations to enforce singleton semantics
+    TokenTable();
+    
+    // Delete copy
     TokenTable(const TokenTable&) = delete;
     TokenTable& operator=(const TokenTable&) = delete;
     TokenTable(TokenTable&&) = delete;
     TokenTable& operator=(TokenTable&&) = delete;
-
-    // Static method to access the singleton instance
-    static TokenTable& instance();
 
     // Returns the length of the match at the beginning of input, or 0 if no match
     size_t search(std::string_view input) const;
@@ -71,9 +70,6 @@ public:
     std::optional<TokenType> match(std::string_view lexeme) const;
 
 private:
-    // Private constructor - can only be called from getInstance()
-    TokenTable();
-
     // Data members
     std::unordered_map<std::string_view, TokenType> m_keywords;
     std::vector<std::pair<boost::regex, TokenType>> m_patterns;

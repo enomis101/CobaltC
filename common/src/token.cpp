@@ -1,28 +1,12 @@
 #include "common/data/token.h"
-#include <format>
 #include <sstream>
 
-Token::Token(const std::string& lexeme, int line)
-    : m_lexeme { lexeme }
+Token::Token(TokenType type, const std::string& lexeme, LiteralType literal, int line)
+    : m_type { type }
+    , m_lexeme { lexeme }
+    , m_literal(literal)
     , m_line { line }
 {
-    TokenTable& tb = TokenTable::instance();
-    std::optional<TokenType> result = tb.match(lexeme);
-    if (!result.has_value()) {
-        throw TokenError("Failed to match valid token in Token constructor");
-    }
-
-    m_type = result.value();
-
-    if (m_type == TokenType::CONSTANT) {
-        // With error handling
-        try {
-            int num = std::stoi(m_lexeme); // This will throw an exception
-            m_literal = num;
-        } catch (const std::exception& e) {
-            throw TokenError(std::format("Error while parsing constant in Token constructor: {}", e.what()));
-        }
-    }
 }
 
 std::string Token::type_to_string(TokenType type)

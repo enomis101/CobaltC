@@ -2,7 +2,6 @@
 #include "common/data/token_table.h"
 #include <stdexcept>
 #include <string>
-#include <unordered_map>
 #include <variant>
 
 class TokenError : public std::runtime_error {
@@ -15,7 +14,8 @@ public:
 
 class Token {
 public:
-    Token(const std::string& lexeme, int line);
+    using LiteralType = std::variant<std::monostate, int>;
+    Token(TokenType type, const std::string& lexeme, LiteralType literal, int line);
     std::string to_string() const;
     TokenType type() const { return m_type; }
     int line() const { return m_line; }
@@ -36,6 +36,6 @@ public:
 private:
     TokenType m_type;
     std::string m_lexeme;
-    std::variant<std::monostate, int> m_literal;
+    LiteralType m_literal;
     int m_line;
 };

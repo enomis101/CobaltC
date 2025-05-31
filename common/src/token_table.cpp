@@ -1,12 +1,5 @@
 #include "common/data/token_table.h"
 
-// Meyer's Singleton implementation
-TokenTable& TokenTable::instance()
-{
-    static TokenTable s_instance;
-    return s_instance;
-}
-
 size_t TokenTable::search(std::string_view input) const
 {
     if (input.size() <= 0)

@@ -3,6 +3,7 @@
 #include "assembly/assembly_printer.h"
 #include "assembly/code_emitter.h"
 #include "common/data/token.h"
+#include "common/data/token_table.h"
 #include "common/log/log.h"
 #include "lexer/lexer.h"
 #include "parser/parser.h"
@@ -73,6 +74,7 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
     FileCleaner file_cleaner;
     file_cleaner.push_back(preprocessed_output_file);
 
+    std::shared_ptr<TokenTable> token_table = std::make_shared<TokenTable>();
     std::shared_ptr<NameGenerator> name_generator = std::make_shared<NameGenerator>();
     std::shared_ptr<SymbolTable> symbol_table = std::make_shared<SymbolTable>();
 
@@ -82,7 +84,7 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
     try {
         LOG_INFO(LOG_CONTEXT, std::format("Lexing file '{}'", preprocessed_output_file));
 
-        Lexer lexer(preprocessed_output_file);
+        Lexer lexer(preprocessed_output_file, token_table);
         tokens = lexer.tokenize();
 
         LOG_INFO(LOG_CONTEXT, std::format("Lexing successful: {} tokens generated", tokens.size()));

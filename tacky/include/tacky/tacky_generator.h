@@ -22,7 +22,7 @@ class TackyGenerator {
 public:
     TackyGenerator(std::shared_ptr<parser::ParserAST> ast, std::shared_ptr<NameGenerator> name_generator, std::shared_ptr<SymbolTable> symbol_table);
 
-    std::shared_ptr<TackyAST> generate();
+    Program generate();
 
 private:
     UnaryOperator transform_unary_operator(parser::UnaryOperator& op);
@@ -37,7 +37,7 @@ private:
     std::unique_ptr<TopLevel> transform_top_level_declaraiton(parser::Declaration& declaration);
     std::unique_ptr<Program> transform_program(parser::Program& program);
 
-    void transform_symbols_to_tacky(std::shared_ptr<TackyAST> tacky_ast);
+    void transform_symbols_to_tacky(Program& tacky_program);
 
     std::shared_ptr<parser::ParserAST> m_ast;
     std::shared_ptr<NameGenerator> m_name_generator;

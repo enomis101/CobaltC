@@ -3,6 +3,7 @@ include(GoogleTest)
 
 # Define the list of test files
 set(TEST_FILES
+    lexer_test.cpp
     # Add other test files here
 )
 

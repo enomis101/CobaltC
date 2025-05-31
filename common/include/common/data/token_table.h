@@ -56,7 +56,7 @@ enum class TokenType {
 class TokenTable {
 public:
     TokenTable();
-    
+
     // Delete copy
     TokenTable(const TokenTable&) = delete;
     TokenTable& operator=(const TokenTable&) = delete;

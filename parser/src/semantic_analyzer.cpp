@@ -7,10 +7,10 @@ using namespace parser;
 
 void SemanticAnalyzer::analyze()
 {
-    IdentifierResolutionPass var_pass(m_ast);
+    IdentifierResolutionPass var_pass(m_ast, m_name_generator);
     var_pass.run();
-    TypeCheckPass type_pass(m_ast);
+    TypeCheckPass type_pass(m_ast, m_symbol_table);
     type_pass.run();
-    LoopLabelingPass loop_pass(m_ast);
+    LoopLabelingPass loop_pass(m_ast, m_name_generator);
     loop_pass.run();
 }

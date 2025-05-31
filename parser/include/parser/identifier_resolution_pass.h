@@ -1,8 +1,8 @@
 #pragma once
 #include "common/data/name_generator.h"
+#include "common/data/symbol_table.h"
 #include "parser/parser_ast.h"
 #include "parser/semantic_analyzer_error.h"
-#include "parser/symbol_table.h"
 #include <string>
 #include <unordered_map>
 
@@ -18,10 +18,9 @@ public:
 
 class IdentifierResolutionPass : public ParserVisitor {
 public:
-    IdentifierResolutionPass(std::shared_ptr<ParserAST> ast)
+    IdentifierResolutionPass(std::shared_ptr<ParserAST> ast, std::shared_ptr<NameGenerator> name_generator)
         : m_ast { ast }
-        , m_name_generator { NameGenerator::instance() }
-        , m_symbol_table { SymbolTable::instance() }
+        , m_name_generator { name_generator }
     {
     }
 
@@ -93,8 +92,7 @@ private:
 
     IdentifierMap m_identifier_map;
     std::shared_ptr<ParserAST> m_ast;
-    NameGenerator& m_name_generator;
-    SymbolTable& m_symbol_table;
+    std::shared_ptr<NameGenerator> m_name_generator;
 };
 
 }

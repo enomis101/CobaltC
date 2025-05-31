@@ -1,7 +1,7 @@
 #pragma once
+#include "common/data/symbol_table.h"
 #include "parser/parser_ast.h"
 #include "parser/semantic_analyzer_error.h"
-#include "parser/symbol_table.h"
 #include <string>
 
 namespace parser {
@@ -16,9 +16,9 @@ public:
 
 class TypeCheckPass : public ParserVisitor {
 public:
-    TypeCheckPass(std::shared_ptr<ParserAST> ast)
+    TypeCheckPass(std::shared_ptr<ParserAST> ast, std::shared_ptr<SymbolTable> symbol_table)
         : m_ast { ast }
-        , m_symbol_table { SymbolTable::instance() }
+        , m_symbol_table { symbol_table }
     {
     }
 
@@ -56,7 +56,7 @@ private:
     void typecheck_local_variable_declaration(VariableDeclaration& variable_declaration);
 
     std::shared_ptr<ParserAST> m_ast;
-    SymbolTable& m_symbol_table;
+    std::shared_ptr<SymbolTable> m_symbol_table;
 };
 
 }

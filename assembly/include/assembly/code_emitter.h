@@ -1,5 +1,6 @@
 #pragma once
 #include "assembly/assembly_ast.h"
+#include "common/data/symbol_table.h"
 #include <fstream>
 #include <memory>
 #include <stdexcept>
@@ -17,7 +18,7 @@ public:
 
 class CodeEmitter : public AssemblyVisitor {
 public:
-    CodeEmitter(const std::string& output_file, std::shared_ptr<AssemblyAST> ast);
+    CodeEmitter(const std::string& output_file, std::shared_ptr<AssemblyAST> ast, std::shared_ptr<SymbolTable> symbol_table);
     void emit_code();
 
 private:
@@ -52,6 +53,7 @@ private:
     std::string get_function_name(const std::string& in_name);
     const std::string m_output_file;
     std::shared_ptr<AssemblyAST> m_ast;
+    std::shared_ptr<SymbolTable> m_symbol_table;
     std::ofstream* m_file_stream;
 };
 

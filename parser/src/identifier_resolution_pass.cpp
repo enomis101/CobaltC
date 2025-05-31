@@ -51,14 +51,14 @@ void IdentifierResolutionPass::visit(FunctionDeclaration& node)
         resolve_variable_identifier(param);
     }
 
-    if (!m_symbol_table.is_top_level(node)) {
+    if (node.scope == DeclarationScope::Block) {
         if (node.storage_class == StorageClass::STATIC) {
             throw IdentifierResolutionPassError(std::format("Function {} at local scope has static specifier", function_name));
         }
     }
 
     if (node.body.has_value()) {
-        if (!m_symbol_table.is_top_level(node)) {
+        if (node.scope == DeclarationScope::Block) {
             throw IdentifierResolutionPassError(std::format("Definining function {} at local scope", function_name));
         }
         node.body.value()->accept(*this);
@@ -68,7 +68,6 @@ void IdentifierResolutionPass::visit(FunctionDeclaration& node)
 void IdentifierResolutionPass::visit(Program& node)
 {
     for (auto& decl : node.declarations) {
-        m_symbol_table.set_top_level(*decl.get());
         decl->accept(*this);
     }
 }
@@ -138,7 +137,7 @@ void IdentifierResolutionPass::visit(NullStatement& node)
 
 void IdentifierResolutionPass::visit(VariableDeclaration& node)
 {
-    if (m_symbol_table.is_top_level(node)) {
+    if (node.scope == DeclarationScope::File) {
         resolve_file_scope_variable_declaration(node);
     } else {
         resolve_local_variable_declaration(node);
@@ -199,7 +198,7 @@ void IdentifierResolutionPass::resolve_variable_identifier(Identifier& identifie
         throw IdentifierResolutionPassError(std::format("Duplicate variable declaration: {}", variable_name));
     }
 
-    std::string new_name = m_name_generator.make_temporary(variable_name);
+    std::string new_name = m_name_generator->make_temporary(variable_name);
     m_identifier_map.insert_or_assign(variable_name, MapEntry(new_name, true, false));
     identifier.name = new_name;
 }

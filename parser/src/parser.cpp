@@ -10,6 +10,7 @@ std::shared_ptr<Program> Parser::parse_program()
 {
     std::vector<std::unique_ptr<Declaration>> decls;
     while (has_tokens()) {
+        m_current_declaration_scope = DeclarationScope::File;
         decls.emplace_back(parse_declaration());
     }
     return std::make_shared<Program>(std::move(decls));
@@ -17,6 +18,7 @@ std::shared_ptr<Program> Parser::parse_program()
 
 std::unique_ptr<Block> Parser::parse_block()
 {
+    m_current_declaration_scope = DeclarationScope::Block;
     expect(TokenType::OPEN_BRACE);
     const Token* next_token = has_tokens() ? &peek() : nullptr;
     std::vector<std::unique_ptr<BlockItem>> body;
@@ -63,10 +65,12 @@ std::vector<Identifier> Parser::parse_parameter_list()
 
 std::unique_ptr<Declaration> Parser::parse_declaration()
 {
+    DeclarationScope current_declaration_scope = m_current_declaration_scope;
     std::pair<std::unique_ptr<Type>, StorageClass> type_and_storage = parse_type_and_storage_class();
     StorageClass storage_class = type_and_storage.second;
     const Token& identifier_token = expect(TokenType::IDENTIFIER);
     const Token* next_token = &peek();
+
     if (next_token->type() == TokenType::OPEN_PAREN) {
         expect(TokenType::OPEN_PAREN);
         std::vector<Identifier> param_list = parse_parameter_list();
@@ -80,19 +84,19 @@ std::unique_ptr<Declaration> Parser::parse_declaration()
             body = parse_block();
         }
 
-        return std::make_unique<FunctionDeclaration>(identifier_token.lexeme(), param_list, std::move(body), storage_class);
+        return std::make_unique<FunctionDeclaration>(identifier_token.lexeme(), param_list, std::move(body), storage_class, current_declaration_scope);
     } else {
         next_token = &peek();
 
         if (next_token->type() == TokenType::SEMICOLON) {
             expect(TokenType::SEMICOLON);
-            return std::make_unique<VariableDeclaration>(identifier_token.lexeme(), nullptr, storage_class);
+            return std::make_unique<VariableDeclaration>(identifier_token.lexeme(), nullptr, storage_class, current_declaration_scope);
         }
 
         expect(TokenType::ASSIGNMENT);
         std::unique_ptr<Expression> init_expr = parse_expression();
         expect(TokenType::SEMICOLON);
-        return std::make_unique<VariableDeclaration>(identifier_token.lexeme(), std::move(init_expr), storage_class);
+        return std::make_unique<VariableDeclaration>(identifier_token.lexeme(), std::move(init_expr), storage_class, current_declaration_scope);
     }
 }
 

@@ -17,9 +17,9 @@ public:
 
 class LoopLabelingPass : public ParserVisitor {
 public:
-    LoopLabelingPass(std::shared_ptr<ParserAST> ast)
+    LoopLabelingPass(std::shared_ptr<ParserAST> ast, std::shared_ptr<NameGenerator> name_generator)
         : m_ast { ast }
-        , m_name_generator { NameGenerator::instance() }
+        , m_name_generator { name_generator }
     {
     }
     void run();
@@ -51,7 +51,7 @@ private:
     void visit(ForInitExpression& node) override;
 
     std::shared_ptr<ParserAST> m_ast;
-    NameGenerator& m_name_generator;
+    std::shared_ptr<NameGenerator> m_name_generator;
     std::stack<std::string> m_label_stack;
 };
 

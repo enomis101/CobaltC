@@ -1,18 +1,17 @@
 #include "tacky/tacky_generator.h"
+#include "common/data/symbol_table.h"
 #include "parser/parser_ast.h"
-#include "parser/symbol_table.h"
 #include "tacky/tacky_ast.h"
 #include <memory>
 #include <string>
 #include <unordered_map>
-#include <variant>
 
 using namespace tacky;
 
-TackyGenerator::TackyGenerator(std::shared_ptr<parser::ParserAST> ast)
+TackyGenerator::TackyGenerator(std::shared_ptr<parser::ParserAST> ast, std::shared_ptr<NameGenerator> name_generator, std::shared_ptr<SymbolTable> symbol_table)
     : m_ast { ast }
-    , m_name_generator { NameGenerator::instance() }
-    , m_symbol_table { parser::SymbolTable::instance() }
+    , m_name_generator { name_generator }
+    , m_symbol_table { symbol_table }
 {
     if (!m_ast || !dynamic_cast<parser::Program*>(m_ast.get())) {
         throw TackyGeneratorError("TackyGenerator: Invalid AST");
@@ -30,18 +29,18 @@ void TackyGenerator::transform_symbols_to_tacky(std::shared_ptr<TackyAST> tacky_
 {
     auto& top_levels = dynamic_cast<Program*>(tacky_ast.get())->definitions;
 
-    for (const auto& p : m_symbol_table.symbols()) {
+    for (const auto& p : m_symbol_table->symbols()) {
         const auto& entry = p.second;
-        if (std::holds_alternative<parser::StaticAttribute>(entry.attribute)) {
-            const auto& static_attr = std::get<parser::StaticAttribute>(entry.attribute);
+        if (std::holds_alternative<StaticAttribute>(entry.attribute)) {
+            const auto& static_attr = std::get<StaticAttribute>(entry.attribute);
             bool global = static_attr.global;
             const std::string& variable_name = p.first;
-            if (std::holds_alternative<parser::InitialValue>(static_attr.init)) {
-                int initial_value = std::get<parser::InitialValue>(static_attr.init).value;
+            if (std::holds_alternative<InitialValue>(static_attr.init)) {
+                int initial_value = std::get<InitialValue>(static_attr.init).value;
                 top_levels.emplace_back(std::make_unique<StaticVariable>(variable_name, global, initial_value));
-            } else if (std::holds_alternative<parser::TentativeInit>(static_attr.init)) {
+            } else if (std::holds_alternative<TentativeInit>(static_attr.init)) {
                 top_levels.emplace_back(std::make_unique<StaticVariable>(variable_name, global, 0));
-            } else if (std::holds_alternative<parser::NoInit>(static_attr.init)) {
+            } else if (std::holds_alternative<NoInit>(static_attr.init)) {
                 continue;
             }
         }
@@ -94,7 +93,7 @@ std::unique_ptr<Value> TackyGenerator::transform_expression(parser::Expression& 
         return std::make_unique<Constant>(constant_expression->value);
     } else if (parser::UnaryExpression* unary_expression = dynamic_cast<parser::UnaryExpression*>(&expression)) {
         std::unique_ptr<Value> src = transform_expression(*unary_expression->expression, instructions);
-        std::string dst_name = m_name_generator.make_temporary();
+        std::string dst_name = m_name_generator->make_temporary();
         std::unique_ptr<TemporaryVariable> dst = std::make_unique<TemporaryVariable>(dst_name);
         std::unique_ptr<Value> dst_copy = std::make_unique<TemporaryVariable>(*dst);
         UnaryOperator op = transform_unary_operator(unary_expression->unary_operator);
@@ -104,17 +103,17 @@ std::unique_ptr<Value> TackyGenerator::transform_expression(parser::Expression& 
         // WE need to handle logical AND OR differently to supprt short circuit
         if (binary_expression->binary_operator == parser::BinaryOperator::AND) {
             std::unique_ptr<Value> src1 = transform_expression(*binary_expression->left_expression, instructions);
-            std::string false_label = m_name_generator.make_label("and_false");
+            std::string false_label = m_name_generator->make_label("and_false");
             instructions.emplace_back(std::make_unique<JumpIfZeroInstruction>(std::move(src1), false_label));
             std::unique_ptr<Value> src2 = transform_expression(*binary_expression->right_expression, instructions);
             instructions.emplace_back(std::make_unique<JumpIfZeroInstruction>(std::move(src2), false_label));
-            std::string result = m_name_generator.make_temporary();
+            std::string result = m_name_generator->make_temporary();
             {
                 std::unique_ptr<TemporaryVariable> result_var = std::make_unique<TemporaryVariable>(result);
                 instructions.emplace_back(std::make_unique<CopyInstruction>(1, std::move(result_var)));
             }
 
-            std::string end_label = m_name_generator.make_label("and_end");
+            std::string end_label = m_name_generator->make_label("and_end");
             instructions.emplace_back(std::make_unique<JumpInstruction>(end_label));
             instructions.emplace_back(std::make_unique<LabelInstruction>(false_label));
             {
@@ -126,17 +125,17 @@ std::unique_ptr<Value> TackyGenerator::transform_expression(parser::Expression& 
             return result_var;
         } else if (binary_expression->binary_operator == parser::BinaryOperator::OR) {
             std::unique_ptr<Value> src1 = transform_expression(*binary_expression->left_expression, instructions);
-            std::string true_label = m_name_generator.make_label("or_true");
+            std::string true_label = m_name_generator->make_label("or_true");
             instructions.emplace_back(std::make_unique<JumpIfNotZeroInstruction>(std::move(src1), true_label));
             std::unique_ptr<Value> src2 = transform_expression(*binary_expression->right_expression, instructions);
             instructions.emplace_back(std::make_unique<JumpIfNotZeroInstruction>(std::move(src2), true_label));
-            std::string result = m_name_generator.make_temporary();
+            std::string result = m_name_generator->make_temporary();
             {
                 std::unique_ptr<TemporaryVariable> result_var = std::make_unique<TemporaryVariable>(result);
                 instructions.emplace_back(std::make_unique<CopyInstruction>(0, std::move(result_var)));
             }
 
-            std::string end_label = m_name_generator.make_label("or_end");
+            std::string end_label = m_name_generator->make_label("or_end");
             instructions.emplace_back(std::make_unique<JumpInstruction>(end_label));
             instructions.emplace_back(std::make_unique<LabelInstruction>(true_label));
             {
@@ -149,7 +148,7 @@ std::unique_ptr<Value> TackyGenerator::transform_expression(parser::Expression& 
         } else {
             std::unique_ptr<Value> src1 = transform_expression(*binary_expression->left_expression, instructions);
             std::unique_ptr<Value> src2 = transform_expression(*binary_expression->right_expression, instructions);
-            std::string dst_name = m_name_generator.make_temporary();
+            std::string dst_name = m_name_generator->make_temporary();
             std::unique_ptr<TemporaryVariable> dst = std::make_unique<TemporaryVariable>(dst_name);
             std::unique_ptr<Value> dst_copy = std::make_unique<TemporaryVariable>(*dst);
             BinaryOperator op = transform_binary_operator(binary_expression->binary_operator);
@@ -168,9 +167,9 @@ std::unique_ptr<Value> TackyGenerator::transform_expression(parser::Expression& 
         return std::make_unique<TemporaryVariable>(variable->identifier.name);
     } else if (parser::ConditionalExpression* conditional_expression = dynamic_cast<parser::ConditionalExpression*>(&expression)) {
         // Create labels
-        std::string false_label = m_name_generator.make_label("conditional_false");
-        std::string end_label = m_name_generator.make_label("conditional_end");
-        std::string result = m_name_generator.make_temporary();
+        std::string false_label = m_name_generator->make_label("conditional_false");
+        std::string end_label = m_name_generator->make_label("conditional_end");
+        std::string result = m_name_generator->make_temporary();
 
         // Condition
         std::unique_ptr<Value> cond = transform_expression(*conditional_expression->condition, instructions);
@@ -202,7 +201,7 @@ std::unique_ptr<Value> TackyGenerator::transform_expression(parser::Expression& 
         for (auto& arg : function_call_expression->arguments) {
             args.emplace_back(transform_expression((*arg.get()), instructions));
         }
-        std::string result = m_name_generator.make_temporary();
+        std::string result = m_name_generator->make_temporary();
         std::unique_ptr<TemporaryVariable> result_var = std::make_unique<TemporaryVariable>(result);
         instructions.emplace_back(std::make_unique<FunctionCallInstruction>(function_call_expression->name.name, std::move(args), std::move(result_var)));
         return std::make_unique<TemporaryVariable>(result);
@@ -222,13 +221,13 @@ void TackyGenerator::transform_statement(parser::Statement& statement, std::vect
     } else if (parser::IfStatement* if_statement = dynamic_cast<parser::IfStatement*>(&statement)) {
         std::unique_ptr<Value> cond = transform_expression(*(if_statement->condition.get()), instructions);
         if (!if_statement->else_statement.has_value()) {
-            std::string end_label = m_name_generator.make_label("if_end");
+            std::string end_label = m_name_generator->make_label("if_end");
             instructions.emplace_back(std::make_unique<JumpIfZeroInstruction>(std::move(cond), end_label));
             transform_statement(*if_statement->then_statement, instructions);
             instructions.emplace_back(std::make_unique<LabelInstruction>(end_label));
         } else {
-            std::string else_label = m_name_generator.make_label("else");
-            std::string end_label = m_name_generator.make_label("if_end");
+            std::string else_label = m_name_generator->make_label("else");
+            std::string end_label = m_name_generator->make_label("if_end");
             instructions.emplace_back(std::make_unique<JumpIfZeroInstruction>(std::move(cond), else_label));
             transform_statement(*if_statement->then_statement, instructions);
             instructions.emplace_back(std::make_unique<JumpInstruction>(end_label));
@@ -246,7 +245,7 @@ void TackyGenerator::transform_statement(parser::Statement& statement, std::vect
         std::string continue_label = "continue_" + continue_statement->label.name;
         instructions.emplace_back(std::make_unique<JumpInstruction>(continue_label));
     } else if (parser::DoWhileStatement* do_while_statement = dynamic_cast<parser::DoWhileStatement*>(&statement)) {
-        std::string start_label = m_name_generator.make_label("do_while_start");
+        std::string start_label = m_name_generator->make_label("do_while_start");
         std::string continue_label = "continue_" + do_while_statement->label.name;
         std::string break_label = "break_" + do_while_statement->label.name;
 
@@ -268,7 +267,7 @@ void TackyGenerator::transform_statement(parser::Statement& statement, std::vect
         instructions.emplace_back(std::make_unique<JumpInstruction>(continue_label));
         instructions.emplace_back(std::make_unique<LabelInstruction>(break_label));
     } else if (parser::ForStatement* for_statement = dynamic_cast<parser::ForStatement*>(&statement)) {
-        std::string start_label = m_name_generator.make_label("for_start");
+        std::string start_label = m_name_generator->make_label("for_start");
         std::string continue_label = "continue_" + for_statement->label.name;
         std::string break_label = "break_" + for_statement->label.name;
         transform_for_init(*for_statement->init, instructions);
@@ -352,7 +351,7 @@ std::unique_ptr<FunctionDefinition> TackyGenerator::transform_function(parser::F
         std::vector<std::unique_ptr<Instruction>> body;
         transform_block(*function.body.value().get(), body);
         body.emplace_back(std::make_unique<ReturnInstruction>(std::make_unique<Constant>(0)));
-        bool global = std::get<parser::FunctionAttribute>(m_symbol_table.symbols().at(function.name.name).attribute).global;
+        bool global = std::get<FunctionAttribute>(m_symbol_table->symbol_at(function.name.name).attribute).global;
         return std::make_unique<FunctionDefinition>(function.name.name, global, params, std::move(body));
     }
 

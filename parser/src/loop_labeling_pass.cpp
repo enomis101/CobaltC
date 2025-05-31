@@ -130,7 +130,7 @@ void LoopLabelingPass::visit(ContinueStatement& node)
 
 void LoopLabelingPass::visit(WhileStatement& node)
 {
-    std::string label = m_name_generator.make_label("while");
+    std::string label = m_name_generator->make_label("while");
     node.label.name = label;
     m_label_stack.push(label);
 
@@ -143,7 +143,7 @@ void LoopLabelingPass::visit(WhileStatement& node)
 
 void LoopLabelingPass::visit(DoWhileStatement& node)
 {
-    std::string label = m_name_generator.make_label("do_while");
+    std::string label = m_name_generator->make_label("do_while");
     node.label.name = label;
     m_label_stack.push(label);
 
@@ -156,7 +156,7 @@ void LoopLabelingPass::visit(DoWhileStatement& node)
 
 void LoopLabelingPass::visit(ForStatement& node)
 {
-    std::string label = m_name_generator.make_label("for");
+    std::string label = m_name_generator->make_label("for");
     node.label.name = label;
     m_label_stack.push(label);
 

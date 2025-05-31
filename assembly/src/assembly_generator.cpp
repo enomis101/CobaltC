@@ -1,7 +1,7 @@
 #include "assembly/assembly_generator.h"
 #include "assembly/assembly_ast.h"
 
-#include "parser/symbol_table.h"
+#include "common/data/symbol_table.h"
 #include "tacky/tacky_ast.h"
 #include <cassert>
 #include <memory>
@@ -10,9 +10,9 @@
 
 using namespace assembly;
 
-PseudoRegisterReplaceStep::PseudoRegisterReplaceStep(std::shared_ptr<AssemblyAST> ast)
+PseudoRegisterReplaceStep::PseudoRegisterReplaceStep(std::shared_ptr<AssemblyAST> ast, std::shared_ptr<SymbolTable> symbol_table)
     : m_ast { ast }
-    , s_symbol_table { parser::SymbolTable::instance() }
+    , m_symbol_table { symbol_table }
 {
     if (!m_ast || !dynamic_cast<Program*>(m_ast.get())) {
         throw AssemblyGeneratorError("PseudoRegisterReplaceStep: Invalid AST");
@@ -71,7 +71,7 @@ void PseudoRegisterReplaceStep::visit(FunctionDefinition& node)
     }
 
     size_t stack_size = m_stack_offsets.size() * 4;
-    s_symbol_table.symbols().at(node.name.name).stack_size = stack_size;
+    m_symbol_table->symbol_at(node.name.name).stack_size = stack_size;
 }
 
 void PseudoRegisterReplaceStep::visit(Program& node)
@@ -86,7 +86,7 @@ void PseudoRegisterReplaceStep::check_and_replace(std::unique_ptr<Operand>& op)
     if (PseudoRegister* reg = dynamic_cast<PseudoRegister*>(op.get())) {
         const std::string& pseudo_reg_name = reg->identifier.name;
         std::unique_ptr<Operand> new_op = nullptr;
-        if (!m_stack_offsets.contains(pseudo_reg_name) && s_symbol_table.symbols().contains(pseudo_reg_name) && std::holds_alternative<parser::StaticAttribute>(s_symbol_table.symbols().at(pseudo_reg_name).attribute)) {
+        if (!m_stack_offsets.contains(pseudo_reg_name) && m_symbol_table->contains_symbol(pseudo_reg_name) && std::holds_alternative<StaticAttribute>(m_symbol_table->symbol_at(pseudo_reg_name).attribute)) {
             new_op = std::make_unique<DataOperand>(pseudo_reg_name);
         } else {
             int offset = get_offset(pseudo_reg_name);
@@ -105,8 +105,9 @@ int PseudoRegisterReplaceStep::get_offset(const std::string& name)
     return m_stack_offsets[name] * -4;
 }
 
-FixUpInstructionsStep::FixUpInstructionsStep(std::shared_ptr<AssemblyAST> ast)
+FixUpInstructionsStep::FixUpInstructionsStep(std::shared_ptr<AssemblyAST> ast, std::shared_ptr<SymbolTable> symbol_table)
     : m_ast { ast }
+    , m_symbol_table { symbol_table }
 {
     if (!m_ast || !dynamic_cast<Program*>(m_ast.get())) {
         throw AssemblyGeneratorError("FixUpInstructionsStep: Invalid AST");
@@ -123,8 +124,7 @@ void FixUpInstructionsStep::visit(FunctionDefinition& node)
     std::vector<std::unique_ptr<Instruction>> tmp_instructions = std::move(node.instructions);
     node.instructions.clear();
 
-    parser::SymbolTable& symbol_table = parser::SymbolTable::instance();
-    int stack_offset = round_up_to_16(symbol_table.symbols().at(node.name.name).stack_size);
+    int stack_offset = round_up_to_16(m_symbol_table->symbol_at(node.name.name).stack_size);
     node.instructions.emplace_back(std::make_unique<AllocateStackInstruction>(stack_offset));
     for (auto& i : tmp_instructions) {
         if (dynamic_cast<MovInstruction*>(i.get())) {
@@ -173,8 +173,9 @@ void FixUpInstructionsStep::visit(Program& node)
     }
 }
 
-AssemblyGenerator::AssemblyGenerator(std::shared_ptr<tacky::TackyAST> ast)
+AssemblyGenerator::AssemblyGenerator(std::shared_ptr<tacky::TackyAST> ast, std::shared_ptr<SymbolTable> symbol_table)
     : m_ast { ast }
+    , m_symbol_table(symbol_table)
     , FUN_REGISTERS { RegisterName::DI, RegisterName::SI, RegisterName::DX, RegisterName::CX, RegisterName::R8, RegisterName::R9 }
 {
     if (!m_ast || !dynamic_cast<tacky::Program*>(m_ast.get())) {
@@ -186,9 +187,9 @@ std::shared_ptr<AssemblyAST> AssemblyGenerator::generate()
 {
     std::shared_ptr<AssemblyAST> m_assembly_ast = transform_program(*dynamic_cast<tacky::Program*>(m_ast.get()));
 
-    PseudoRegisterReplaceStep step1(m_assembly_ast);
+    PseudoRegisterReplaceStep step1(m_assembly_ast, m_symbol_table);
     step1.replace();
-    FixUpInstructionsStep step2(m_assembly_ast);
+    FixUpInstructionsStep step2(m_assembly_ast, m_symbol_table);
     step2.fixup();
     return m_assembly_ast;
 }

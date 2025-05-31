@@ -1,6 +1,6 @@
 #pragma once
 #include "assembly/assembly_ast.h"
-#include "parser/symbol_table.h"
+#include "common/data/symbol_table.h"
 #include "tacky/tacky_ast.h"
 #include <stdexcept>
 #include <unordered_map>
@@ -18,7 +18,7 @@ public:
 
 class PseudoRegisterReplaceStep : public AssemblyVisitor {
 public:
-    PseudoRegisterReplaceStep(std::shared_ptr<AssemblyAST> ast);
+    PseudoRegisterReplaceStep(std::shared_ptr<AssemblyAST> ast, std::shared_ptr<SymbolTable> symbol_table);
 
     void replace();
 
@@ -54,12 +54,12 @@ private:
 
     std::shared_ptr<AssemblyAST> m_ast;
     std::unordered_map<std::string, int> m_stack_offsets;
-    parser::SymbolTable& s_symbol_table;
+    std::shared_ptr<SymbolTable> m_symbol_table;
 };
 
 class FixUpInstructionsStep : public AssemblyVisitor {
 public:
-    FixUpInstructionsStep(std::shared_ptr<AssemblyAST> ast);
+    FixUpInstructionsStep(std::shared_ptr<AssemblyAST> ast, std::shared_ptr<SymbolTable> symbol_table);
 
     void fixup();
 
@@ -107,6 +107,7 @@ private:
     }
 
     std::shared_ptr<AssemblyAST> m_ast;
+    std::shared_ptr<SymbolTable> m_symbol_table;
 
     int round_up_to_16(int x)
     {
@@ -117,7 +118,7 @@ private:
 // Generate an AssemblyAST from a TackyAST
 class AssemblyGenerator {
 public:
-    AssemblyGenerator(std::shared_ptr<tacky::TackyAST> ast);
+    AssemblyGenerator(std::shared_ptr<tacky::TackyAST> ast, std::shared_ptr<SymbolTable> symbol_table);
 
     std::shared_ptr<AssemblyAST> generate();
 
@@ -137,6 +138,7 @@ private:
     bool is_relational_operator(tacky::BinaryOperator op);
     ConditionCode to_condition_code(tacky::BinaryOperator op);
     std::shared_ptr<tacky::TackyAST> m_ast;
+    std::shared_ptr<SymbolTable> m_symbol_table;
     const std::vector<RegisterName> FUN_REGISTERS;
 };
 

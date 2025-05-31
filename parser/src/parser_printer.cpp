@@ -1,4 +1,5 @@
 #include "parser/parser_printer.h"
+#include "parser/parser_ast.h"
 #include <fstream>
 #include <string>
 
@@ -230,12 +231,25 @@ std::string PrinterVisitor::storage_class_to_string(StorageClass sc)
     }
 }
 
+std::string PrinterVisitor::declaration_scope_to_string(DeclarationScope scope)
+{
+    switch (scope) {
+    case DeclarationScope::File:
+        return "File";
+    case DeclarationScope::Block:
+        return "Block";
+    default:
+        return "UNKNOWN";
+    }
+}
+
 // Update the VariableDeclaration visit method to include storage class:
 void PrinterVisitor::visit(VariableDeclaration& node)
 {
     int id = get_node_id(&node);
     m_dot_content << "  node" << id << " [label=\"VariableDeclaration\\nstorage_class: "
-                  << storage_class_to_string(node.storage_class) << "\"];\n";
+                  << storage_class_to_string(node.storage_class) << "\"];\n"
+                  << "\\ndeclaration_scope: " << declaration_scope_to_string(node.scope) << "\"];\n";
 
     // Visit the identifier
     node.identifier.accept(*this);
@@ -255,7 +269,8 @@ void PrinterVisitor::visit(FunctionDeclaration& node)
 {
     int id = get_node_id(&node);
     m_dot_content << "  node" << id << " [label=\"FunctionDeclaration\\nname: " << node.name.name
-                  << "\\nstorage_class: " << storage_class_to_string(node.storage_class) << "\"];\n";
+                  << "\\nstorage_class: " << storage_class_to_string(node.storage_class) << "\"];\n"
+                  << "\\ndeclaration_scope: " << declaration_scope_to_string(node.scope) << "\"];\n";
 
     // Visit the name identifier
     node.name.accept(*this);

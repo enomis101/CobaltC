@@ -45,6 +45,7 @@ private:
     std::string operator_to_string(UnaryOperator op);
     std::string operator_to_string(BinaryOperator op);
     std::string storage_class_to_string(StorageClass sc);
+    std::string declaration_scope_to_string(DeclarationScope scope);
 
     int m_node_count;                                     // Counter for generating unique node IDs
     std::unordered_map<const ParserAST*, int> m_node_ids; // Maps ParserAST nodes to their unique IDs

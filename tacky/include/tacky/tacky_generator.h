@@ -1,7 +1,7 @@
 #pragma once
 #include "common/data/name_generator.h"
+#include "common/data/symbol_table.h"
 #include "parser/parser_ast.h"
-#include "parser/symbol_table.h"
 #include "tacky/tacky_ast.h"
 #include <stdexcept>
 #include <vector>
@@ -20,7 +20,7 @@ public:
 // Generate an TackyAST from a ParserAST
 class TackyGenerator {
 public:
-    TackyGenerator(std::shared_ptr<parser::ParserAST> ast);
+    TackyGenerator(std::shared_ptr<parser::ParserAST> ast, std::shared_ptr<NameGenerator> name_generator, std::shared_ptr<SymbolTable> symbol_table);
 
     std::shared_ptr<TackyAST> generate();
 
@@ -40,8 +40,8 @@ private:
     void transform_symbols_to_tacky(std::shared_ptr<TackyAST> tacky_ast);
 
     std::shared_ptr<parser::ParserAST> m_ast;
-    NameGenerator& m_name_generator;
-    parser::SymbolTable& m_symbol_table;
+    std::shared_ptr<NameGenerator> m_name_generator;
+    std::shared_ptr<SymbolTable> m_symbol_table;
 };
 
 } // namespace tacky

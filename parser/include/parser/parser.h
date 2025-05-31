@@ -1,5 +1,6 @@
 #pragma once
 #include "common/data/token.h"
+#include "common/data/type.h"
 #include "parser/parser_ast.h"
 #include <memory>
 #include <stdexcept>
@@ -56,5 +57,6 @@ private:
     void take_token();
     bool has_tokens();
     size_t i = 0;
+    DeclarationScope m_current_declaration_scope;
 };
 }

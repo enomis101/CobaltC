@@ -1,13 +1,14 @@
 #include "assembly/code_emitter.h"
-#include "parser/symbol_table.h"
+#include "common/data/symbol_table.h"
 #include <filesystem>
 #include <format>
 
 using namespace assembly;
 
-CodeEmitter::CodeEmitter(const std::string& output_file, std::shared_ptr<AssemblyAST> ast)
+CodeEmitter::CodeEmitter(const std::string& output_file, std::shared_ptr<AssemblyAST> ast, std::shared_ptr<SymbolTable> symbol_table)
     : m_output_file { output_file }
     , m_ast { ast }
+    , m_symbol_table { symbol_table }
 {
     namespace fs = std::filesystem;
 
@@ -387,7 +388,7 @@ std::string CodeEmitter::to_instruction_suffix(ConditionCode cc)
 
 std::string CodeEmitter::get_function_name(const std::string& in_name)
 {
-    parser::FunctionAttribute& fun_attr = std::get<parser::FunctionAttribute>(parser::SymbolTable::instance().symbols().at(in_name).attribute);
+    FunctionAttribute& fun_attr = std::get<FunctionAttribute>(m_symbol_table->symbol_at(in_name).attribute);
     std::string suffix = fun_attr.defined ? "" : "@PLT";
     return in_name + suffix;
 }

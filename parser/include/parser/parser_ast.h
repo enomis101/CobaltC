@@ -115,32 +115,6 @@ public:
     std::string name;
 };
 
-class Type {
-public:
-    virtual ~Type() = default;
-};
-
-class IntType : public Type {
-public:
-};
-
-class FunctionType : public Type {
-public:
-    FunctionType(size_t pc)
-        : parameters_count { pc }
-    {
-    }
-
-    size_t parameters_count;
-
-    // Implement operator== to compare two FunctionType objects
-    bool operator==(const FunctionType& other) const
-    {
-        // Then check if parameters_count is equal
-        return parameters_count == other.parameters_count;
-    }
-};
-
 // Abstract class for all expressions
 class Expression : public ParserAST {
 public:
@@ -450,6 +424,11 @@ public:
     }
 };
 
+enum class DeclarationScope {
+    File,
+    Block
+};
+
 class Declaration : public BlockItem {
 public:
     virtual ~Declaration() = default;
@@ -457,10 +436,11 @@ public:
 
 class VariableDeclaration : public Declaration {
 public:
-    VariableDeclaration(const std::string& id, std::unique_ptr<Expression> expr = nullptr, StorageClass sc = StorageClass::NONE)
-        : identifier { id }
-        , expression(expr ? std::optional<std::unique_ptr<Expression>>(std::move(expr)) : std::nullopt)
-        , storage_class(sc)
+    VariableDeclaration(const std::string& identifier, std::unique_ptr<Expression> expression, StorageClass storage_class, DeclarationScope scope)
+        : identifier { identifier }
+        , expression(expression ? std::optional<std::unique_ptr<Expression>>(std::move(expression)) : std::nullopt)
+        , storage_class(storage_class)
+        , scope { scope }
     {
     }
 
@@ -472,15 +452,18 @@ public:
     Identifier identifier;
     std::optional<std::unique_ptr<Expression>> expression;
     StorageClass storage_class;
+    DeclarationScope scope;
 };
 
 class FunctionDeclaration : public Declaration {
 public:
-    FunctionDeclaration(const std::string& n, const std::vector<Identifier>& p, std::unique_ptr<Block> b, StorageClass sc = StorageClass::NONE)
-        : name(n)
-        , params(p)
-        , body(b != nullptr ? std::optional<std::unique_ptr<Block>>(std::move(b)) : std::nullopt)
-        , storage_class(sc)
+    FunctionDeclaration(const std::string& name, const std::vector<Identifier>& params, std::unique_ptr<Block> body,
+        StorageClass storage_class, DeclarationScope scope)
+        : name(name)
+        , params(params)
+        , body(body != nullptr ? std::optional<std::unique_ptr<Block>>(std::move(body)) : std::nullopt)
+        , storage_class(storage_class)
+        , scope { scope }
     {
     }
 
@@ -493,6 +476,7 @@ public:
     std::vector<Identifier> params;
     std::optional<std::unique_ptr<Block>> body;
     StorageClass storage_class;
+    DeclarationScope scope;
 };
 
 class ForInit : public ParserAST {

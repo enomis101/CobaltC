@@ -1,6 +1,6 @@
 #include "parser/type_check_pass.h"
+#include "common/data/symbol_table.h"
 #include "parser/parser_ast.h"
-#include "parser/symbol_table.h"
 #include <format>
 #include <variant>
 
@@ -8,7 +8,6 @@ using namespace parser;
 
 void TypeCheckPass::run()
 {
-    m_symbol_table.symbols().clear(); // clear symbol table to be sure, this should be the first pass that fills it
     m_ast->accept(*this);
 }
 
@@ -46,8 +45,8 @@ void TypeCheckPass::visit(FunctionDeclaration& function_declaration)
     const std::string& function_name = function_declaration.name.name;
     bool global = function_declaration.storage_class != StorageClass::STATIC;
 
-    if (m_symbol_table.symbols().contains(function_name)) {
-        SymbolTable::Entry& prev_decl = m_symbol_table.symbols().at(function_name);
+    if (m_symbol_table->contains_symbol(function_name)) {
+        SymbolTable::SymbolEntry& prev_decl = m_symbol_table->symbol_at(function_name);
         FunctionType* prev_fun_type = dynamic_cast<FunctionType*>(prev_decl.type.get());
 
         if (*prev_fun_type != *fun_type) {
@@ -64,7 +63,7 @@ void TypeCheckPass::visit(FunctionDeclaration& function_declaration)
     }
 
     bool defined = (already_defined || has_body);
-    m_symbol_table.symbols().insert_or_assign(function_name, SymbolTable::Entry(std::move(fun_type), FunctionAttribute(defined, global)));
+    m_symbol_table->insert_or_assign_symbol(function_name, std::move(fun_type), FunctionAttribute(defined, global));
 
     for (auto& param : function_declaration.params) {
         resolve_function_param_declaration(param);
@@ -77,7 +76,7 @@ void TypeCheckPass::visit(FunctionDeclaration& function_declaration)
 
 void TypeCheckPass::visit(VariableDeclaration& node)
 {
-    if (m_symbol_table.is_top_level(node)) {
+    if (node.scope == DeclarationScope::File) {
         typecheck_file_scope_variable_declaration(node);
     } else {
         typecheck_local_variable_declaration(node);
@@ -94,7 +93,7 @@ void TypeCheckPass::visit(Program& node)
 void TypeCheckPass::visit(VariableExpression& node)
 {
     std::string& variable_name = node.identifier.name;
-    auto& type = m_symbol_table.symbols().at(variable_name).type;
+    auto& type = m_symbol_table->symbol_at(variable_name).type;
     if (!dynamic_cast<IntType*>(type.get())) {
         throw TypeCheckPassError(std::format("Function name {} used as variable", variable_name));
     }
@@ -122,7 +121,7 @@ void TypeCheckPass::visit(ConditionalExpression& node)
 void TypeCheckPass::visit(FunctionCallExpression& node)
 {
     std::string& function_name = node.name.name;
-    auto& type = m_symbol_table.symbols().at(function_name).type;
+    auto& type = m_symbol_table->symbol_at(function_name).type;
     if (!dynamic_cast<FunctionType*>(type.get())) {
         throw TypeCheckPassError(std::format("Variable {} used as function name", function_name));
     }
@@ -214,7 +213,7 @@ void TypeCheckPass::visit(ForInitExpression& node)
 
 void TypeCheckPass::resolve_function_param_declaration(Identifier& identifier)
 {
-    m_symbol_table.symbols().insert(std::make_pair(identifier.name, SymbolTable::Entry(std::make_unique<IntType>(), LocalAttribute {})));
+    m_symbol_table->insert_symbol(identifier.name, std::make_unique<IntType>(), LocalAttribute {});
 }
 
 void TypeCheckPass::typecheck_file_scope_variable_declaration(VariableDeclaration& variable_declaration)
@@ -234,9 +233,9 @@ void TypeCheckPass::typecheck_file_scope_variable_declaration(VariableDeclaratio
     }
 
     bool global = variable_declaration.storage_class != StorageClass::STATIC;
-    if (m_symbol_table.symbols().contains(variable_name)) {
+    if (m_symbol_table->contains_symbol(variable_name)) {
 
-        auto& old_decl = m_symbol_table.symbols().at(variable_name);
+        auto& old_decl = m_symbol_table->symbol_at(variable_name);
         if (!std::holds_alternative<StaticAttribute>(old_decl.attribute)) {
             throw TypeCheckPassError(std::format("In typecheck_file_scope_variable_declaration: prev. file scope variable declaration of {} does not have a StaticAttribute!", variable_name));
         }
@@ -262,7 +261,7 @@ void TypeCheckPass::typecheck_file_scope_variable_declaration(VariableDeclaratio
         }
     }
     StaticAttribute attr(initial_value, global);
-    m_symbol_table.symbols().insert_or_assign(variable_name, SymbolTable::Entry(std::make_unique<IntType>(), attr));
+    m_symbol_table->insert_or_assign_symbol(variable_name, std::make_unique<IntType>(), attr);
 }
 void TypeCheckPass::typecheck_local_variable_declaration(VariableDeclaration& variable_declaration)
 {
@@ -271,14 +270,14 @@ void TypeCheckPass::typecheck_local_variable_declaration(VariableDeclaration& va
         if (variable_declaration.expression.has_value()) {
             throw TypeCheckPassError(std::format("In typecheck_local_variable_declaration: Initializer on local extern variable declaration for {}", variable_name));
         }
-        if (m_symbol_table.symbols().contains(variable_name)) {
-            auto& old_decl = m_symbol_table.symbols().at(variable_name);
+        if (m_symbol_table->contains_symbol(variable_name)) {
+            auto& old_decl = m_symbol_table->symbol_at(variable_name);
             if (!dynamic_cast<IntType*>(old_decl.type.get())) {
                 throw TypeCheckPassError(std::format("In typecheck_local_variable_declaration: function {} declared as local variable!", variable_name));
             }
             // a local extern declaration will never change the initial value or linkage we have already recorded
         } else {
-            m_symbol_table.symbols().insert(std::make_pair(variable_name, SymbolTable::Entry(std::make_unique<IntType>(), StaticAttribute { NoInit {}, true })));
+            m_symbol_table->insert_symbol(variable_name, std::make_unique<IntType>(), StaticAttribute { NoInit {}, true });
         }
     } else if (variable_declaration.storage_class == StorageClass::STATIC) {
         Initializer initial_value;
@@ -289,9 +288,9 @@ void TypeCheckPass::typecheck_local_variable_declaration(VariableDeclaration& va
         } else {
             throw TypeCheckPassError(std::format("In typecheck_local_variable_declaration: local variable declaration of {} has non-constant initializer!", variable_name));
         }
-        m_symbol_table.symbols().insert(std::make_pair(variable_name, SymbolTable::Entry(std::make_unique<IntType>(), StaticAttribute { initial_value, false })));
+        m_symbol_table->insert_symbol(variable_name, std::make_unique<IntType>(), StaticAttribute { initial_value, false });
     } else { // local variable
-        m_symbol_table.symbols().insert(std::make_pair(variable_name, SymbolTable::Entry(std::make_unique<IntType>(), LocalAttribute {})));
+        m_symbol_table->insert_symbol(variable_name, std::make_unique<IntType>(), LocalAttribute {});
         if (variable_declaration.expression.has_value()) {
             variable_declaration.expression.value()->accept(*this);
         }

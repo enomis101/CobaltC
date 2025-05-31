@@ -16,6 +16,7 @@
 #include <filesystem> // Requires C++17 or later
 #include <format>
 #include <fstream>
+#include <memory>
 #include <vector>
 
 CompilerApplication::CompilerApplication()
@@ -71,6 +72,9 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
 
     FileCleaner file_cleaner;
     file_cleaner.push_back(preprocessed_output_file);
+
+    std::shared_ptr<NameGenerator> name_generator = std::make_shared<NameGenerator>();
+    std::shared_ptr<SymbolTable> symbol_table = std::make_shared<SymbolTable>();
 
     std::vector<Token> tokens;
 
@@ -139,7 +143,7 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
     try {
         LOG_INFO(LOG_CONTEXT, "Starting Semantic Analysis stage");
 
-        parser::SemanticAnalyzer semantic_analyzer(parser_ast);
+        parser::SemanticAnalyzer semantic_analyzer(parser_ast, name_generator, symbol_table);
         semantic_analyzer.analyze();
 
         LOG_INFO(LOG_CONTEXT, "Semantic Analysis");
@@ -171,7 +175,7 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
 
     std::shared_ptr<tacky::TackyAST> tacky_ast;
     try {
-        tacky::TackyGenerator tacky_generator(parser_ast);
+        tacky::TackyGenerator tacky_generator(parser_ast, name_generator, symbol_table);
         tacky_ast = tacky_generator.generate();
         if (logging::LogManager::logger()->is_enabled(LOG_CONTEXT, logging::LogLevel::DEBUG)) {
             std::string debug_str = "Parsed Program\n";
@@ -200,7 +204,7 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
 
     std::shared_ptr<assembly::AssemblyAST> assembly_ast;
     try {
-        assembly::AssemblyGenerator assembly_generator(tacky_ast);
+        assembly::AssemblyGenerator assembly_generator(tacky_ast, symbol_table);
         assembly_ast = assembly_generator.generate();
         if (logging::LogManager::logger()->is_enabled(LOG_CONTEXT, logging::LogLevel::DEBUG)) {
             std::string debug_str = "Parsed Program\n";
@@ -229,7 +233,7 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
     LOG_INFO(LOG_CONTEXT, std::format("Generating assembly file '{}'", assembly_file));
 
     try {
-        assembly::CodeEmitter code_emitter(assembly_file, assembly_ast);
+        assembly::CodeEmitter code_emitter(assembly_file, assembly_ast, symbol_table);
         code_emitter.emit_code();
     } catch (const assembly::CodeEmitterError& e) {
         throw CompilerError(std::format("CodeEmitter error: {}", e.what()));

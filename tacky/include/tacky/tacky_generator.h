@@ -27,15 +27,15 @@ public:
 private:
     UnaryOperator transform_unary_operator(parser::UnaryOperator& op);
     BinaryOperator transform_binary_operator(parser::BinaryOperator& op);
-    std::unique_ptr<Value> transform_expression(parser::Expression& expression, std::vector<std::unique_ptr<Instruction>>& instructions);
-    void transform_statement(parser::Statement& statement, std::vector<std::unique_ptr<Instruction>>& instructions);
-    void transform_declaration(parser::Declaration& declaration, std::vector<std::unique_ptr<Instruction>>& instructions);
-    void transform_for_init(parser::ForInit& for_init, std::vector<std::unique_ptr<Instruction>>& instructions);
-    void transform_block_item(parser::BlockItem& block_item, std::vector<std::unique_ptr<Instruction>>& instructions);
-    void transform_block(parser::Block& block, std::vector<std::unique_ptr<Instruction>>& instructions);
-    std::unique_ptr<FunctionDefinition> transform_function(parser::FunctionDeclaration& function);
-    std::unique_ptr<TopLevel> transform_top_level_declaraiton(parser::Declaration& declaration);
-    std::unique_ptr<Program> transform_program(parser::Program& program);
+    Value transform_expression(parser::Expression& expression, std::vector<Instruction>& instructions);
+    void transform_statement(parser::Statement& statement, std::vector<Instruction>& instructions);
+    void transform_declaration(parser::Declaration& declaration, std::vector<Instruction>& instructions);
+    void transform_for_init(parser::ForInit& for_init, std::vector<Instruction>& instructions);
+    void transform_block_item(parser::BlockItem& block_item, std::vector<Instruction>& instructions);
+    void transform_block(parser::Block& block, std::vector<Instruction>& instructions);
+    std::optional<FunctionDefinition> transform_function(parser::FunctionDeclaration& function);
+    std::optional<TopLevel> transform_top_level_declaraiton(parser::Declaration& declaration);
+    Program transform_program(parser::Program& program);
 
     void transform_symbols_to_tacky(Program& tacky_program);
 

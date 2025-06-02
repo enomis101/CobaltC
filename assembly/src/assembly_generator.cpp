@@ -173,19 +173,16 @@ void FixUpInstructionsStep::visit(Program& node)
     }
 }
 
-AssemblyGenerator::AssemblyGenerator(std::shared_ptr<tacky::TackyAST> ast, std::shared_ptr<SymbolTable> symbol_table)
+AssemblyGenerator::AssemblyGenerator(tacky::Program& ast, std::shared_ptr<SymbolTable> symbol_table)
     : m_ast { ast }
     , m_symbol_table(symbol_table)
     , FUN_REGISTERS { RegisterName::DI, RegisterName::SI, RegisterName::DX, RegisterName::CX, RegisterName::R8, RegisterName::R9 }
 {
-    if (!m_ast || !dynamic_cast<tacky::Program*>(m_ast.get())) {
-        throw AssemblyGeneratorError("AssemblyGenerator: Invalid AST");
-    }
 }
 
 std::shared_ptr<AssemblyAST> AssemblyGenerator::generate()
 {
-    std::shared_ptr<AssemblyAST> m_assembly_ast = transform_program(*dynamic_cast<tacky::Program*>(m_ast.get()));
+    std::shared_ptr<AssemblyAST> m_assembly_ast = transform_program(m_ast);
 
     PseudoRegisterReplaceStep step1(m_assembly_ast, m_symbol_table);
     step1.replace();
@@ -196,10 +193,10 @@ std::shared_ptr<AssemblyAST> AssemblyGenerator::generate()
 
 std::unique_ptr<Operand> AssemblyGenerator::transform_operand(tacky::Value& val)
 {
-    if (tacky::Constant* constant = dynamic_cast<tacky::Constant*>(&val)) {
-        return std::make_unique<ImmediateValue>(constant->value);
-    } else if (tacky::TemporaryVariable* var = dynamic_cast<tacky::TemporaryVariable*>(&val)) {
-        return std::make_unique<PseudoRegister>(var->identifier.name);
+    if (std::holds_alternative<tacky::Constant>(val)) {
+        return std::make_unique<ImmediateValue>(std::get<tacky::Constant>(val).value);
+    } else if (std::holds_alternative<tacky::TemporaryVariable>(val)) {
+        return std::make_unique<PseudoRegister>(std::get<tacky::TemporaryVariable>(val).identifier.name);
     } else {
         throw AssemblyGeneratorError("AssemblyGenerator: Invalid or Unsupported tacky::Value");
     }

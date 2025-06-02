@@ -118,7 +118,7 @@ private:
 // Generate an AssemblyAST from a TackyAST
 class AssemblyGenerator {
 public:
-    AssemblyGenerator(std::shared_ptr<tacky::TackyAST> ast, std::shared_ptr<SymbolTable> symbol_table);
+    AssemblyGenerator(tacky::Program& ast, std::shared_ptr<SymbolTable> symbol_table);
 
     std::shared_ptr<AssemblyAST> generate();
 
@@ -137,7 +137,7 @@ private:
 
     bool is_relational_operator(tacky::BinaryOperator op);
     ConditionCode to_condition_code(tacky::BinaryOperator op);
-    std::shared_ptr<tacky::TackyAST> m_ast;
+    tacky::Program& m_ast;
     std::shared_ptr<SymbolTable> m_symbol_table;
     const std::vector<RegisterName> FUN_REGISTERS;
 };

@@ -15,7 +15,7 @@ public:
 class Token {
 public:
     using LiteralType = std::variant<std::monostate, int>;
-    Token(TokenType type, const std::string& lexeme, LiteralType literal, int line);
+    Token(TokenType type, const std::string& lexeme, LiteralType literal, const FileLocation& file_location);
     std::string to_string() const;
     TokenType type() const { return m_type; }
     int line() const { return m_line; }
@@ -33,7 +33,10 @@ public:
 
     static std::string type_to_string(TokenType type);
 
+    const FileLocation& file_location() const {return m_file_location;}
+
 private:
+    FileLocation m_file_location;
     TokenType m_type;
     std::string m_lexeme;
     LiteralType m_literal;

@@ -21,5 +21,6 @@ public:
 private:
     static const std::string file_extension;
     std::string m_file_content;
+    std::string m_file_path;
     std::shared_ptr<TokenTable> m_token_table;
 };

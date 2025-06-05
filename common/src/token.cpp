@@ -1,11 +1,11 @@
 #include "common/data/token.h"
 #include <sstream>
 
-Token::Token(TokenType type, const std::string& lexeme, LiteralType literal, int line)
+Token::Token(TokenType type, const std::string& lexeme, LiteralType literal, const FileLocation& file_location)
     : m_type { type }
     , m_lexeme { lexeme }
     , m_literal(literal)
-    , m_line { line }
+    , m_file_location { file_location }
 {
 }
 

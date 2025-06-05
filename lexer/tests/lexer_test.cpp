@@ -71,7 +71,7 @@ TEST_F(LexerTest, SimpleIntegerConstant)
     EXPECT_EQ(tokens[0].type(), TokenType::CONSTANT);
     EXPECT_EQ(tokens[0].lexeme(), "42");
     EXPECT_EQ(tokens[0].literal<int>(), 42);
-    EXPECT_EQ(tokens[0].line(), 1);
+    EXPECT_EQ(tokens[0].source_location().line_number, 1);
 }
 
 TEST_F(LexerTest, SimpleIdentifier)
@@ -84,7 +84,7 @@ TEST_F(LexerTest, SimpleIdentifier)
     ASSERT_EQ(tokens.size(), 1);
     EXPECT_EQ(tokens[0].type(), TokenType::IDENTIFIER);
     EXPECT_EQ(tokens[0].lexeme(), "myVariable");
-    EXPECT_EQ(tokens[0].line(), 1);
+    EXPECT_EQ(tokens[0].source_location().line_number, 1);
 }
 
 TEST_F(LexerTest, Keywords)
@@ -174,11 +174,11 @@ TEST_F(LexerTest, MultilineCode)
     auto tokens = lexer.tokenize();
 
     // Check line numbers
-    EXPECT_EQ(tokens[0].line(), 1);  // int
-    EXPECT_EQ(tokens[4].line(), 1);  // ;
-    EXPECT_EQ(tokens[5].line(), 2);  // int (second line)
-    EXPECT_EQ(tokens[9].line(), 2);  // ;
-    EXPECT_EQ(tokens[10].line(), 3); // int (third line)
+    EXPECT_EQ(tokens[0].source_location().line_number, 1);  // int
+    EXPECT_EQ(tokens[4].source_location().line_number, 1);  // ;
+    EXPECT_EQ(tokens[5].source_location().line_number, 2);  // int (second line)
+    EXPECT_EQ(tokens[9].source_location().line_number, 2);  // ;
+    EXPECT_EQ(tokens[10].source_location().line_number, 3); // int (third line)
 }
 
 TEST_F(LexerTest, WhitespaceHandling)

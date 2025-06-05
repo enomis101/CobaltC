@@ -1,11 +1,11 @@
 #include "common/data/token.h"
 #include <sstream>
 
-Token::Token(TokenType type, const std::string& lexeme, LiteralType literal, const FileLocation& file_location)
+Token::Token(TokenType type, const std::string& lexeme, LiteralType literal, const SourceLocation& source_location)
     : m_type { type }
     , m_lexeme { lexeme }
     , m_literal(literal)
-    , m_file_location { file_location }
+    , m_source_location { source_location }
 {
 }
 
@@ -102,7 +102,7 @@ std::string Token::to_string() const
     std::stringstream ss;
     ss << "Token{type=" << type_to_string(m_type)
        << ", lexeme='" << m_lexeme << "'"
-       << ", line=" << m_line;
+       << ", line=" << m_source_location.line_number;
 
     // Handle the variant literal
     if (std::holds_alternative<int>(m_literal)) {

@@ -1,18 +1,20 @@
 #include "lexer/lexer.h"
+#include "common/data/source_location.h"
+#include "common/data/source_manager.h"
 #include "common/data/token_table.h"
+#include <cassert>
 #include <filesystem>
 #include <format>
 #include <fstream>
-#include <string>
 #include <regex>
-#include "common/data/file_location.h"
+#include <string>
 
 namespace fs = std::filesystem;
 
 const std::string Lexer::file_extension = ".i";
 
 Lexer::Lexer(const std::string& file_path, std::shared_ptr<TokenTable> token_table)
-    : m_file_path{file_path}
+    : m_file_path { file_path }
     , m_token_table { token_table }
 {
     // Check if file exists
@@ -53,62 +55,58 @@ std::vector<Token> Lexer::tokenize()
     const std::string& input = m_file_content;
     std::vector<Token> res;
     size_t i = 0;
-    size_t line_start = 0; // Track start of current line
 
-    FileLocation curr_file_location{m_file_path};
+    LocationTracker curr_location_tracker(m_file_path);
     static const std::regex line_directive_pattern("^#\\s*(\\d+)\\s+\"([^\"]*)\"\\s*(.*?)$");
 
     while (i < input.size()) {
         // Skip whitespace but track line numbers and columns
         if (input[i] == ' ' || input[i] == '\t') {
             i++;
-            curr_file_location.withespace();
+            curr_location_tracker.advance();
             continue;
         }
-        if(input[i] == '#'){
-            int j = i;
-            while(input[j] != '\n'){
+
+        if (input[i] == '#') {
+            size_t j = i;
+            while (input[j] != '\n') {
                 j++;
-                if(j >= input.size()){
+                if (j >= input.size()) {
                     throw LexerError(("Unexpected EOF"));
                 }
             }
             std::string line = input.substr(i, j - i + 1);
             std::smatch matches;
-    
+
             if (!std::regex_match(line, matches, line_directive_pattern)) {
                 throw LexerError(("Line starting with # does not match a line directive pattern"));
             }
-            try{
+            try {
                 int line_num = std::stoi(matches[1].str());
-                curr_file_location.reset(matches[2].str(), line_num);
-            } catch(std::exception& e){
+                curr_location_tracker.reset(matches[2].str(), line_num);
+            } catch (std::exception& e) {
                 throw LexerError(std::format("Failed parsing line directive: {}", e.what()));
             }
-            
         }
 
         if (input[i] == '\n') {
             i++;
-            curr_file_location.new_line();
-            line_start = i;
+            curr_location_tracker.new_line();
             continue;
         }
 
         std::string_view curr_str(input.begin() + i, input.end());
         size_t search_res = m_token_table->search(curr_str);
-        
-        
         if (search_res == 0) {
-            
+            auto err = SourceManager::get_source_line(curr_location_tracker.current());
+            assert(err.has_value());
+            throw LexerError(std::format("Failed matching a token \n{}", (err.has_value() ? err.value() : "NOT FOUND!")));
         }
 
         std::string lexeme = input.substr(i, search_res);
         std::optional<TokenType> result = m_token_table->match(lexeme);
-        if (!result.has_value()) {
 
-            throw LexerError(std::format("TokenTable::match failed after valid search!"));
-        }
+        assert(result.has_value() && "TokenTable::match failed after valid search!");
 
         TokenType type = result.value();
         Token::LiteralType literal;
@@ -123,8 +121,10 @@ std::vector<Token> Lexer::tokenize()
             }
         }
 
-        Token t(type, lexeme, literal, curr_file_location);
+        Token t(type, lexeme, literal, curr_location_tracker.current());
         res.push_back(t);
+
+        curr_location_tracker.advance(search_res);
         i += search_res;
     }
     return res;

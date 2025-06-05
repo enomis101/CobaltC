@@ -1,4 +1,5 @@
 #include "parser/parser.h"
+#include "common/data/source_manager.h"
 #include "common/data/token_table.h"
 #include "parser/parser_ast.h"
 #include <format>
@@ -112,9 +113,6 @@ std::unique_ptr<ForInit> Parser::parse_for_init()
 
         // Release from original unique_ptr and wrap in new one
         std::unique_ptr<VariableDeclaration> var_decl(dynamic_cast<VariableDeclaration*>(decl.release()));
-        // if (var_decl->storage_class != StorageClass::NONE) {
-        //     throw ParserError("In parse_for_init: a variable declaration in a for loop cannot have a storage class");
-        // }
         return std::make_unique<ForInitDeclaration>(std::move(var_decl));
     } else {
         std::unique_ptr<Expression> e = (next_token.type() == TokenType::SEMICOLON) ? nullptr : parse_expression();
@@ -350,10 +348,10 @@ const Token& Parser::expect(TokenType expected)
     const Token& actual = m_tokens[i++];
     if (actual.type() != expected) {
         throw ParserError(std::format(
-            "Syntax error at line {}: Expected '{}' but found '{}'",
-            actual.line(),
+            "Syntax error: Expected '{}' but found '{}'\nat: {}",
             Token::type_to_string(expected),
-            actual.lexeme()));
+            actual.lexeme(),
+            SourceManager::get_source_line(actual.source_location()).value()));
     }
     return actual;
 }

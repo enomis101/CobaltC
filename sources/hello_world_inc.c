@@ -1,4 +1,3 @@
-
 int putchar(int c);
 
 int main(void) {

@@ -1,4 +1,5 @@
 #include "parser/parser.h"
+#include "common/data/source_location.h"
 #include "common/data/source_manager.h"
 #include "common/data/token_table.h"
 #include "parser/parser_ast.h"
@@ -7,8 +8,12 @@
 
 using namespace parser;
 
+#define ENTER_CONTEXT(name) ContextGuard context_guard(m_context_stack, name, (has_tokens() ? std::optional<SourceLocation>(peek().source_location()) : std::nullopt))
+
 std::shared_ptr<Program> Parser::parse_program()
 {
+    ENTER_CONTEXT("parse_program");
+
     std::vector<std::unique_ptr<Declaration>> decls;
     while (has_tokens()) {
         m_current_declaration_scope = DeclarationScope::File;
@@ -19,6 +24,8 @@ std::shared_ptr<Program> Parser::parse_program()
 
 std::unique_ptr<Block> Parser::parse_block()
 {
+    ENTER_CONTEXT("parse_block");
+
     m_current_declaration_scope = DeclarationScope::Block;
     expect(TokenType::OPEN_BRACE);
     const Token* next_token = has_tokens() ? &peek() : nullptr;
@@ -33,6 +40,8 @@ std::unique_ptr<Block> Parser::parse_block()
 
 std::unique_ptr<BlockItem> Parser::parse_block_item()
 {
+    ENTER_CONTEXT("parse_block_item");
+
     const Token& next_token = peek();
     if (is_specificer(next_token.type())) {
         return parse_declaration();
@@ -43,6 +52,8 @@ std::unique_ptr<BlockItem> Parser::parse_block_item()
 
 std::vector<Identifier> Parser::parse_parameter_list()
 {
+    ENTER_CONTEXT("parse_parameter_list");
+
     const Token* next_token = &peek();
     std::vector<Identifier> res;
     if (next_token->type() == TokenType::VOID_KW) {
@@ -66,6 +77,8 @@ std::vector<Identifier> Parser::parse_parameter_list()
 
 std::unique_ptr<Declaration> Parser::parse_declaration()
 {
+    ENTER_CONTEXT("parse_declaration");
+
     DeclarationScope current_declaration_scope = m_current_declaration_scope;
     std::pair<std::unique_ptr<Type>, StorageClass> type_and_storage = parse_type_and_storage_class();
     StorageClass storage_class = type_and_storage.second;
@@ -103,12 +116,15 @@ std::unique_ptr<Declaration> Parser::parse_declaration()
 
 std::unique_ptr<ForInit> Parser::parse_for_init()
 {
+    ENTER_CONTEXT("parse_for_init");
+
     const Token& next_token = peek();
     if (is_specificer(next_token.type())) {
         std::unique_ptr<Declaration> decl = parse_declaration();
 
         if (!dynamic_cast<VariableDeclaration*>(decl.get())) {
-            throw ParserError("In parse_for_init: got FunctionDeclaration, expected VariableDeclaration");
+            throw ParserError(*this,
+                std::format("In parse_for_init: got FunctionDeclaration, expected VariableDeclaration at:\n{}", SourceManager::get_source_line(peek().source_location()).value()));
         }
 
         // Release from original unique_ptr and wrap in new one
@@ -123,6 +139,8 @@ std::unique_ptr<ForInit> Parser::parse_for_init()
 
 std::unique_ptr<Statement> Parser::parse_statement()
 {
+    ENTER_CONTEXT("parse_statement");
+
     const Token& next_token = peek();
     switch (next_token.type()) {
     case TokenType::RETURN_KW: {
@@ -214,6 +232,8 @@ std::unique_ptr<Statement> Parser::parse_statement()
 
 std::unique_ptr<Expression> Parser::parse_conditional_middle()
 {
+    ENTER_CONTEXT("parse_conditional_middle");
+
     expect(TokenType::QUESTION_MARK);
     std::unique_ptr<Expression> expr = parse_expression(0); // reset back to zero precedence level
     expect(TokenType::COLON);
@@ -223,6 +243,8 @@ std::unique_ptr<Expression> Parser::parse_conditional_middle()
 // Implement precedence climbing
 std::unique_ptr<Expression> Parser::parse_expression(int min_prec)
 {
+    ENTER_CONTEXT("parse_expression");
+
     std::unique_ptr<Expression> left;
 
     left = parse_factor();
@@ -254,6 +276,8 @@ std::unique_ptr<Expression> Parser::parse_expression(int min_prec)
 
 std::unique_ptr<Expression> Parser::parse_factor()
 {
+    ENTER_CONTEXT("parse_factor");
+
     const Token& next_token = peek();
     if (next_token.type() == TokenType::CONSTANT) {
         take_token();
@@ -289,12 +313,13 @@ std::unique_ptr<Expression> Parser::parse_factor()
         expect(TokenType::CLOSE_PAREN);
         return std::make_unique<FunctionCallExpression>(identifier_token.lexeme(), std::move(args));
     } else {
-        throw ParserError(std::format("Malformed Factor {}", next_token.to_string()));
+        throw ParserError(*this, std::format("Malformed Factor at\n{}", SourceManager::get_source_line(next_token.source_location()).value()));
     }
 }
 
 UnaryOperator Parser::parse_unary_operator()
 {
+    ENTER_CONTEXT("parse_unary_operator");
     static const std::unordered_map<TokenType, UnaryOperator> unary_op_map = {
         { TokenType::MINUS, UnaryOperator::NEGATE },
         { TokenType::COMPLEMENT, UnaryOperator::COMPLEMENT },
@@ -303,15 +328,18 @@ UnaryOperator Parser::parse_unary_operator()
 
     const Token& next_token = peek();
     auto it = unary_op_map.find(next_token.type());
-    if (it != unary_op_map.end()) {
-        take_token();
-        return it->second;
+    if (it == unary_op_map.end()) {
+        throw ParserError(*this, std::format("Unsupported Unary Operator {}", Token::type_to_string(next_token.type())));
     }
-    throw ParserError(std::format("In UnaryOperator: got {}", Token::type_to_string(next_token.type())));
+
+    take_token();
+    return it->second;
 }
 
 BinaryOperator Parser::parse_binary_operator()
 {
+    ENTER_CONTEXT("parse_binary_operator");
+
     static const std::unordered_map<TokenType, BinaryOperator> binary_op_map = {
         { TokenType::ASTERISK, BinaryOperator::MULTIPLY },
         { TokenType::FORWARD_SLASH, BinaryOperator::DIVIDE },
@@ -329,29 +357,26 @@ BinaryOperator Parser::parse_binary_operator()
     };
 
     const Token& next_token = peek();
+
     auto it = binary_op_map.find(next_token.type());
-    if (it != binary_op_map.end()) {
-        take_token();
-        return it->second;
+
+    if (it == binary_op_map.end()) {
+        throw ParserError(*this, std::format("Unsupported Binary Operator {}", Token::type_to_string(next_token.type())));
     }
-    throw ParserError(std::format("In BinaryOperator: got {}", Token::type_to_string(next_token.type())));
+
+    take_token();
+    return it->second;
 }
 
 const Token& Parser::expect(TokenType expected)
 {
     if (!has_tokens()) {
-        throw ParserError(std::format(
-            "Unexpected end of file. Expected: {}",
-            Token::type_to_string(expected)));
+        throw ParserError(*this, std::format("Unexpected end of file. Expected: {}", Token::type_to_string(expected)));
     }
 
     const Token& actual = m_tokens[i++];
     if (actual.type() != expected) {
-        throw ParserError(std::format(
-            "Syntax error: Expected '{}' but found '{}'\nat: {}",
-            Token::type_to_string(expected),
-            actual.lexeme(),
-            SourceManager::get_source_line(actual.source_location()).value()));
+        throw ParserError(*this, std::format("Syntax error: Expected '{}' but found '{}' at:\n{}", Token::type_to_string(expected), actual.lexeme(), SourceManager::get_source_line(actual.source_location()).value()));
     }
     return actual;
 }
@@ -360,7 +385,7 @@ const Token& Parser::peek(int lh)
 {
     size_t j = i + lh - 1;
     if (j >= m_tokens.size()) {
-        throw ParserError(std::format("Unexpected end of file. Trying to peek {} look ahead", lh));
+        throw ParserError(*this, std::format("Unexpected end of file. Trying to peek {} look ahead", lh));
     }
     return m_tokens[j];
 }
@@ -392,7 +417,7 @@ int Parser::precedence(const Token& token)
     case TokenType::ASSIGNMENT:
         return 1;
     default: {
-        throw ParserError("Parser::precedence unexpected token");
+        throw ParserError(*this, "Parser::precedence unexpected token");
     }
     }
 }
@@ -472,6 +497,8 @@ StorageClass Parser::to_storage_class(TokenType tt)
 
 std::pair<std::unique_ptr<Type>, StorageClass> Parser::parse_type_and_storage_class()
 {
+    ENTER_CONTEXT("parse_type_and_storage_class");
+
     std::vector<TokenType> types;
     std::vector<TokenType> storage_classes;
     const Token* next_token = &peek();
@@ -483,26 +510,56 @@ std::pair<std::unique_ptr<Type>, StorageClass> Parser::parse_type_and_storage_cl
         } else if (token_type == TokenType::STATIC_KW || token_type == TokenType::EXTERN_KW) {
             storage_classes.push_back(token_type);
         } else {
-            throw ParserError(std::format("In parse_type_and_storage_class: Invalid specifier {}", next_token->to_string()));
+            throw ParserError(*this, std::format("In parse_type_and_storage_class: Invalid specifier {}", next_token->to_string()));
         }
         take_token();
         next_token = &peek();
     }
     if (types.size() != 1) {
-        throw ParserError(std::format("In parse_type_and_storage_class: specified too many tipes {}", types.size()));
+        throw ParserError(*this, std::format("In parse_type_and_storage_class: specified too many tipes {}", types.size()));
     }
 
     if (storage_classes.size() > 1) {
-        throw ParserError(std::format("In parse_type_and_storage_class: specified too many storage_classes {}", storage_classes.size()));
+        throw ParserError(*this, std::format("In parse_type_and_storage_class: specified too many storage_classes {}", storage_classes.size()));
     }
 
     std::pair<std::unique_ptr<Type>, StorageClass> res(std::make_pair(std::make_unique<IntType>(), StorageClass::NONE));
     if (storage_classes.size() == 1) {
         StorageClass storage_class = to_storage_class(storage_classes.at(0));
         if (storage_class == StorageClass::NONE) {
-            throw ParserError(std::format("In parse_type_and_storage_class: unsopported storage class of type {}", Token::type_to_string(storage_classes.at(0))));
+            throw ParserError(*this, std::format("In parse_type_and_storage_class: unsopported storage class of type {}", Token::type_to_string(storage_classes.at(0))));
         }
         res.second = storage_class;
     }
     return res;
+}
+
+Parser::ContextGuard::ContextGuard(ContextStack& context_stack, const std::string& context, std::optional<SourceLocation> source_location)
+    : m_context_stack(context_stack)
+{
+    if (source_location.has_value()) {
+        m_context_stack.push_back(std::format("{:<20} file: {:<30} line: {:<5} column: {:<3}",
+            context,
+            source_location.value().file_name,
+            source_location.value().line_number,
+            source_location.value().column_number));
+    } else {
+        m_context_stack.push_back(std::format("{:<20}",
+            context));
+    }
+}
+
+Parser::ContextGuard::~ContextGuard()
+{
+    m_context_stack.pop_back();
+}
+
+std::string Parser::context_stack_to_string() const
+{
+    std::string context_string = "\n==================\nContext Stack:\n";
+    for (size_t i = 0; i < m_context_stack.size(); ++i) {
+        const auto& str = m_context_stack.at(i);
+        context_string += std::format("{}\n", str);
+    }
+    return context_string;
 }

@@ -69,7 +69,7 @@ int main(int argc, char* argv[])
         LOG_INFO(LOG_CONTEXT, std::format("Successfully completed operation on '{}'\n", input_file));
 
     } catch (const CompilerError& e) {
-        LOG_CRITICAL(LOG_CONTEXT, std::format("Compilation failed: {} for file: {}", e.what(), input_file));
+        LOG_CRITICAL(LOG_CONTEXT, std::format("Compilation failed: {}", e.what(), input_file));
         return 1;
     } catch (const std::exception& e) {
         LOG_CRITICAL(LOG_CONTEXT, std::format("Unexpected error: {} for file: {}", e.what(), input_file));

@@ -16,8 +16,12 @@ std::string Token::type_to_string(TokenType type)
         return "IDENTIFIER";
     case TokenType::CONSTANT:
         return "CONSTANT";
+    case TokenType::LONG_CONSTANT:
+        return "LONG_CONSTANT";
     case TokenType::INT_KW:
         return "INT_KW";
+    case TokenType::LONG_KW:
+        return "LONG_KW";
     case TokenType::VOID_KW:
         return "VOID_KW";
     case TokenType::RETURN_KW:
@@ -107,6 +111,8 @@ std::string Token::to_string() const
     // Handle the variant literal
     if (std::holds_alternative<int>(m_literal)) {
         ss << ", literal=" << std::get<int>(m_literal);
+    } else if (std::holds_alternative<long>(m_literal)) {
+        ss << ", literal=" << std::get<long>(m_literal);
     }
 
     ss << "}";

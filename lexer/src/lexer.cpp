@@ -6,7 +6,9 @@
 #include <filesystem>
 #include <format>
 #include <fstream>
+#include <iostream>
 #include <regex>
+#include <stdexcept>
 #include <string>
 
 namespace fs = std::filesystem;
@@ -112,9 +114,32 @@ std::vector<Token> Lexer::tokenize()
         Token::LiteralType literal;
 
         if (type == TokenType::CONSTANT) {
+            try {
+                // Try int first
+                size_t pos;
+                long long_val = std::stol(lexeme, &pos);
+
+                if (pos != lexeme.length()) {
+                    throw LexerError(std::format("Invalid constant format: {}", lexeme));
+                }
+
+                if (long_val >= INT_MIN && long_val <= INT_MAX) {
+                    literal = static_cast<int>(long_val);
+                } else {
+                    /* if a constant is too large to store as an int,
+                     * it's automatically converted to a long, even if it
+                     * doesn't have an 'l' suffix
+                     */
+                    type = TokenType::LONG_CONSTANT;
+                    literal = long_val;
+                }
+            } catch (const std::exception& e) {
+                throw LexerError(std::format("Error while parsing constant in Token constructor: {}", e.what()));
+            }
+        } else if (type == TokenType::LONG_CONSTANT) {
             // With error handling
             try {
-                int num = std::stoi(lexeme); // This will throw an exception
+                long num = std::stol(lexeme.substr(0, lexeme.size() - 1)); // This will throw an exception
                 literal = num;
             } catch (const std::exception& e) {
                 throw LexerError(std::format("Error while parsing constant in Token constructor: {}", e.what()));

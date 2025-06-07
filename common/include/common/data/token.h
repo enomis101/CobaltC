@@ -15,7 +15,7 @@ public:
 
 class Token {
 public:
-    using LiteralType = std::variant<std::monostate, int>;
+    using LiteralType = std::variant<std::monostate, int, long>;
     Token(TokenType type, const std::string& lexeme, LiteralType literal, const SourceLocation& source_location);
     std::string to_string() const;
     TokenType type() const { return m_type; }

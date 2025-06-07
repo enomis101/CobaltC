@@ -8,6 +8,7 @@
 enum class TokenType {
     IDENTIFIER,
     CONSTANT,
+    LONG_CONSTANT,
     INT_KW,
     VOID_KW,
     RETURN_KW,
@@ -20,6 +21,7 @@ enum class TokenType {
     CONTINUE_KW,
     STATIC_KW,
     EXTERN_KW,
+    LONG_KW,
     OPEN_PAREN,
     CLOSE_PAREN,
     OPEN_BRACE,

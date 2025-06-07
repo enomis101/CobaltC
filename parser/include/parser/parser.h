@@ -5,6 +5,7 @@
 #include "parser/parser_ast.h"
 #include <memory>
 #include <stdexcept>
+#include <unordered_set>
 #include <vector>
 
 namespace parser {
@@ -38,7 +39,9 @@ private:
     std::unique_ptr<Expression> parse_conditional_middle();
     std::unique_ptr<Expression> parse_expression(int min_prec = 0);
     std::unique_ptr<Expression> parse_factor();
-    std::vector<Identifier> parse_parameter_list();
+    std::unique_ptr<Type> parse_type();
+    std::unique_ptr<Type> parse_type_specifier_list(const std::unordered_set<TokenType>& type_specifiers);
+    void parse_parameter_list(std::vector<Identifier>& out_param_names, std::vector<std::unique_ptr<Type>>& out_param_types);
 
     std::pair<std::unique_ptr<Type>, StorageClass> parse_type_and_storage_class();
 
@@ -50,11 +53,12 @@ private:
     bool is_binary_operator(TokenType type);
     bool is_unary_operator(TokenType type);
     bool is_specificer(TokenType type);
-
+    bool is_type_specificer(TokenType type);
     // std::unique_ptr<Identifier> parse_identifier();
 
     const Token& expect(TokenType expected);
     const Token& peek(int lh = 1);
+    const Token& last_token();
     int precedence(const Token& token);
     void take_token();
     bool has_tokens();

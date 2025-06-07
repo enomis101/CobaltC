@@ -21,6 +21,7 @@ public:
     void visit(FunctionDeclaration& node) override;
     void visit(Program& node) override;
     void visit(VariableExpression& node) override;
+    void visit(CastExpression& node) override {}; // TODO: IMPLEMENT
     void visit(AssignmentExpression& node) override;
     void visit(ConditionalExpression& node) override;
     void visit(FunctionCallExpression& node) override;

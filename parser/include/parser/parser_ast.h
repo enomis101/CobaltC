@@ -1,4 +1,5 @@
 #pragma once
+#include "common/data/type.h"
 #include <memory>
 #include <optional>
 #include <string>
@@ -40,6 +41,7 @@ class DoWhileStatement;
 class ForStatement;
 class ForInitDeclaration;
 class ForInitExpression;
+class CastExpression;
 
 // ParserVisitor interface
 class ParserVisitor {
@@ -51,6 +53,8 @@ public:
     virtual void visit(ReturnStatement& node) = 0;
     virtual void visit(Program& node) = 0;
     virtual void visit(VariableExpression& node) = 0;
+    virtual void visit(ForInitExpression& node) = 0;
+    virtual void visit(CastExpression& node) = 0;
     virtual void visit(AssignmentExpression& node) = 0;
     virtual void visit(ConditionalExpression& node) = 0;
     virtual void visit(FunctionCallExpression& node) = 0;
@@ -67,7 +71,6 @@ public:
     virtual void visit(DoWhileStatement& node) = 0;
     virtual void visit(ForStatement& node) = 0;
     virtual void visit(ForInitDeclaration& node) = 0;
-    virtual void visit(ForInitExpression& node) = 0;
 
     virtual ~ParserVisitor() = default;
 };
@@ -123,7 +126,8 @@ public:
 
 class ConstantExpression : public Expression {
 public:
-    ConstantExpression(int value)
+    template<typename T>
+    explicit ConstantExpression(T value)
         : value(value)
     {
     }
@@ -133,7 +137,7 @@ public:
         visitor.visit(*this);
     }
 
-    int value;
+    ConstantType value;
 };
 
 class VariableExpression : public Expression {
@@ -149,6 +153,23 @@ public:
     }
 
     Identifier identifier;
+};
+
+class CastExpression : public Expression {
+public:
+    CastExpression(std::unique_ptr<Type> type, std::unique_ptr<Expression> expression)
+        : type(std::move(type))
+        , expression(std::move(expression))
+    {
+    }
+
+    void accept(ParserVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    std::unique_ptr<Type> type;
+    std::unique_ptr<Expression> expression;
 };
 
 class UnaryExpression : public Expression {
@@ -436,9 +457,10 @@ public:
 
 class VariableDeclaration : public Declaration {
 public:
-    VariableDeclaration(const std::string& identifier, std::unique_ptr<Expression> expression, StorageClass storage_class, DeclarationScope scope)
+    VariableDeclaration(const std::string& identifier, std::unique_ptr<Expression> expression, std::unique_ptr<Type> type, StorageClass storage_class, DeclarationScope scope)
         : identifier { identifier }
         , expression(expression ? std::optional<std::unique_ptr<Expression>>(std::move(expression)) : std::nullopt)
+        , type { std::move(type) }
         , storage_class(storage_class)
         , scope { scope }
     {
@@ -451,17 +473,19 @@ public:
 
     Identifier identifier;
     std::optional<std::unique_ptr<Expression>> expression;
+    std::unique_ptr<Type> type;
     StorageClass storage_class;
     DeclarationScope scope;
 };
 
 class FunctionDeclaration : public Declaration {
 public:
-    FunctionDeclaration(const std::string& name, const std::vector<Identifier>& params, std::unique_ptr<Block> body,
+    FunctionDeclaration(const std::string& name, const std::vector<Identifier>& params, std::unique_ptr<Block> body, std::unique_ptr<Type> type,
         StorageClass storage_class, DeclarationScope scope)
         : name(name)
         , params(params)
         , body(body != nullptr ? std::optional<std::unique_ptr<Block>>(std::move(body)) : std::nullopt)
+        , type { std::move(type) }
         , storage_class(storage_class)
         , scope { scope }
     {
@@ -475,6 +499,7 @@ public:
     Identifier name;
     std::vector<Identifier> params;
     std::optional<std::unique_ptr<Block>> body;
+    std::unique_ptr<Type> type;
     StorageClass storage_class;
     DeclarationScope scope;
 };

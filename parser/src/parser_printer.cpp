@@ -84,7 +84,7 @@ void PrinterVisitor::visit(BinaryExpression& node)
 void PrinterVisitor::visit(ConstantExpression& node)
 {
     int id = get_node_id(&node);
-    m_dot_content << "  node" << id << " [label=\"ConstantExpression\\nvalue: " << node.value << "\"];\n";
+    // m_dot_content << "  node" << id << " [label=\"ConstantExpression\\nvalue: " << node.value << "\"];\n"; TODO: fix
 }
 
 void PrinterVisitor::visit(ReturnStatement& node)

@@ -1,6 +1,7 @@
 #pragma once
 #include "common/data/source_location.h"
 #include "common/data/token_table.h"
+#include "common/data/type.h"
 #include <stdexcept>
 #include <string>
 #include <variant>
@@ -15,7 +16,7 @@ public:
 
 class Token {
 public:
-    using LiteralType = std::variant<std::monostate, int, long>;
+    using LiteralType = ConstantType;
     Token(TokenType type, const std::string& lexeme, LiteralType literal, const SourceLocation& source_location);
     std::string to_string() const;
     TokenType type() const { return m_type; }

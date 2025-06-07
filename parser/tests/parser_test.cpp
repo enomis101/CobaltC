@@ -83,7 +83,7 @@ TEST_F(ParserTest, ParseConstantExpression)
 
     auto const_expr = dynamic_cast<ConstantExpression*>(return_stmt->expression.get());
     ASSERT_NE(const_expr, nullptr);
-    EXPECT_EQ(const_expr->value, 42);
+    EXPECT_EQ(std::get<int>(const_expr->value), 42);
 }
 
 TEST_F(ParserTest, ParseUnaryExpression)
@@ -99,7 +99,7 @@ TEST_F(ParserTest, ParseUnaryExpression)
 
     auto const_expr = dynamic_cast<ConstantExpression*>(unary_expr->expression.get());
     ASSERT_NE(const_expr, nullptr);
-    EXPECT_EQ(const_expr->value, 5);
+    EXPECT_EQ(std::get<int>(const_expr->value), 5);
 }
 
 TEST_F(ParserTest, ParseBinaryExpression)
@@ -118,8 +118,8 @@ TEST_F(ParserTest, ParseBinaryExpression)
 
     ASSERT_NE(left, nullptr);
     ASSERT_NE(right, nullptr);
-    EXPECT_EQ(left->value, 2);
-    EXPECT_EQ(right->value, 3);
+    EXPECT_EQ(std::get<int>(left->value), 2);
+    EXPECT_EQ(std::get<int>(right->value), 3);
 }
 
 TEST_F(ParserTest, ParsePrecedence)
@@ -135,7 +135,7 @@ TEST_F(ParserTest, ParsePrecedence)
 
     auto left = dynamic_cast<ConstantExpression*>(add_expr->left_expression.get());
     ASSERT_NE(left, nullptr);
-    EXPECT_EQ(left->value, 2);
+    EXPECT_EQ(std::get<int>(left->value), 2);
 
     auto mult_expr = dynamic_cast<BinaryExpression*>(add_expr->right_expression.get());
     ASSERT_NE(mult_expr, nullptr);
@@ -175,7 +175,7 @@ TEST_F(ParserTest, ParseVariableDeclaration)
 
     auto const_expr = dynamic_cast<ConstantExpression*>(var_decl->expression.value().get());
     ASSERT_NE(const_expr, nullptr);
-    EXPECT_EQ(const_expr->value, 5);
+    EXPECT_EQ(std::get<int>(const_expr->value), 5);
 }
 
 TEST_F(ParserTest, ParseVariableExpression)
@@ -209,7 +209,7 @@ TEST_F(ParserTest, ParseAssignmentExpression)
 
     auto const_expr = dynamic_cast<ConstantExpression*>(assign_expr->right_expression.get());
     ASSERT_NE(const_expr, nullptr);
-    EXPECT_EQ(const_expr->value, 10);
+    EXPECT_EQ(std::get<int>(const_expr->value), 10);
 }
 
 // ============== Function Tests ==============

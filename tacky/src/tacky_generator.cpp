@@ -90,7 +90,9 @@ BinaryOperator TackyGenerator::transform_binary_operator(parser::BinaryOperator&
 std::unique_ptr<Value> TackyGenerator::transform_expression(parser::Expression& expression, std::vector<std::unique_ptr<Instruction>>& instructions)
 {
     if (parser::ConstantExpression* constant_expression = dynamic_cast<parser::ConstantExpression*>(&expression)) {
-        return std::make_unique<Constant>(constant_expression->value);
+        // TODO: FIX
+        // return std::make_unique<Constant>(constant_expression->value);
+        return nullptr;
     } else if (parser::UnaryExpression* unary_expression = dynamic_cast<parser::UnaryExpression*>(&expression)) {
         std::unique_ptr<Value> src = transform_expression(*unary_expression->expression, instructions);
         std::string dst_name = m_name_generator->make_temporary();

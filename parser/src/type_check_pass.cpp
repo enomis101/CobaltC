@@ -39,7 +39,9 @@ void TypeCheckPass::visit(ReturnStatement& node)
 
 void TypeCheckPass::visit(FunctionDeclaration& function_declaration)
 {
-    std::unique_ptr<FunctionType> fun_type = std::make_unique<FunctionType>(function_declaration.params.size());
+    // TODO: FIX
+    // std::unique_ptr<FunctionType> fun_type = std::make_unique<FunctionType>(function_declaration.params.size());
+    std::unique_ptr<FunctionType> fun_type = nullptr;
     bool has_body = function_declaration.body.has_value();
     bool already_defined = false;
     const std::string& function_name = function_declaration.name.name;
@@ -49,9 +51,10 @@ void TypeCheckPass::visit(FunctionDeclaration& function_declaration)
         SymbolTable::SymbolEntry& prev_decl = m_symbol_table->symbol_at(function_name);
         FunctionType* prev_fun_type = dynamic_cast<FunctionType*>(prev_decl.type.get());
 
-        if (*prev_fun_type != *fun_type) {
-            throw TypeCheckPassError(std::format("Incompatible function declaration of {}", function_name));
-        }
+        // TODO: FIX
+        //  if (*prev_fun_type != *fun_type) {
+        //      throw TypeCheckPassError(std::format("Incompatible function declaration of {}", function_name));
+        //  }
         already_defined = std::get<FunctionAttribute>(prev_decl.attribute).defined;
         if (already_defined && has_body) {
             throw TypeCheckPassError(std::format("Function {} defined more than once", function_name));
@@ -125,10 +128,11 @@ void TypeCheckPass::visit(FunctionCallExpression& node)
     if (!dynamic_cast<FunctionType*>(type.get())) {
         throw TypeCheckPassError(std::format("Variable {} used as function name", function_name));
     }
-    FunctionType* fun_type = dynamic_cast<FunctionType*>(type.get());
-    if (fun_type->parameters_count != node.arguments.size()) {
-        throw TypeCheckPassError(std::format("Function {} called with the wrong number of parameters {} expected {} ", function_name, node.arguments.size(), fun_type->parameters_count));
-    }
+    // TODO: FIX
+    //  FunctionType* fun_type = dynamic_cast<FunctionType*>(type.get());
+    //  if (fun_type->parameters_count != node.arguments.size()) {
+    //      throw TypeCheckPassError(std::format("Function {} called with the wrong number of parameters {} expected {} ", function_name, node.arguments.size(), fun_type->parameters_count));
+    //  }
 
     // Visit arguments
     for (auto& arg : node.arguments) {
@@ -227,7 +231,8 @@ void TypeCheckPass::typecheck_file_scope_variable_declaration(VariableDeclaratio
             initial_value = TentativeInit {};
         }
     } else if (ConstantExpression* expr = dynamic_cast<ConstantExpression*>(variable_declaration.expression.value().get())) {
-        initial_value = InitialValue { expr->value };
+        // TODO: FIX
+        // initial_value = InitialValue { expr->value };
     } else {
         throw TypeCheckPassError(std::format("In typecheck_file_scope_variable_declaration: file-scope variable declaration of {} has non-constant initializer!", variable_name));
     }
@@ -284,7 +289,8 @@ void TypeCheckPass::typecheck_local_variable_declaration(VariableDeclaration& va
         if (!variable_declaration.expression.has_value()) {
             initial_value = InitialValue { 0 };
         } else if (ConstantExpression* expr = dynamic_cast<ConstantExpression*>(variable_declaration.expression.value().get())) {
-            initial_value = InitialValue { expr->value };
+            // TODO: FIX
+            // initial_value = InitialValue { expr->value };
         } else {
             throw TypeCheckPassError(std::format("In typecheck_local_variable_declaration: local variable declaration of {} has non-constant initializer!", variable_name));
         }

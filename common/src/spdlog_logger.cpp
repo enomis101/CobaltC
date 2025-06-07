@@ -7,7 +7,7 @@
 #include <fstream>
 #include <iostream>
 #include <spdlog/sinks/ostream_sink.h>
-#include <stdexcept>
+
 namespace logging {
 
 LogManager::LogManager()
@@ -81,6 +81,7 @@ SpdLogger::SpdLogger()
     auto tp = spdlog::thread_pool();
     // Create the console sink that will be shared by loggers that need console output
     m_console_sink = std::make_shared<spdlog::sinks::ostream_sink<std::mutex>>(std::cout);
+    m_console_sink->set_pattern("%v");
 
     // Create the default logger with required parameters:
     // - logger name
@@ -94,6 +95,7 @@ SpdLogger::SpdLogger()
         spdlog::async_overflow_policy::block);
 
     default_logger->set_level(toSpdLogLevel(m_default_level));
+    // default_logger->set_pattern("%v"); // Only print the message
     m_loggers[DEFAULT_CONTEXT] = default_logger;
 }
 
@@ -307,6 +309,7 @@ void SpdLogger::configureContext(const std::string& context_name, const ContextC
         auto logger = std::make_shared<spdlog::async_logger>(context_name, sinks.begin(), sinks.end(), tp,
             spdlog::async_overflow_policy::block);
         logger->set_level(toSpdLogLevel(config.level));
+        // logger->set_pattern("%v"); // Only print the message
         m_loggers[context_name] = logger;
     } else if (sinks.size() > 0) {
         assert(sinks.size() == 1);

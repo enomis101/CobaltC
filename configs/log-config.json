@@ -11,11 +11,11 @@
     },
     "compiler": {
       "enabled": true,
-      "level": "debug",
+      "level": "warn",
       "file": "logs/compiler.log",
       "max_size_mb": 50,
       "max_files": 5,
-      "console": false
+      "console": true
     }
   }
 }

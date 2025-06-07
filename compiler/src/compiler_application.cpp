@@ -128,7 +128,7 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
             printer.generate_dot_file("debug/" + base_name + "_parserAST.dot", *(parser_ast.get()));
             LOG_DEBUG(LOG_CONTEXT, "Generated AST visualization in 'ast.dot'");
         }
-    } catch (const parser::ParserError& e) {
+    } catch (const parser::Parser::ParserError& e) {
         throw CompilerError(std::format("Parser error: {}", e.what()));
     } catch (const std::exception& e) {
         throw CompilerError(std::format(

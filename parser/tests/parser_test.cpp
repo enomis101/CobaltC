@@ -55,7 +55,7 @@ protected:
         Lexer lexer(filepath, token_table);
         auto tokens = lexer.tokenize();
         Parser parser(tokens);
-        EXPECT_THROW(parser.parse_program(), ParserError);
+        EXPECT_THROW(parser.parse_program(), Parser::ParserError);
     }
 
     std::shared_ptr<TokenTable> token_table;

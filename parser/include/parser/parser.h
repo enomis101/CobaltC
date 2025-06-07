@@ -1,4 +1,5 @@
 #pragma once
+#include "common/data/source_location.h"
 #include "common/data/token.h"
 #include "common/data/type.h"
 #include "parser/parser_ast.h"
@@ -8,22 +9,23 @@
 
 namespace parser {
 
-class ParserError : public std::runtime_error {
-public:
-    explicit ParserError(const std::string& message)
-        : std::runtime_error(message)
-    {
-    }
-};
-
 class Parser {
 public:
+    class ParserError : public std::runtime_error {
+    public:
+        explicit ParserError(const Parser& parser, const std::string& message)
+            : std::runtime_error(message + parser.context_stack_to_string())
+        {
+        }
+    };
+
     Parser(const std::vector<Token>& tokens)
         : m_tokens { tokens }
     {
     }
 
     std::shared_ptr<Program> parse_program();
+    std::string context_stack_to_string() const;
 
 private:
     const std::vector<Token>& m_tokens;
@@ -58,5 +60,19 @@ private:
     bool has_tokens();
     size_t i = 0;
     DeclarationScope m_current_declaration_scope;
+
+    using ContextStack = std::vector<std::string>;
+
+    ContextStack m_context_stack;
+
+    class ContextGuard {
+    public:
+        ContextGuard(ContextStack& context_stack, const std::string& context, std::optional<SourceLocation> source_location);
+
+        ~ContextGuard();
+
+    private:
+        ContextStack& m_context_stack;
+    };
 };
 }

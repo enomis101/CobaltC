@@ -1,4 +1,5 @@
 #pragma once
+#include "common/data/source_location.h"
 #include "common/data/token_table.h"
 #include <stdexcept>
 #include <string>
@@ -15,10 +16,9 @@ public:
 class Token {
 public:
     using LiteralType = std::variant<std::monostate, int>;
-    Token(TokenType type, const std::string& lexeme, LiteralType literal, int line);
+    Token(TokenType type, const std::string& lexeme, LiteralType literal, const SourceLocation& source_location);
     std::string to_string() const;
     TokenType type() const { return m_type; }
-    int line() const { return m_line; }
 
     template<typename T>
     T literal() const
@@ -33,9 +33,11 @@ public:
 
     static std::string type_to_string(TokenType type);
 
+    const SourceLocation& source_location() const { return m_source_location; }
+
 private:
     TokenType m_type;
     std::string m_lexeme;
     LiteralType m_literal;
-    int m_line;
+    SourceLocation m_source_location;
 };

@@ -50,12 +50,10 @@ void LoopLabelingPass::visit(Program& node)
 
 void LoopLabelingPass::visit(VariableExpression& node)
 {
-
 }
 
 void LoopLabelingPass::visit(CastExpression& node)
 {
-
 }
 
 void LoopLabelingPass::visit(AssignmentExpression& node)

@@ -1,13 +1,12 @@
 #include "parser/parser.h"
 #include "common/data/source_location.h"
-#include "common/data/source_manager.h"
+
 #include "common/data/token.h"
 #include "common/data/token_table.h"
 #include "common/data/type.h"
 #include "parser/parser_ast.h"
 #include <format>
 #include <memory>
-#include <stdexcept>
 #include <vector>
 
 using namespace parser;
@@ -18,12 +17,14 @@ std::shared_ptr<Program> Parser::parse_program()
 {
     ENTER_CONTEXT("parse_program");
 
+    SourceLocationIndex loc = m_source_manager->get_index(m_tokens.at(0));
+
     std::vector<std::unique_ptr<Declaration>> decls;
     while (has_tokens()) {
         m_current_declaration_scope = DeclarationScope::File;
         decls.emplace_back(parse_declaration());
     }
-    return std::make_shared<Program>(std::move(decls));
+    return std::make_shared<Program>(loc, std::move(decls));
 }
 
 std::unique_ptr<Block> Parser::parse_block()
@@ -31,7 +32,7 @@ std::unique_ptr<Block> Parser::parse_block()
     ENTER_CONTEXT("parse_block");
 
     m_current_declaration_scope = DeclarationScope::Block;
-    expect(TokenType::OPEN_BRACE);
+    const Token& brace_token = expect(TokenType::OPEN_BRACE);
     const Token* next_token = has_tokens() ? &peek() : nullptr;
     std::vector<std::unique_ptr<BlockItem>> body;
     while (next_token && next_token->type() != TokenType::CLOSE_BRACE) {
@@ -39,7 +40,8 @@ std::unique_ptr<Block> Parser::parse_block()
         next_token = has_tokens() ? &peek() : nullptr;
     }
     expect(TokenType::CLOSE_BRACE);
-    return std::make_unique<Block>(std::move(body));
+    SourceLocationIndex loc = m_source_manager->get_index(brace_token);
+    return std::make_unique<Block>(loc, std::move(body));
 }
 
 std::unique_ptr<BlockItem> Parser::parse_block_item()
@@ -83,6 +85,7 @@ std::unique_ptr<Declaration> Parser::parse_declaration()
     DeclarationScope current_declaration_scope = m_current_declaration_scope;
     auto [type, storage_class] = parse_type_and_storage_class();
     const Token& identifier_token = expect(TokenType::IDENTIFIER);
+    SourceLocationIndex loc = m_source_manager->get_index(identifier_token);
     const Token* next_token = &peek();
 
     if (next_token->type() == TokenType::OPEN_PAREN) {
@@ -100,19 +103,19 @@ std::unique_ptr<Declaration> Parser::parse_declaration()
             body = parse_block();
         }
 
-        return std::make_unique<FunctionDeclaration>(identifier_token.lexeme(), param_names, std::move(body), std::make_unique<FunctionType>(std::move(type), std::move(param_types)), storage_class, current_declaration_scope);
+        return std::make_unique<FunctionDeclaration>(loc, identifier_token.lexeme(), param_names, std::move(body), std::make_unique<FunctionType>(std::move(type), std::move(param_types)), storage_class, current_declaration_scope);
     } else {
         next_token = &peek();
 
         if (next_token->type() == TokenType::SEMICOLON) {
             expect(TokenType::SEMICOLON);
-            return std::make_unique<VariableDeclaration>(identifier_token.lexeme(), nullptr, std::move(type), storage_class, current_declaration_scope);
+            return std::make_unique<VariableDeclaration>(loc, identifier_token.lexeme(), nullptr, std::move(type), storage_class, current_declaration_scope);
         }
 
         expect(TokenType::ASSIGNMENT);
         std::unique_ptr<Expression> init_expr = parse_expression();
         expect(TokenType::SEMICOLON);
-        return std::make_unique<VariableDeclaration>(identifier_token.lexeme(), std::move(init_expr), std::move(type), storage_class, current_declaration_scope);
+        return std::make_unique<VariableDeclaration>(loc, identifier_token.lexeme(), std::move(init_expr), std::move(type), storage_class, current_declaration_scope);
     }
 }
 
@@ -121,21 +124,22 @@ std::unique_ptr<ForInit> Parser::parse_for_init()
     ENTER_CONTEXT("parse_for_init");
 
     const Token& next_token = peek();
+    SourceLocationIndex loc = m_source_manager->get_index(next_token);
     if (is_specificer(next_token.type())) {
         std::unique_ptr<Declaration> decl = parse_declaration();
 
         if (!dynamic_cast<VariableDeclaration*>(decl.get())) {
             throw ParserError(*this,
-                std::format("In parse_for_init: got FunctionDeclaration, expected VariableDeclaration at:\n{}", SourceManager::get_source_line(peek().source_location()).value()));
+                std::format("In parse_for_init: got FunctionDeclaration, expected VariableDeclaration at:\n{}", m_source_manager->get_source_line(peek().source_location())));
         }
 
         // Release from original unique_ptr and wrap in new one
         std::unique_ptr<VariableDeclaration> var_decl(dynamic_cast<VariableDeclaration*>(decl.release()));
-        return std::make_unique<ForInitDeclaration>(std::move(var_decl));
+        return std::make_unique<ForInitDeclaration>(loc, std::move(var_decl));
     } else {
         std::unique_ptr<Expression> e = (next_token.type() == TokenType::SEMICOLON) ? nullptr : parse_expression();
         expect(TokenType::SEMICOLON);
-        return std::make_unique<ForInitExpression>(std::move(e));
+        return std::make_unique<ForInitExpression>(loc, std::move(e));
     }
 }
 
@@ -144,12 +148,13 @@ std::unique_ptr<Statement> Parser::parse_statement()
     ENTER_CONTEXT("parse_statement");
 
     const Token& next_token = peek();
+    SourceLocationIndex loc = m_source_manager->get_index(next_token);
     switch (next_token.type()) {
     case TokenType::RETURN_KW: {
         expect(TokenType::RETURN_KW);
         std::unique_ptr<Expression> expr = parse_expression();
         expect(TokenType::SEMICOLON);
-        return std::make_unique<ReturnStatement>(std::move(expr));
+        return std::make_unique<ReturnStatement>(loc, std::move(expr));
     }
     case TokenType::IF_KW: {
         expect(TokenType::IF_KW);
@@ -163,25 +168,25 @@ std::unique_ptr<Statement> Parser::parse_statement()
             take_token();
             else_statement = parse_statement();
         }
-        return std::make_unique<IfStatement>(std::move(expr), std::move(then_statement), std::move(else_statement));
+        return std::make_unique<IfStatement>(loc, std::move(expr), std::move(then_statement), std::move(else_statement));
     }
     case TokenType::OPEN_BRACE: {
         std::unique_ptr<Block> block = parse_block();
-        return std::make_unique<CompoundStatement>(std::move(block));
+        return std::make_unique<CompoundStatement>(loc, std::move(block));
     }
     case TokenType::SEMICOLON: {
         expect(TokenType::SEMICOLON);
-        return std::make_unique<NullStatement>();
+        return std::make_unique<NullStatement>(loc);
     }
     case TokenType::BREAK_KW: {
         expect(TokenType::BREAK_KW);
         expect(TokenType::SEMICOLON);
-        return std::make_unique<BreakStatement>();
+        return std::make_unique<BreakStatement>(loc);
     }
     case TokenType::CONTINUE_KW: {
         expect(TokenType::CONTINUE_KW);
         expect(TokenType::SEMICOLON);
-        return std::make_unique<ContinueStatement>();
+        return std::make_unique<ContinueStatement>(loc);
     }
     case TokenType::WHILE_KW: {
         expect(TokenType::WHILE_KW);
@@ -189,7 +194,7 @@ std::unique_ptr<Statement> Parser::parse_statement()
         std::unique_ptr<Expression> expr = parse_expression();
         expect(TokenType::CLOSE_PAREN);
         std::unique_ptr<Statement> statement = parse_statement();
-        return std::make_unique<WhileStatement>(std::move(expr), std::move(statement));
+        return std::make_unique<WhileStatement>(loc, std::move(expr), std::move(statement));
     }
     case TokenType::DO_KW: {
         expect(TokenType::DO_KW);
@@ -199,7 +204,7 @@ std::unique_ptr<Statement> Parser::parse_statement()
         std::unique_ptr<Expression> expr = parse_expression();
         expect(TokenType::CLOSE_PAREN);
         expect(TokenType::SEMICOLON);
-        return std::make_unique<DoWhileStatement>(std::move(expr), std::move(statement));
+        return std::make_unique<DoWhileStatement>(loc, std::move(expr), std::move(statement));
     }
     case TokenType::FOR_KW: {
         expect(TokenType::FOR_KW);
@@ -222,12 +227,12 @@ std::unique_ptr<Statement> Parser::parse_statement()
         }
         expect(TokenType::CLOSE_PAREN);
         std::unique_ptr<Statement> statement = parse_statement();
-        return std::make_unique<ForStatement>(std::move(for_init), std::move(cond), std::move(post), std::move(statement));
+        return std::make_unique<ForStatement>(loc, std::move(for_init), std::move(cond), std::move(post), std::move(statement));
     }
     default: {
         std::unique_ptr<Expression> expr = parse_expression();
         expect(TokenType::SEMICOLON);
-        return std::make_unique<ExpressionStatement>(std::move(expr));
+        return std::make_unique<ExpressionStatement>(loc, std::move(expr));
     }
     }
 }
@@ -256,19 +261,20 @@ std::unique_ptr<Expression> Parser::parse_expression(int min_prec)
 
     const Token* next_token = &peek();
     while (next_token && is_binary_operator(next_token->type()) && precedence(*next_token) >= min_prec) {
+        SourceLocationIndex loc = m_source_manager->get_index(*next_token);
         if (next_token->type() == TokenType::ASSIGNMENT) { //= must be rigth associative a = b = c --> a  = (b = c)
             take_token();
             std::unique_ptr<Expression> right = parse_expression(precedence(*next_token)); // different than binary operator because it's rigth associative
-            left = std::make_unique<AssignmentExpression>(std::move(left), std::move(right));
+            left = std::make_unique<AssignmentExpression>(loc, std::move(left), std::move(right));
         } else if (next_token->type() == TokenType::QUESTION_MARK) {
             // QUESTION_MARK consumed by parse_conditional_middle
             std::unique_ptr<Expression> middle = parse_conditional_middle();
             std::unique_ptr<Expression> right = parse_expression(precedence(*next_token)); // different than binary operator because it's rigth associative
-            left = std::make_unique<ConditionalExpression>(std::move(left), std::move(middle), std::move(right));
+            left = std::make_unique<ConditionalExpression>(loc, std::move(left), std::move(middle), std::move(right));
         } else {
             BinaryOperator op = parse_binary_operator();
             std::unique_ptr<Expression> right = parse_expression(precedence(*next_token) + 1);
-            left = std::make_unique<BinaryExpression>(op, std::move(left), std::move(right));
+            left = std::make_unique<BinaryExpression>(loc, op, std::move(left), std::move(right));
         }
 
         next_token = has_tokens() ? &peek() : nullptr;
@@ -281,16 +287,17 @@ std::unique_ptr<Expression> Parser::parse_factor()
     ENTER_CONTEXT("parse_factor");
 
     const Token& next_token = peek();
+    SourceLocationIndex loc = m_source_manager->get_index(next_token);
     if (next_token.type() == TokenType::CONSTANT) {
         take_token();
-        return std::make_unique<ConstantExpression>(next_token.literal<int>());
+        return std::make_unique<ConstantExpression>(loc, next_token.literal<int>());
     } else if (next_token.type() == TokenType::LONG_CONSTANT) {
         take_token();
-        return std::make_unique<ConstantExpression>(next_token.literal<long>());
+        return std::make_unique<ConstantExpression>(loc, next_token.literal<long>());
     } else if (is_unary_operator(next_token.type())) {
         UnaryOperator op = parse_unary_operator();
         std::unique_ptr<Expression> expr = parse_factor();
-        return std::make_unique<UnaryExpression>(op, std::move(expr));
+        return std::make_unique<UnaryExpression>(loc, op, std::move(expr));
     } else if (next_token.type() == TokenType::OPEN_PAREN) {
         expect(TokenType::OPEN_PAREN);
         const Token* new_next_token = &peek();
@@ -298,7 +305,7 @@ std::unique_ptr<Expression> Parser::parse_factor()
             std::unique_ptr<Type> type = parse_type();
             expect(TokenType::CLOSE_PAREN);
             std::unique_ptr<Expression> factor = parse_factor();
-            return std::make_unique<CastExpression>(std::move(type), std::move(factor));
+            return std::make_unique<CastExpression>(loc, std::move(type), std::move(factor));
         } else {
             std::unique_ptr<Expression> res = parse_expression();
             expect(TokenType::CLOSE_PAREN);
@@ -308,7 +315,7 @@ std::unique_ptr<Expression> Parser::parse_factor()
         const Token& identifier_token = expect(TokenType::IDENTIFIER);
         const Token* new_next_token = &peek();
         if (new_next_token->type() != TokenType::OPEN_PAREN) {
-            return std::make_unique<VariableExpression>(identifier_token.lexeme());
+            return std::make_unique<VariableExpression>(loc, identifier_token.lexeme());
         }
         expect(TokenType::OPEN_PAREN);
         std::vector<std::unique_ptr<Expression>> args;
@@ -324,9 +331,9 @@ std::unique_ptr<Expression> Parser::parse_factor()
             }
         }
         expect(TokenType::CLOSE_PAREN);
-        return std::make_unique<FunctionCallExpression>(identifier_token.lexeme(), std::move(args));
+        return std::make_unique<FunctionCallExpression>(loc, identifier_token.lexeme(), std::move(args));
     } else {
-        throw ParserError(*this, std::format("Malformed Factor at\n{}", SourceManager::get_source_line(next_token.source_location()).value()));
+        throw ParserError(*this, std::format("Malformed Factor at\n{}", m_source_manager->get_source_line(next_token.source_location())));
     }
 }
 
@@ -341,7 +348,7 @@ std::unique_ptr<Type> Parser::parse_type()
         TokenType tt = curr_token->type();
         auto res = specifiers.insert(tt);
         if (!res.second) {
-            throw ParserError(*this, std::format("Multiple Type Specifier {} at\n{}", Token::type_to_string(tt), SourceManager::get_source_line(curr_token->source_location()).value()));
+            throw ParserError(*this, std::format("Multiple Type Specifier {} at\n{}", Token::type_to_string(tt), m_source_manager->get_source_line(curr_token->source_location())));
         }
 
         curr_token = &peek();
@@ -359,7 +366,7 @@ std::unique_ptr<Type> Parser::parse_type_specifier_list(const std::unordered_set
     } else if (type_specifiers.contains(TokenType::LONG_KW) && (type_specifiers.size() == 1 || (type_specifiers.size() == 2 && type_specifiers.contains(TokenType::INT_KW)))) {
         type = std::make_unique<LongType>();
     } else {
-        throw ParserError(*this, std::format("Invalid Type Specifier at:\n{}", SourceManager::get_source_line(last_token().source_location()).value()));
+        throw ParserError(*this, std::format("Invalid Type Specifier at:\n{}", m_source_manager->get_source_line(last_token().source_location())));
     }
     return type;
 }
@@ -423,7 +430,7 @@ const Token& Parser::expect(TokenType expected)
 
     const Token& actual = m_tokens[i++];
     if (actual.type() != expected) {
-        throw ParserError(*this, std::format("Syntax error: Expected '{}' but found '{}' at:\n{}", Token::type_to_string(expected), actual.lexeme(), SourceManager::get_source_line(actual.source_location()).value()));
+        throw ParserError(*this, std::format("Syntax error: Expected '{}' but found '{}' at:\n{}", Token::type_to_string(expected), actual.lexeme(), m_source_manager->get_source_line(actual.source_location())));
     }
     return actual;
 }
@@ -573,7 +580,7 @@ std::pair<std::unique_ptr<Type>, StorageClass> Parser::parse_type_and_storage_cl
         if (is_type_specificer(token_type)) {
             auto res = type_specifiers.insert(token_type);
             if (!res.second) {
-                throw ParserError(*this, std::format("Multiple Type Specifier {} at\n{}", Token::type_to_string(token_type), SourceManager::get_source_line(next_token->source_location()).value()));
+                throw ParserError(*this, std::format("Multiple Type Specifier {} at\n{}", Token::type_to_string(token_type), m_source_manager->get_source_line(next_token->source_location())));
             }
         } else if (token_type == TokenType::STATIC_KW || token_type == TokenType::EXTERN_KW) {
             storage_classes.push_back(token_type);
@@ -587,7 +594,7 @@ std::pair<std::unique_ptr<Type>, StorageClass> Parser::parse_type_and_storage_cl
     std::unique_ptr<Type> type = parse_type_specifier_list(type_specifiers);
 
     if (storage_classes.size() > 1) {
-        throw ParserError(*this, std::format("Specified too many storage_classes {} at:\n{}", storage_classes.size(), SourceManager::get_source_line(last_token().source_location()).value()));
+        throw ParserError(*this, std::format("Specified too many storage_classes {} at:\n{}", storage_classes.size(), m_source_manager->get_source_line(last_token().source_location())));
     }
 
     StorageClass storage_class = StorageClass::NONE;

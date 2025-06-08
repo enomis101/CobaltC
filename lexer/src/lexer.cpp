@@ -1,6 +1,5 @@
 #include "lexer/lexer.h"
 #include "common/data/source_location.h"
-#include "common/data/source_manager.h"
 #include "common/data/token_table.h"
 #include <cassert>
 #include <filesystem>
@@ -8,16 +7,16 @@
 #include <fstream>
 #include <iostream>
 #include <regex>
-#include <stdexcept>
 #include <string>
 
 namespace fs = std::filesystem;
 
 const std::string Lexer::file_extension = ".i";
 
-Lexer::Lexer(const std::string& file_path, std::shared_ptr<TokenTable> token_table)
+Lexer::Lexer(const std::string& file_path, std::shared_ptr<TokenTable> token_table, std::shared_ptr<SourceManager> source_manager)
     : m_file_path { file_path }
     , m_token_table { token_table }
+    , m_source_manager { source_manager }
 {
     // Check if file exists
     if (!fs::exists(file_path)) {
@@ -100,9 +99,8 @@ std::vector<Token> Lexer::tokenize()
         std::string_view curr_str(input.begin() + i, input.end());
         size_t search_res = m_token_table->search(curr_str);
         if (search_res == 0) {
-            auto err = SourceManager::get_source_line(curr_location_tracker.current());
-            assert(err.has_value());
-            throw LexerError(std::format("Failed matching a token \n{}", (err.has_value() ? err.value() : "NOT FOUND!")));
+            auto err = m_source_manager->get_source_line(curr_location_tracker.current());
+            throw LexerError(std::format("Failed matching a token \n{}", err));
         }
 
         std::string lexeme = input.substr(i, search_res);

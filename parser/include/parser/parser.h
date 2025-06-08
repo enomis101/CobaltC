@@ -1,5 +1,6 @@
 #pragma once
 #include "common/data/source_location.h"
+#include "common/data/source_manager.h"
 #include "common/data/token.h"
 #include "common/data/type.h"
 #include "parser/parser_ast.h"
@@ -20,8 +21,9 @@ public:
         }
     };
 
-    Parser(const std::vector<Token>& tokens)
+    Parser(const std::vector<Token>& tokens, std::shared_ptr<SourceManager> source_manager)
         : m_tokens { tokens }
+        , m_source_manager(source_manager)
     {
     }
 
@@ -30,6 +32,7 @@ public:
 
 private:
     const std::vector<Token>& m_tokens;
+    std::shared_ptr<SourceManager> m_source_manager;
 
     std::unique_ptr<Declaration> parse_declaration();
     std::unique_ptr<Block> parse_block();

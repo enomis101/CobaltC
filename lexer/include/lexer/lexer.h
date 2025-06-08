@@ -1,5 +1,6 @@
 #pragma once
 #include "common/data/source_location.h"
+#include "common/data/source_manager.h"
 #include "common/data/token.h"
 #include "common/data/token_table.h"
 #include <memory>
@@ -50,7 +51,7 @@ private:
 
 class Lexer {
 public:
-    Lexer(const std::string& file_path, std::shared_ptr<TokenTable> token_table);
+    Lexer(const std::string& file_path, std::shared_ptr<TokenTable> token_table, std::shared_ptr<SourceManager> source_manager);
     std::vector<Token> tokenize();
 
 private:
@@ -58,4 +59,5 @@ private:
     std::string m_file_content;
     std::string m_file_path;
     std::shared_ptr<TokenTable> m_token_table;
+    std::shared_ptr<SourceManager> m_source_manager;
 };

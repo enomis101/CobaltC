@@ -103,7 +103,6 @@ void TypeCheckPass::visit(VariableExpression& node)
 }
 void TypeCheckPass::visit(CastExpression& node)
 {
-
 }
 
 void TypeCheckPass::visit(AssignmentExpression& node)

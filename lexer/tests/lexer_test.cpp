@@ -1,10 +1,10 @@
+#include "common//data/source_manager.h"
 #include "common/data/token_table.h"
 #include "lexer/lexer.h"
 #include <filesystem>
 #include <fstream>
 #include <gtest/gtest.h>
 #include <memory>
-
 namespace fs = std::filesystem;
 
 class LexerTest : public ::testing::Test {
@@ -13,6 +13,7 @@ protected:
     {
         // Create a shared TokenTable for all tests
         token_table = std::make_shared<TokenTable>();
+        source_manager = std::make_shared<SourceManager>();
 
         // Create a temporary directory for test files
         test_dir = fs::temp_directory_path() / "lexer_tests";
@@ -36,6 +37,7 @@ protected:
     }
 
     std::shared_ptr<TokenTable> token_table;
+    std::shared_ptr<SourceManager> source_manager;
     fs::path test_dir;
 };
 
@@ -43,28 +45,28 @@ TEST_F(LexerTest, FileNotFound)
 {
     std::string nonexistent_file = (test_dir / "nonexistent.i").string();
 
-    EXPECT_THROW({ Lexer lexer(nonexistent_file, token_table); }, LexerError);
+    EXPECT_THROW({ Lexer lexer(nonexistent_file, token_table, source_manager); }, LexerError);
 }
 
 TEST_F(LexerTest, InvalidFileExtension)
 {
     std::string wrong_extension_file = create_test_file("int main() {}", "test.c");
 
-    EXPECT_THROW({ Lexer lexer(wrong_extension_file, token_table); }, LexerError);
+    EXPECT_THROW({ Lexer lexer(wrong_extension_file, token_table, source_manager); }, LexerError);
 }
 
 TEST_F(LexerTest, EmptyFile)
 {
     std::string empty_file = create_test_file("");
 
-    EXPECT_THROW({ Lexer lexer(empty_file, token_table); }, LexerError);
+    EXPECT_THROW({ Lexer lexer(empty_file, token_table, source_manager); }, LexerError);
 }
 
 TEST_F(LexerTest, SimpleIntegerConstant)
 {
     std::string filepath = create_test_file("42");
 
-    Lexer lexer(filepath, token_table);
+    Lexer lexer(filepath, token_table, source_manager);
     auto tokens = lexer.tokenize();
 
     ASSERT_EQ(tokens.size(), 1);
@@ -78,7 +80,7 @@ TEST_F(LexerTest, SimpleIdentifier)
 {
     std::string filepath = create_test_file("myVariable");
 
-    Lexer lexer(filepath, token_table);
+    Lexer lexer(filepath, token_table, source_manager);
     auto tokens = lexer.tokenize();
 
     ASSERT_EQ(tokens.size(), 1);
@@ -91,7 +93,7 @@ TEST_F(LexerTest, Keywords)
 {
     std::string filepath = create_test_file("int return void if else while for");
 
-    Lexer lexer(filepath, token_table);
+    Lexer lexer(filepath, token_table, source_manager);
     auto tokens = lexer.tokenize();
 
     ASSERT_EQ(tokens.size(), 7);
@@ -108,7 +110,7 @@ TEST_F(LexerTest, SingleCharacterTokens)
 {
     std::string filepath = create_test_file("(){}+-*/%;,");
 
-    Lexer lexer(filepath, token_table);
+    Lexer lexer(filepath, token_table, source_manager);
     auto tokens = lexer.tokenize();
 
     ASSERT_EQ(tokens.size(), 11);
@@ -129,7 +131,7 @@ TEST_F(LexerTest, DoubleCharacterTokens)
 {
     std::string filepath = create_test_file("-- && || == != <= >=");
 
-    Lexer lexer(filepath, token_table);
+    Lexer lexer(filepath, token_table, source_manager);
     auto tokens = lexer.tokenize();
 
     ASSERT_EQ(tokens.size(), 7);
@@ -146,7 +148,7 @@ TEST_F(LexerTest, SimpleFunction)
 {
     std::string filepath = create_test_file("int main() { return 0; }");
 
-    Lexer lexer(filepath, token_table);
+    Lexer lexer(filepath, token_table, source_manager);
     auto tokens = lexer.tokenize();
 
     ASSERT_EQ(tokens.size(), 9);
@@ -170,7 +172,7 @@ TEST_F(LexerTest, MultilineCode)
         "int y = 10;\n"
         "int z = x + y;");
 
-    Lexer lexer(filepath, token_table);
+    Lexer lexer(filepath, token_table, source_manager);
     auto tokens = lexer.tokenize();
 
     // Check line numbers
@@ -185,7 +187,7 @@ TEST_F(LexerTest, WhitespaceHandling)
 {
     std::string filepath = create_test_file("  int   x  =  5  ;  ");
 
-    Lexer lexer(filepath, token_table);
+    Lexer lexer(filepath, token_table, source_manager);
     auto tokens = lexer.tokenize();
 
     ASSERT_EQ(tokens.size(), 5);
@@ -200,7 +202,7 @@ TEST_F(LexerTest, ConditionalExpression)
 {
     std::string filepath = create_test_file("x > 0 ? x : -x");
 
-    Lexer lexer(filepath, token_table);
+    Lexer lexer(filepath, token_table, source_manager);
     auto tokens = lexer.tokenize();
 
     ASSERT_EQ(tokens.size(), 8);
@@ -218,7 +220,7 @@ TEST_F(LexerTest, InvalidToken)
 {
     std::string filepath = create_test_file("int x = 5; @");
 
-    Lexer lexer(filepath, token_table);
+    Lexer lexer(filepath, token_table, source_manager);
 
     EXPECT_THROW({ lexer.tokenize(); }, LexerError);
 }
@@ -227,7 +229,7 @@ TEST_F(LexerTest, ComplexExpression)
 {
     std::string filepath = create_test_file("if (x >= 10 && y != 0) { z = x / y; }");
 
-    Lexer lexer(filepath, token_table);
+    Lexer lexer(filepath, token_table, source_manager);
     auto tokens = lexer.tokenize();
 
     ASSERT_EQ(tokens.size(), 18);
@@ -244,7 +246,7 @@ TEST_F(LexerTest, StaticExternKeywords)
 {
     std::string filepath = create_test_file("static int x; extern void func();");
 
-    Lexer lexer(filepath, token_table);
+    Lexer lexer(filepath, token_table, source_manager);
     auto tokens = lexer.tokenize();
 
     EXPECT_EQ(tokens[0].type(), TokenType::STATIC_KW);
@@ -255,7 +257,7 @@ TEST_F(LexerTest, LoopKeywords)
 {
     std::string filepath = create_test_file("do { break; } while(1); for(;;) { continue; }");
 
-    Lexer lexer(filepath, token_table);
+    Lexer lexer(filepath, token_table, source_manager);
     auto tokens = lexer.tokenize();
 
     // Find and check specific keywords

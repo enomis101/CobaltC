@@ -2,6 +2,7 @@
 #include "assembly/assembly_generator.h"
 #include "assembly/assembly_printer.h"
 #include "assembly/code_emitter.h"
+#include "common//data/source_manager.h"
 #include "common/data/token.h"
 #include "common/data/token_table.h"
 #include "common/log/log.h"
@@ -77,21 +78,21 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
     std::shared_ptr<TokenTable> token_table = std::make_shared<TokenTable>();
     std::shared_ptr<NameGenerator> name_generator = std::make_shared<NameGenerator>();
     std::shared_ptr<SymbolTable> symbol_table = std::make_shared<SymbolTable>();
-
-    std::vector<Token> tokens;
+    std::shared_ptr<SourceManager> source_manager = std::make_shared<SourceManager>();
+    std::shared_ptr<std::vector<Token>> tokens;
 
     // Lexing stage
     try {
         LOG_INFO(LOG_CONTEXT, std::format("Lexing file '{}'", preprocessed_output_file));
 
-        Lexer lexer(preprocessed_output_file, token_table);
-        tokens = lexer.tokenize();
-
-        LOG_INFO(LOG_CONTEXT, std::format("Lexing successful: {} tokens generated", tokens.size()));
+        Lexer lexer(preprocessed_output_file, token_table, source_manager);
+        tokens = std::make_shared<std::vector<Token>>(lexer.tokenize());
+        source_manager->set_token_list(tokens);
+        LOG_INFO(LOG_CONTEXT, std::format("Lexing successful: {} tokens generated", tokens->size()));
 
         if (logging::LogManager::logger()->is_enabled(LOG_CONTEXT, logging::LogLevel::DEBUG)) {
             std::string token_list = "Token List:\n";
-            for (const Token& t : tokens) {
+            for (const Token& t : *tokens) {
                 token_list += t.to_string() + "\n";
             }
             LOG_DEBUG(LOG_CONTEXT, token_list);
@@ -115,7 +116,7 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
     try {
         LOG_INFO(LOG_CONTEXT, "Starting parsing stage");
 
-        parser::Parser parser(tokens);
+        parser::Parser parser(*tokens, source_manager);
         parser_ast = parser.parse_program();
 
         LOG_INFO(LOG_CONTEXT, "Parsing successful");

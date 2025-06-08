@@ -101,6 +101,10 @@ void TypeCheckPass::visit(VariableExpression& node)
         throw TypeCheckPassError(std::format("Function name {} used as variable", variable_name));
     }
 }
+void TypeCheckPass::visit(CastExpression& node)
+{
+
+}
 
 void TypeCheckPass::visit(AssignmentExpression& node)
 {

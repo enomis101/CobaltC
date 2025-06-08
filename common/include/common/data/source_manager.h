@@ -1,38 +1,17 @@
 #pragma once
 #include "common/data/source_location.h"
-#include <fstream>
-#include <optional>
-#include <sstream>
+#include "common/data/token.h"
 #include <string>
+#include <vector>
 
 class SourceManager {
 public:
-    static std::optional<std::string> get_source_line(const SourceLocation& location)
-    {
-        std::ostringstream result;
+    void set_token_list(std::shared_ptr<std::vector<Token>> token_list) { m_token_list = token_list; }
 
-        // Try to open the file
-        std::ifstream file(location.file_name);
-        if (!file.is_open()) {
-            return std::nullopt;
-        }
+    std::string get_source_line(const SourceLocation& location) const;
+    std::string get_source_line(const SourceLocationIndex& location) const;
+    SourceLocationIndex get_index(const Token& token) const;
 
-        // Skip to the error line
-        std::string line;
-        for (size_t i = 0; i < location.line_number && std::getline(file, line); ++i) {
-            // Just reading lines until we reach the target
-        }
-
-        // Add the source line
-        result << line << "\n";
-
-        // Add the error marker
-        for (size_t i = 1; i < location.column_number; ++i) {
-            // Preserve tabs for proper alignment
-            result << (i - 1 < line.length() && line[i - 1] == '\t' ? '\t' : ' ');
-        }
-        result << "^";
-
-        return result.str();
-    }
+private:
+    std::shared_ptr<std::vector<Token>> m_token_list;
 };

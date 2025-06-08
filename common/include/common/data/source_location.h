@@ -13,3 +13,11 @@ struct SourceLocation {
     {
     }
 };
+
+struct SourceLocationIndex {
+    size_t index;
+    explicit SourceLocationIndex(size_t index)
+        : index(index)
+    {
+    }
+};

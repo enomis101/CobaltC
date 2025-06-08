@@ -1,4 +1,5 @@
 #include "common/data/source_manager.h"
+#include <format>
 #include <fstream>
 #include <sstream>
 
@@ -17,7 +18,10 @@ std::string SourceManager::get_source_line(const SourceLocation& location) const
     for (size_t i = 0; i < location.line_number && std::getline(file, line); ++i) {
         // Just reading lines until we reach the target
     }
-
+    result << std::format("{:<50} {:>5}:{:<3}\n",
+        location.file_name,
+        location.line_number,
+        location.column_number);
     // Add the source line
     result << line << "\n";
 

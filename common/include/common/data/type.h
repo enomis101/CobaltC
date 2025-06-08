@@ -10,8 +10,15 @@ class Type {
 public:
     virtual ~Type() = default;
 
-    // Virtual equality comparison
-    virtual bool equals(const Type& other) const = 0;
+    // Virtual clone function - the key addition
+    // Returns a unique_ptr to a deep copy of the object
+    virtual std::unique_ptr<Type> clone() const = 0;
+
+    // Default equality comparison
+    virtual bool equals(const Type& other) const
+    {
+        return typeid(*this) == typeid(other);
+    }
 
     // Operators deleted to force explicit use of equals()
     bool operator==(const Type& other) const = delete;
@@ -20,19 +27,21 @@ public:
 
 class IntType : public Type {
 public:
-    bool equals(const Type& other) const override
+    // Clone implementation for IntType
+    // Creates a new IntType object and returns it wrapped in unique_ptr
+    std::unique_ptr<Type> clone() const override
     {
-        // Only equal if other is also IntType
-        return typeid(*this) == typeid(other);
+        return std::make_unique<IntType>();
     }
 };
 
 class LongType : public Type {
 public:
-    bool equals(const Type& other) const override
+    // Clone implementation for LongType
+    // Creates a new LongType object and returns it wrapped in unique_ptr
+    std::unique_ptr<Type> clone() const override
     {
-        // Only equal if other is also LongType
-        return typeid(*this) == typeid(other);
+        return std::make_unique<LongType>();
     }
 };
 
@@ -42,6 +51,27 @@ public:
         : return_type { std::move(return_type) }
         , parameters_type { std::move(parameters_type) }
     {
+    }
+
+    // Clone implementation for FunctionType
+    // This is more complex because we need to deep-copy the contained types
+    std::unique_ptr<Type> clone() const override
+    {
+        // Clone the return type
+        auto cloned_return_type = return_type->clone();
+
+        // Clone each parameter type
+        std::vector<std::unique_ptr<Type>> cloned_parameters;
+        cloned_parameters.reserve(parameters_type.size());
+
+        for (const auto& param : parameters_type) {
+            cloned_parameters.push_back(param->clone());
+        }
+
+        // Create and return new FunctionType with cloned components
+        return std::make_unique<FunctionType>(
+            std::move(cloned_return_type),
+            std::move(cloned_parameters));
     }
 
     bool equals(const Type& other) const override

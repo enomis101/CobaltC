@@ -304,7 +304,7 @@ void TypeCheckPass::typecheck_file_scope_variable_declaration(VariableDeclaratio
         }
     } else if (ConstantExpression* expr = dynamic_cast<ConstantExpression*>(variable_declaration.expression.value().get())) {
         // conversion is performed at compile time
-        auto con_res = convert_constant_type(expr->value, *variable_declaration.type);
+        auto con_res = SymbolTable::convert_constant_type(expr->value, *variable_declaration.type);
         if (!con_res.has_value()) {
             throw TypeCheckPassError(std::format("Failed convert_constant_type at:\n{}",
                 m_source_manager->get_source_line(variable_declaration.source_location)));
@@ -370,7 +370,7 @@ void TypeCheckPass::typecheck_local_variable_declaration(VariableDeclaration& va
         Initializer initial_value;
         if (!variable_declaration.expression.has_value()) {
             // conversion is performed at compile time
-            auto con_res = convert_constant_type(ConstantType(0), *variable_declaration.type);
+            auto con_res = SymbolTable::convert_constant_type(ConstantType(0), *variable_declaration.type);
             if (!con_res.has_value()) {
                 throw TypeCheckPassError(std::format("Failed convert_constant_type at:\n{}",
                     m_source_manager->get_source_line(variable_declaration.source_location)));
@@ -378,7 +378,7 @@ void TypeCheckPass::typecheck_local_variable_declaration(VariableDeclaration& va
             initial_value = InitialValue { con_res.value() };
         } else if (ConstantExpression* expr = dynamic_cast<ConstantExpression*>(variable_declaration.expression.value().get())) {
             // conversion is performed at compile time
-            auto con_res = convert_constant_type(expr->value, *variable_declaration.type);
+            auto con_res = SymbolTable::convert_constant_type(expr->value, *variable_declaration.type);
             if (!con_res.has_value()) {
                 throw TypeCheckPassError(std::format("Failed convert_constant_type at:\n{}",
                     m_source_manager->get_source_line(variable_declaration.source_location)));
@@ -415,32 +415,4 @@ void TypeCheckPass::convert_expression_to(std::unique_ptr<Expression>& expr, con
     // Wrap original expr into a CastExpr
     expr = std::make_unique<CastExpression>(tmp->source_location, target_type.clone(), std::move(tmp));
     expr->type = target_type.clone();
-}
-
-std::optional<InitialValueType> TypeCheckPass::convert_constant_type(const ConstantType& value, const Type& target_type)
-{
-    // Handle std::monostate input
-    if (std::holds_alternative<std::monostate>(value)) {
-        return std::nullopt;
-    }
-
-    if (dynamic_cast<const IntType*>(&target_type)) {
-        if (std::holds_alternative<int>(value)) {
-            return std::get<int>(value);
-        } else if (std::holds_alternative<long>(value)) {
-            long long_val = std::get<long>(value);
-            // Convert long to int using modulo 2^32 (assuming 32-bit int)
-            // This truncates the value, keeping only the lower bits
-            // TODO: add warning?
-            return static_cast<int>(long_val);
-        }
-    } else if (dynamic_cast<const LongType*>(&target_type)) {
-        if (std::holds_alternative<int>(value)) {
-            return static_cast<long>(std::get<int>(value));
-        } else if (std::holds_alternative<long>(value)) {
-            return std::get<long>(value);
-        }
-    }
-
-    return std::nullopt; // Unsupported target type
 }

@@ -1,4 +1,5 @@
 #pragma once
+#include "common/data/symbol_table.h"
 #include <memory>
 #include <string>
 #include <vector>
@@ -28,6 +29,8 @@ class FunctionDefinition;
 class Program;
 class FunctionCallInstruction;
 class StaticVariable;
+class SignExtendInstruction;
+class TruncateInstruction;
 
 // TackyVisitor interface
 class TackyVisitor {
@@ -36,6 +39,8 @@ public:
     virtual void visit(Constant& node) = 0;
     virtual void visit(TemporaryVariable& node) = 0;
     virtual void visit(ReturnInstruction& node) = 0;
+    virtual void visit(SignExtendInstruction& node) = 0;
+    virtual void visit(TruncateInstruction& node) = 0;
     virtual void visit(UnaryInstruction& node) = 0;
     virtual void visit(BinaryInstruction& node) = 0;
     virtual void visit(CopyInstruction& node) = 0;
@@ -92,7 +97,7 @@ public:
 
 class Constant : public Value {
 public:
-    Constant(int value)
+    Constant(ConstantType value)
         : value(value)
     {
     }
@@ -102,7 +107,7 @@ public:
         visitor.visit(*this);
     }
 
-    int value;
+    ConstantType value;
 };
 
 class TemporaryVariable : public Value {
@@ -138,6 +143,40 @@ public:
     }
 
     std::unique_ptr<Value> value;
+};
+
+class SignExtendInstruction : public Instruction {
+public:
+    SignExtendInstruction(std::unique_ptr<Value> src, std::unique_ptr<Value> dst)
+        : source(std::move(src))
+        , destination(std::move(dst))
+    {
+    }
+
+    void accept(TackyVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    std::unique_ptr<Value> source;
+    std::unique_ptr<Value> destination;
+};
+
+class TruncateInstruction : public Instruction {
+public:
+    TruncateInstruction(std::unique_ptr<Value> src, std::unique_ptr<Value> dst)
+        : source(std::move(src))
+        , destination(std::move(dst))
+    {
+    }
+
+    void accept(TackyVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    std::unique_ptr<Value> source;
+    std::unique_ptr<Value> destination;
 };
 
 class UnaryInstruction : public Instruction {
@@ -184,11 +223,6 @@ class CopyInstruction : public Instruction {
 public:
     CopyInstruction(std::unique_ptr<Value> src, std::unique_ptr<Value> dst)
         : source(std::move(src))
-        , destination(std::move(dst))
-    {
-    }
-    CopyInstruction(int src, std::unique_ptr<Value> dst)
-        : source(std::make_unique<Constant>(src))
         , destination(std::move(dst))
     {
     }
@@ -313,10 +347,11 @@ public:
 
 class StaticVariable : public TopLevel {
 public:
-    StaticVariable(const std::string& n, bool glbl, int i)
-        : name { n }
-        , global { glbl }
-        , init { i }
+    StaticVariable(const std::string& name, bool global, std::unique_ptr<Type> type, InitialValueType init)
+        : name { name }
+        , global { global }
+        , type { std::move(type) }
+        , init { init }
     {
     }
 
@@ -327,7 +362,8 @@ public:
 
     Identifier name;
     bool global;
-    int init;
+    std::unique_ptr<Type> type;
+    InitialValueType init;
 };
 
 class Program : public TackyAST {

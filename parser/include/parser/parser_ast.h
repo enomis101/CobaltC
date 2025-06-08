@@ -122,6 +122,8 @@ public:
 class Expression : public ParserAST {
 public:
     virtual ~Expression() = default;
+
+    std::unique_ptr<Type> type {nullptr}; //this is set during type check phase
 };
 
 class ConstantExpression : public Expression {
@@ -157,8 +159,8 @@ public:
 
 class CastExpression : public Expression {
 public:
-    CastExpression(std::unique_ptr<Type> type, std::unique_ptr<Expression> expression)
-        : type(std::move(type))
+    CastExpression(std::unique_ptr<Type> target_type, std::unique_ptr<Expression> expression)
+        : target_type(std::move(target_type))
         , expression(std::move(expression))
     {
     }
@@ -168,7 +170,7 @@ public:
         visitor.visit(*this);
     }
 
-    std::unique_ptr<Type> type;
+    std::unique_ptr<Type> target_type;
     std::unique_ptr<Expression> expression;
 };
 

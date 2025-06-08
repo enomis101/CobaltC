@@ -36,7 +36,9 @@ void TackyGenerator::transform_symbols_to_tacky(std::shared_ptr<TackyAST> tacky_
             bool global = static_attr.global;
             const std::string& variable_name = p.first;
             if (std::holds_alternative<InitialValue>(static_attr.init)) {
-                int initial_value = std::get<InitialValue>(static_attr.init).value;
+                // TODO: FIX
+                // int initial_value = std::get<InitialValue>(static_attr.init).value;
+                int initial_value = 0;
                 top_levels.emplace_back(std::make_unique<StaticVariable>(variable_name, global, initial_value));
             } else if (std::holds_alternative<TentativeInit>(static_attr.init)) {
                 top_levels.emplace_back(std::make_unique<StaticVariable>(variable_name, global, 0));

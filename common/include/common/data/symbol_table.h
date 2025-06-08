@@ -6,10 +6,14 @@
 #include <unordered_map>
 #include <variant>
 
+using InitialValueType = ConstantType; // for now they are the same
+
 struct TentativeInit { };
+
 struct InitialValue {
-    int value;
+    InitialValueType value;
 };
+
 struct NoInit { };
 
 using Initializer = std::variant<TentativeInit, InitialValue, NoInit>;

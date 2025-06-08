@@ -609,13 +609,12 @@ Parser::ContextGuard::ContextGuard(ContextStack& context_stack, const std::strin
     : m_context_stack(context_stack)
 {
     if (source_location.has_value()) {
-        m_context_stack.push_back(std::format("{:<20} file: {:<30} line: {:<5} column: {:<3}",
+        m_context_stack.push_back(std::format("{:<35} line: {:<5} column: {:<3}",
             context,
-            source_location.value().file_name,
             source_location.value().line_number,
             source_location.value().column_number));
     } else {
-        m_context_stack.push_back(std::format("{:<20}",
+        m_context_stack.push_back(std::format("{}",
             context));
     }
 }
@@ -627,7 +626,7 @@ Parser::ContextGuard::~ContextGuard()
 
 std::string Parser::context_stack_to_string() const
 {
-    std::string context_string = "\n==================\nContext Stack:\n";
+    std::string context_string = std::format("\n==================\nContext Stack:\n");
     for (size_t i = 0; i < m_context_stack.size(); ++i) {
         const auto& str = m_context_stack.at(i);
         context_string += std::format("{}\n", str);

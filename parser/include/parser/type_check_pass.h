@@ -64,8 +64,6 @@ private:
 
     void convert_expression_to(std::unique_ptr<Expression>& expr, const Type& target_type);
 
-    std::optional<InitialValueType> convert_constant_type(const ConstantType& value, const Type& target_type);
-
     std::shared_ptr<ParserAST> m_ast;
     std::shared_ptr<SymbolTable> m_symbol_table;
     std::shared_ptr<SourceManager> m_source_manager;

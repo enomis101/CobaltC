@@ -17,6 +17,8 @@ public:
     void visit(Constant& node) override;
     void visit(TemporaryVariable& node) override;
     void visit(ReturnInstruction& node) override;
+    void visit(SignExtendInstruction& node) override;
+    void visit(TruncateInstruction& node) override;
     void visit(UnaryInstruction& node) override;
     void visit(BinaryInstruction& node) override;
     void visit(CopyInstruction& node) override;

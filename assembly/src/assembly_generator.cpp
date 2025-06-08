@@ -197,7 +197,9 @@ std::shared_ptr<AssemblyAST> AssemblyGenerator::generate()
 std::unique_ptr<Operand> AssemblyGenerator::transform_operand(tacky::Value& val)
 {
     if (tacky::Constant* constant = dynamic_cast<tacky::Constant*>(&val)) {
-        return std::make_unique<ImmediateValue>(constant->value);
+        // TODO: FIX
+        // return std::make_unique<ImmediateValue>(constant->value);
+        return nullptr;
     } else if (tacky::TemporaryVariable* var = dynamic_cast<tacky::TemporaryVariable*>(&val)) {
         return std::make_unique<PseudoRegister>(var->identifier.name);
     } else {
@@ -439,7 +441,9 @@ std::unique_ptr<TopLevel> AssemblyGenerator::transform_top_level(tacky::TopLevel
     if (tacky::FunctionDefinition* fun = dynamic_cast<tacky::FunctionDefinition*>(&top_level)) {
         return transform_function(*fun);
     } else if (tacky::StaticVariable* static_var = dynamic_cast<tacky::StaticVariable*>(&top_level)) {
-        return std::make_unique<StaticVariable>(static_var->name.name, static_var->global, static_var->init);
+        // TODO: FIX
+        // return std::make_unique<StaticVariable>(static_var->name.name, static_var->global, static_var->init);
+        return nullptr;
     } else {
         throw AssemblyGeneratorError("In transform_top_level: invalid top level class");
     }

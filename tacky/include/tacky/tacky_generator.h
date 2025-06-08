@@ -39,6 +39,9 @@ private:
 
     void transform_symbols_to_tacky(std::shared_ptr<TackyAST> tacky_ast);
 
+    // Create a new name for a temporary value and add it to the SymbolTable, we need to keep track of each TemporaryVariable type in the assembly stage
+    // to determine operand size and stack space
+    std::string make_and_add_temporary(const Type& type, const IdentifierAttribute& attr = LocalAttribute {});
     std::shared_ptr<parser::ParserAST> m_ast;
     std::shared_ptr<NameGenerator> m_name_generator;
     std::shared_ptr<SymbolTable> m_symbol_table;

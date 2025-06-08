@@ -1,7 +1,9 @@
 #include "tacky/tacky_generator.h"
 #include "common/data/symbol_table.h"
+#include "common/data/type.h"
 #include "parser/parser_ast.h"
 #include "tacky/tacky_ast.h"
+#include <cassert>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -36,12 +38,14 @@ void TackyGenerator::transform_symbols_to_tacky(std::shared_ptr<TackyAST> tacky_
             bool global = static_attr.global;
             const std::string& variable_name = p.first;
             if (std::holds_alternative<InitialValue>(static_attr.init)) {
-                // TODO: FIX
-                // int initial_value = std::get<InitialValue>(static_attr.init).value;
-                int initial_value = 0;
-                top_levels.emplace_back(std::make_unique<StaticVariable>(variable_name, global, initial_value));
+
+                auto initial_value = SymbolTable::convert_constant_type(std::get<InitialValue>(static_attr.init).value, *entry.type);
+                assert(initial_value.has_value());
+                top_levels.emplace_back(std::make_unique<StaticVariable>(variable_name, global, entry.type->clone(), initial_value.value()));
             } else if (std::holds_alternative<TentativeInit>(static_attr.init)) {
-                top_levels.emplace_back(std::make_unique<StaticVariable>(variable_name, global, 0));
+                auto initial_value = SymbolTable::convert_constant_type(0, *entry.type);
+                assert(initial_value.has_value());
+                top_levels.emplace_back(std::make_unique<StaticVariable>(variable_name, global, entry.type->clone(), initial_value.value()));
             } else if (std::holds_alternative<NoInit>(static_attr.init)) {
                 continue;
             }
@@ -92,12 +96,10 @@ BinaryOperator TackyGenerator::transform_binary_operator(parser::BinaryOperator&
 std::unique_ptr<Value> TackyGenerator::transform_expression(parser::Expression& expression, std::vector<std::unique_ptr<Instruction>>& instructions)
 {
     if (parser::ConstantExpression* constant_expression = dynamic_cast<parser::ConstantExpression*>(&expression)) {
-        // TODO: FIX
-        // return std::make_unique<Constant>(constant_expression->value);
-        return nullptr;
+        return std::make_unique<Constant>(constant_expression->value);
     } else if (parser::UnaryExpression* unary_expression = dynamic_cast<parser::UnaryExpression*>(&expression)) {
         std::unique_ptr<Value> src = transform_expression(*unary_expression->expression, instructions);
-        std::string dst_name = m_name_generator->make_temporary();
+        std::string dst_name = make_and_add_temporary(*unary_expression->type);
         std::unique_ptr<TemporaryVariable> dst = std::make_unique<TemporaryVariable>(dst_name);
         std::unique_ptr<Value> dst_copy = std::make_unique<TemporaryVariable>(*dst);
         UnaryOperator op = transform_unary_operator(unary_expression->unary_operator);
@@ -111,10 +113,10 @@ std::unique_ptr<Value> TackyGenerator::transform_expression(parser::Expression& 
             instructions.emplace_back(std::make_unique<JumpIfZeroInstruction>(std::move(src1), false_label));
             std::unique_ptr<Value> src2 = transform_expression(*binary_expression->right_expression, instructions);
             instructions.emplace_back(std::make_unique<JumpIfZeroInstruction>(std::move(src2), false_label));
-            std::string result = m_name_generator->make_temporary();
+            std::string result = make_and_add_temporary(*binary_expression->type);
             {
                 std::unique_ptr<TemporaryVariable> result_var = std::make_unique<TemporaryVariable>(result);
-                instructions.emplace_back(std::make_unique<CopyInstruction>(1, std::move(result_var)));
+                instructions.emplace_back(std::make_unique<CopyInstruction>(std::make_unique<Constant>(1), std::move(result_var)));
             }
 
             std::string end_label = m_name_generator->make_label("and_end");
@@ -122,7 +124,7 @@ std::unique_ptr<Value> TackyGenerator::transform_expression(parser::Expression& 
             instructions.emplace_back(std::make_unique<LabelInstruction>(false_label));
             {
                 std::unique_ptr<TemporaryVariable> result_var = std::make_unique<TemporaryVariable>(result);
-                instructions.emplace_back(std::make_unique<CopyInstruction>(0, std::move(result_var)));
+                instructions.emplace_back(std::make_unique<CopyInstruction>(std::make_unique<Constant>(0), std::move(result_var)));
             }
             instructions.emplace_back(std::make_unique<LabelInstruction>(end_label));
             std::unique_ptr<TemporaryVariable> result_var = std::make_unique<TemporaryVariable>(result);
@@ -133,10 +135,10 @@ std::unique_ptr<Value> TackyGenerator::transform_expression(parser::Expression& 
             instructions.emplace_back(std::make_unique<JumpIfNotZeroInstruction>(std::move(src1), true_label));
             std::unique_ptr<Value> src2 = transform_expression(*binary_expression->right_expression, instructions);
             instructions.emplace_back(std::make_unique<JumpIfNotZeroInstruction>(std::move(src2), true_label));
-            std::string result = m_name_generator->make_temporary();
+            std::string result = make_and_add_temporary(*binary_expression->type);
             {
                 std::unique_ptr<TemporaryVariable> result_var = std::make_unique<TemporaryVariable>(result);
-                instructions.emplace_back(std::make_unique<CopyInstruction>(0, std::move(result_var)));
+                instructions.emplace_back(std::make_unique<CopyInstruction>(std::make_unique<Constant>(0), std::move(result_var)));
             }
 
             std::string end_label = m_name_generator->make_label("or_end");
@@ -144,7 +146,7 @@ std::unique_ptr<Value> TackyGenerator::transform_expression(parser::Expression& 
             instructions.emplace_back(std::make_unique<LabelInstruction>(true_label));
             {
                 std::unique_ptr<TemporaryVariable> result_var = std::make_unique<TemporaryVariable>(result);
-                instructions.emplace_back(std::make_unique<CopyInstruction>(1, std::move(result_var)));
+                instructions.emplace_back(std::make_unique<CopyInstruction>(std::make_unique<Constant>(1), std::move(result_var)));
             }
             instructions.emplace_back(std::make_unique<LabelInstruction>(end_label));
             std::unique_ptr<TemporaryVariable> result_var = std::make_unique<TemporaryVariable>(result);
@@ -152,7 +154,7 @@ std::unique_ptr<Value> TackyGenerator::transform_expression(parser::Expression& 
         } else {
             std::unique_ptr<Value> src1 = transform_expression(*binary_expression->left_expression, instructions);
             std::unique_ptr<Value> src2 = transform_expression(*binary_expression->right_expression, instructions);
-            std::string dst_name = m_name_generator->make_temporary();
+            std::string dst_name = make_and_add_temporary(*binary_expression->type);
             std::unique_ptr<TemporaryVariable> dst = std::make_unique<TemporaryVariable>(dst_name);
             std::unique_ptr<Value> dst_copy = std::make_unique<TemporaryVariable>(*dst);
             BinaryOperator op = transform_binary_operator(binary_expression->binary_operator);
@@ -173,7 +175,7 @@ std::unique_ptr<Value> TackyGenerator::transform_expression(parser::Expression& 
         // Create labels
         std::string false_label = m_name_generator->make_label("conditional_false");
         std::string end_label = m_name_generator->make_label("conditional_end");
-        std::string result = m_name_generator->make_temporary();
+        std::string result = make_and_add_temporary(*conditional_expression->type);
 
         // Condition
         std::unique_ptr<Value> cond = transform_expression(*conditional_expression->condition, instructions);
@@ -205,10 +207,25 @@ std::unique_ptr<Value> TackyGenerator::transform_expression(parser::Expression& 
         for (auto& arg : function_call_expression->arguments) {
             args.emplace_back(transform_expression((*arg.get()), instructions));
         }
-        std::string result = m_name_generator->make_temporary();
+        std::string result = make_and_add_temporary(*function_call_expression->type);
         std::unique_ptr<TemporaryVariable> result_var = std::make_unique<TemporaryVariable>(result);
         instructions.emplace_back(std::make_unique<FunctionCallInstruction>(function_call_expression->name.name, std::move(args), std::move(result_var)));
         return std::make_unique<TemporaryVariable>(result);
+    } else if (parser::CastExpression* cast_expression = dynamic_cast<parser::CastExpression*>(&expression)) {
+        std::unique_ptr<Value> expr_res = transform_expression(*cast_expression->expression, instructions);
+        if (cast_expression->type->equals(*cast_expression->target_type)) {
+            return expr_res;
+        }
+        std::string tmp_name = make_and_add_temporary(*cast_expression->target_type, LocalAttribute {});
+        std::unique_ptr<Value> dst = std::make_unique<TemporaryVariable>(tmp_name);
+        std::unique_ptr<Value> dst_copy = std::make_unique<TemporaryVariable>(tmp_name);
+
+        if (cast_expression->target_type->equals(LongType {})) {
+            instructions.emplace_back(std::make_unique<SignExtendInstruction>(std::move(expr_res), std::move(dst)));
+        } else {
+            instructions.emplace_back(std::make_unique<TruncateInstruction>(std::move(expr_res), std::move(dst)));
+        }
+        return dst_copy;
     } else {
         throw TackyGeneratorError("TackyGenerator: Invalid or Unsuppored Expression");
     }
@@ -381,4 +398,11 @@ std::unique_ptr<Program> TackyGenerator::transform_program(parser::Program& prog
         }
     }
     return std::make_unique<Program>(std::move(definitions));
+}
+
+std::string TackyGenerator::make_and_add_temporary(const Type& type, const IdentifierAttribute& attr)
+{
+    std::string temporary_name = m_name_generator->make_temporary();
+    m_symbol_table->insert_symbol(temporary_name, type.clone(), attr);
+    return temporary_name;
 }

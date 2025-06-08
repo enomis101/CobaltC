@@ -43,7 +43,8 @@ void PrinterVisitor::visit(Identifier& node)
 void PrinterVisitor::visit(Constant& node)
 {
     int id = get_node_id(&node);
-    m_dot_content << "  node" << id << " [label=\"Constant\\nvalue: " << node.value << "\"];\n";
+    // TODO: FIX
+    // m_dot_content << "  node" << id << " [label=\"Constant\\nvalue: " << node.value << "\"];\n";
 }
 
 void PrinterVisitor::visit(TemporaryVariable& node)
@@ -67,6 +68,15 @@ void PrinterVisitor::visit(ReturnInstruction& node)
         m_dot_content << "  node" << id << " -> node" << get_node_id(node.value.get())
                       << " [label=\"value\"];\n";
     }
+}
+
+void PrinterVisitor::visit(SignExtendInstruction& node)
+{
+    // TODO: FIX
+}
+void PrinterVisitor::visit(TruncateInstruction& node)
+{
+    // TODO: FIX
 }
 
 void PrinterVisitor::visit(UnaryInstruction& node)
@@ -230,9 +240,10 @@ void PrinterVisitor::visit(FunctionDefinition& node)
 void PrinterVisitor::visit(StaticVariable& node)
 {
     int id = get_node_id(&node);
-    m_dot_content << "  node" << id << " [label=\"StaticVariable\\nglobal: "
-                  << (node.global ? "true" : "false")
-                  << "\\ninit: " << node.init << "\"];\n";
+    // TODO: FIX
+    //  m_dot_content << "  node" << id << " [label=\"StaticVariable\\nglobal: "
+    //                << (node.global ? "true" : "false")
+    //                << "\\ninit: " << node.init << "\"];\n";
 
     // Process the name identifier
     node.name.accept(*this);

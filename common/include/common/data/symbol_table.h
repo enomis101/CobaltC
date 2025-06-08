@@ -1,6 +1,7 @@
 #pragma once
 #include "common/data/type.h"
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
@@ -83,6 +84,8 @@ public:
     {
         return m_symbols.contains(name);
     }
+
+    static std::optional<InitialValueType> convert_constant_type(const ConstantType& value, const Type& target_type);
 
 private:
     std::unordered_map<std::string, SymbolEntry> m_symbols;

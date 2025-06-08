@@ -110,7 +110,7 @@ void IdentifierResolutionPass::visit(FunctionCallExpression& node)
     if (!m_identifier_map.contains(function_name)) {
         throw IdentifierResolutionPassError(std::format("Use of undeclared function {}", function_name));
     }
-    
+
     function_name = m_identifier_map.at(function_name).new_name;
 
     // Visit arguments

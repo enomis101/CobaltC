@@ -1,4 +1,5 @@
 #pragma once
+#include "common/data/source_location.h"
 #include "common/data/type.h"
 #include <memory>
 #include <optional>
@@ -10,8 +11,14 @@ namespace parser {
 // Abstract base class for all ParserAST nodes
 class ParserAST {
 public:
+    explicit ParserAST(SourceLocationIndex loc)
+        : source_location(loc)
+    {
+    }
     virtual ~ParserAST() = default;
     virtual void accept(class ParserVisitor& visitor) = 0;
+
+    SourceLocationIndex source_location;
 };
 
 // Forward declaration of node types
@@ -103,10 +110,12 @@ enum class StorageClass {
     EXTERN
 };
 
+// Identifier remains unchanged as requested
 class Identifier : public ParserAST {
 public:
     Identifier(const std::string& name)
-        : name(name)
+        : ParserAST(SourceLocationIndex(0)) // Placeholder since we're not tracking Identifier locations yet
+        , name(name)
     {
     }
 
@@ -123,14 +132,22 @@ class Expression : public ParserAST {
 public:
     virtual ~Expression() = default;
 
-    std::unique_ptr<Type> type {nullptr}; //this is set during type check phase
+    std::unique_ptr<Type> type { nullptr }; // this is set during type check phase
+
+protected:
+    // Protected constructor to be used by derived classes
+    explicit Expression(SourceLocationIndex loc)
+        : ParserAST(loc)
+    {
+    }
 };
 
 class ConstantExpression : public Expression {
 public:
     template<typename T>
-    explicit ConstantExpression(T value)
-        : value(value)
+    ConstantExpression(SourceLocationIndex loc, T value)
+        : Expression(loc)
+        , value(value)
     {
     }
 
@@ -144,8 +161,9 @@ public:
 
 class VariableExpression : public Expression {
 public:
-    VariableExpression(const std::string& id)
-        : identifier { id }
+    VariableExpression(SourceLocationIndex loc, const std::string& id)
+        : Expression(loc)
+        , identifier { id }
     {
     }
 
@@ -159,8 +177,9 @@ public:
 
 class CastExpression : public Expression {
 public:
-    CastExpression(std::unique_ptr<Type> target_type, std::unique_ptr<Expression> expression)
-        : target_type(std::move(target_type))
+    CastExpression(SourceLocationIndex loc, std::unique_ptr<Type> target_type, std::unique_ptr<Expression> expression)
+        : Expression(loc)
+        , target_type(std::move(target_type))
         , expression(std::move(expression))
     {
     }
@@ -176,8 +195,9 @@ public:
 
 class UnaryExpression : public Expression {
 public:
-    UnaryExpression(UnaryOperator op, std::unique_ptr<Expression> expr)
-        : unary_operator(op)
+    UnaryExpression(SourceLocationIndex loc, UnaryOperator op, std::unique_ptr<Expression> expr)
+        : Expression(loc)
+        , unary_operator(op)
         , expression(std::move(expr))
     {
     }
@@ -193,8 +213,9 @@ public:
 
 class BinaryExpression : public Expression {
 public:
-    BinaryExpression(BinaryOperator op, std::unique_ptr<Expression> l, std::unique_ptr<Expression> r)
-        : binary_operator(op)
+    BinaryExpression(SourceLocationIndex loc, BinaryOperator op, std::unique_ptr<Expression> l, std::unique_ptr<Expression> r)
+        : Expression(loc)
+        , binary_operator(op)
         , left_expression(std::move(l))
         , right_expression(std::move(r))
     {
@@ -212,8 +233,9 @@ public:
 
 class AssignmentExpression : public Expression {
 public:
-    AssignmentExpression(std::unique_ptr<Expression> l, std::unique_ptr<Expression> r)
-        : left_expression(std::move(l))
+    AssignmentExpression(SourceLocationIndex loc, std::unique_ptr<Expression> l, std::unique_ptr<Expression> r)
+        : Expression(loc)
+        , left_expression(std::move(l))
         , right_expression(std::move(r))
     {
     }
@@ -228,8 +250,9 @@ public:
 
 class ConditionalExpression : public Expression {
 public:
-    ConditionalExpression(std::unique_ptr<Expression> cond, std::unique_ptr<Expression> t, std::unique_ptr<Expression> f)
-        : condition(std::move(cond))
+    ConditionalExpression(SourceLocationIndex loc, std::unique_ptr<Expression> cond, std::unique_ptr<Expression> t, std::unique_ptr<Expression> f)
+        : Expression(loc)
+        , condition(std::move(cond))
         , true_expression(std::move(t))
         , false_expression(std::move(f))
     {
@@ -247,8 +270,9 @@ public:
 
 class FunctionCallExpression : public Expression {
 public:
-    FunctionCallExpression(const std::string& n, std::vector<std::unique_ptr<Expression>> args)
-        : name(n)
+    FunctionCallExpression(SourceLocationIndex loc, const std::string& n, std::vector<std::unique_ptr<Expression>> args)
+        : Expression(loc)
+        , name(n)
         , arguments(std::move(args))
     {
     }
@@ -265,12 +289,20 @@ public:
 class BlockItem : public ParserAST {
 public:
     virtual ~BlockItem() = default;
+
+protected:
+    // Protected constructor for derived classes
+    explicit BlockItem(SourceLocationIndex loc)
+        : ParserAST(loc)
+    {
+    }
 };
 
 class Block : public ParserAST {
 public:
-    Block(std::vector<std::unique_ptr<BlockItem>> i)
-        : items(std::move(i))
+    Block(SourceLocationIndex loc, std::vector<std::unique_ptr<BlockItem>> i)
+        : ParserAST(loc)
+        , items(std::move(i))
     {
     }
 
@@ -285,12 +317,20 @@ public:
 class Statement : public BlockItem {
 public:
     virtual ~Statement() = default;
+
+protected:
+    // Protected constructor for derived classes
+    explicit Statement(SourceLocationIndex loc)
+        : BlockItem(loc)
+    {
+    }
 };
 
 class ReturnStatement : public Statement {
 public:
-    ReturnStatement(std::unique_ptr<Expression> expr)
-        : expression(std::move(expr))
+    ReturnStatement(SourceLocationIndex loc, std::unique_ptr<Expression> expr)
+        : Statement(loc)
+        , expression(std::move(expr))
     {
     }
 
@@ -304,8 +344,9 @@ public:
 
 class ExpressionStatement : public Statement {
 public:
-    ExpressionStatement(std::unique_ptr<Expression> expr)
-        : expression(std::move(expr))
+    ExpressionStatement(SourceLocationIndex loc, std::unique_ptr<Expression> expr)
+        : Statement(loc)
+        , expression(std::move(expr))
     {
     }
 
@@ -319,8 +360,9 @@ public:
 
 class IfStatement : public Statement {
 public:
-    IfStatement(std::unique_ptr<Expression> cond, std::unique_ptr<Statement> then_stmt, std::unique_ptr<Statement> else_stmt = nullptr)
-        : condition(std::move(cond))
+    IfStatement(SourceLocationIndex loc, std::unique_ptr<Expression> cond, std::unique_ptr<Statement> then_stmt, std::unique_ptr<Statement> else_stmt = nullptr)
+        : Statement(loc)
+        , condition(std::move(cond))
         , then_statement(std::move(then_stmt))
         , else_statement(else_stmt ? std::optional<std::unique_ptr<Statement>>(std::move(else_stmt)) : std::nullopt)
     {
@@ -338,8 +380,9 @@ public:
 
 class CompoundStatement : public Statement {
 public:
-    CompoundStatement(std::unique_ptr<Block> b)
-        : block(std::move(b))
+    CompoundStatement(SourceLocationIndex loc, std::unique_ptr<Block> b)
+        : Statement(loc)
+        , block(std::move(b))
     {
     }
 
@@ -352,8 +395,9 @@ public:
 
 class BreakStatement : public Statement {
 public:
-    BreakStatement(const std::string& l = "")
-        : label { l }
+    BreakStatement(SourceLocationIndex loc, const std::string& l = "")
+        : Statement(loc)
+        , label { l }
     {
     }
 
@@ -367,8 +411,9 @@ public:
 
 class ContinueStatement : public Statement {
 public:
-    ContinueStatement(const std::string& l = "")
-        : label { l }
+    ContinueStatement(SourceLocationIndex loc, const std::string& l = "")
+        : Statement(loc)
+        , label { l }
     {
     }
 
@@ -382,8 +427,9 @@ public:
 
 class WhileStatement : public Statement {
 public:
-    WhileStatement(std::unique_ptr<Expression> c, std::unique_ptr<Statement> b, const std::string& l = "")
-        : condition { std::move(c) }
+    WhileStatement(SourceLocationIndex loc, std::unique_ptr<Expression> c, std::unique_ptr<Statement> b, const std::string& l = "")
+        : Statement(loc)
+        , condition { std::move(c) }
         , body { std::move(b) }
         , label { l }
     {
@@ -400,8 +446,9 @@ public:
 
 class DoWhileStatement : public Statement {
 public:
-    DoWhileStatement(std::unique_ptr<Expression> c, std::unique_ptr<Statement> b, const std::string& l = "")
-        : condition { std::move(c) }
+    DoWhileStatement(SourceLocationIndex loc, std::unique_ptr<Expression> c, std::unique_ptr<Statement> b, const std::string& l = "")
+        : Statement(loc)
+        , condition { std::move(c) }
         , body { std::move(b) }
         , label { l }
     {
@@ -418,8 +465,9 @@ public:
 
 class ForStatement : public Statement {
 public:
-    ForStatement(std::unique_ptr<ForInit> i, std::unique_ptr<Expression> c, std::unique_ptr<Expression> p, std::unique_ptr<Statement> b, const std::string& l = "")
-        : init { std::move(i) }
+    ForStatement(SourceLocationIndex loc, std::unique_ptr<ForInit> i, std::unique_ptr<Expression> c, std::unique_ptr<Expression> p, std::unique_ptr<Statement> b, const std::string& l = "")
+        : Statement(loc)
+        , init { std::move(i) }
         , condition { c ? std::optional<std::unique_ptr<Expression>>(std::move(c)) : std::nullopt }
         , post { p ? std::optional<std::unique_ptr<Expression>>(std::move(p)) : std::nullopt }
         , body { std::move(b) }
@@ -441,6 +489,11 @@ public:
 
 class NullStatement : public Statement {
 public:
+    explicit NullStatement(SourceLocationIndex loc)
+        : Statement(loc)
+    {
+    }
+
     void accept(ParserVisitor& visitor) override
     {
         visitor.visit(*this);
@@ -455,12 +508,20 @@ enum class DeclarationScope {
 class Declaration : public BlockItem {
 public:
     virtual ~Declaration() = default;
+
+protected:
+    // Protected constructor for derived classes
+    explicit Declaration(SourceLocationIndex loc)
+        : BlockItem(loc)
+    {
+    }
 };
 
 class VariableDeclaration : public Declaration {
 public:
-    VariableDeclaration(const std::string& identifier, std::unique_ptr<Expression> expression, std::unique_ptr<Type> type, StorageClass storage_class, DeclarationScope scope)
-        : identifier { identifier }
+    VariableDeclaration(SourceLocationIndex loc, const std::string& identifier, std::unique_ptr<Expression> expression, std::unique_ptr<Type> type, StorageClass storage_class, DeclarationScope scope)
+        : Declaration(loc)
+        , identifier { identifier }
         , expression(expression ? std::optional<std::unique_ptr<Expression>>(std::move(expression)) : std::nullopt)
         , type { std::move(type) }
         , storage_class(storage_class)
@@ -482,9 +543,10 @@ public:
 
 class FunctionDeclaration : public Declaration {
 public:
-    FunctionDeclaration(const std::string& name, const std::vector<Identifier>& params, std::unique_ptr<Block> body, std::unique_ptr<Type> type,
+    FunctionDeclaration(SourceLocationIndex loc, const std::string& name, const std::vector<Identifier>& params, std::unique_ptr<Block> body, std::unique_ptr<Type> type,
         StorageClass storage_class, DeclarationScope scope)
-        : name(name)
+        : Declaration(loc)
+        , name(name)
         , params(params)
         , body(body != nullptr ? std::optional<std::unique_ptr<Block>>(std::move(body)) : std::nullopt)
         , type { std::move(type) }
@@ -509,12 +571,20 @@ public:
 class ForInit : public ParserAST {
 public:
     virtual ~ForInit() = default;
+
+protected:
+    // Protected constructor for derived classes
+    explicit ForInit(SourceLocationIndex loc)
+        : ParserAST(loc)
+    {
+    }
 };
 
 class ForInitDeclaration : public ForInit {
 public:
-    ForInitDeclaration(std::unique_ptr<VariableDeclaration> d)
-        : declaration { std::move(d) }
+    ForInitDeclaration(SourceLocationIndex loc, std::unique_ptr<VariableDeclaration> d)
+        : ForInit(loc)
+        , declaration { std::move(d) }
     {
     }
 
@@ -528,8 +598,9 @@ public:
 
 class ForInitExpression : public ForInit {
 public:
-    ForInitExpression(std::unique_ptr<Expression> e)
-        : expression { e ? std::optional<std::unique_ptr<Expression>>(std::move(e)) : std::nullopt }
+    ForInitExpression(SourceLocationIndex loc, std::unique_ptr<Expression> e)
+        : ForInit(loc)
+        , expression { e ? std::optional<std::unique_ptr<Expression>>(std::move(e)) : std::nullopt }
     {
     }
 
@@ -543,8 +614,9 @@ public:
 
 class Program : public ParserAST {
 public:
-    Program(std::vector<std::unique_ptr<Declaration>> decls)
-        : declarations(std::move(decls))
+    Program(SourceLocationIndex loc, std::vector<std::unique_ptr<Declaration>> decls)
+        : ParserAST(loc)
+        , declarations(std::move(decls))
     {
     }
 

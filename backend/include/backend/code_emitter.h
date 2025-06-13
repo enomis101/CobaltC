@@ -1,12 +1,12 @@
 #pragma once
-#include "assembly/assembly_ast.h"
+#include "backend/assembly_ast.h"
 #include "common/data/symbol_table.h"
 #include <fstream>
 #include <memory>
 #include <stdexcept>
 #include <string>
 
-namespace assembly {
+namespace backend {
 
 class CodeEmitterError : public std::runtime_error {
 public:
@@ -30,6 +30,7 @@ private:
     void visit(DataOperand& node) override;
     void visit(ReturnInstruction& node) override;
     void visit(MovInstruction& node) override;
+    void visit(MovsxInstruction& node) override { } // TODO: IMPLEMENT
     void visit(UnaryInstruction& node) override;
     void visit(BinaryInstruction& node) override;
     void visit(CmpInstruction& node) override;
@@ -39,8 +40,6 @@ private:
     void visit(JmpCCInstruction& node) override;
     void visit(SetCCInstruction& node) override;
     void visit(LabelInstruction& node) override;
-    void visit(AllocateStackInstruction& node) override;
-    void visit(DeallocateStackInstruction& node) override;
     void visit(PushInstruction& node) override;
     void visit(CallInstruction& node) override;
     void visit(FunctionDefinition& node) override;

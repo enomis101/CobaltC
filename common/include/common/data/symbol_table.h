@@ -7,17 +7,17 @@
 #include <unordered_map>
 #include <variant>
 
-using InitialValueType = ConstantType; // for now they are the same
+using StaticInitialValueType = ConstantType; // for now they are the same
 
 struct TentativeInit { };
 
-struct InitialValue {
-    InitialValueType value;
+struct StaticInitialValue {
+    StaticInitialValueType value;
 };
 
 struct NoInit { };
 
-using Initializer = std::variant<TentativeInit, InitialValue, NoInit>;
+using StaticInitializer = std::variant<TentativeInit, StaticInitialValue, NoInit>;
 
 struct FunctionAttribute {
     bool defined = false;
@@ -25,7 +25,7 @@ struct FunctionAttribute {
 };
 
 struct StaticAttribute {
-    Initializer init;
+    StaticInitializer init;
     bool global = false;
 };
 
@@ -43,7 +43,6 @@ public:
         }
         std::unique_ptr<Type> type;
         IdentifierAttribute attribute;
-        size_t stack_size { 0 };
     };
 
     SymbolTable() = default;
@@ -85,7 +84,7 @@ public:
         return m_symbols.contains(name);
     }
 
-    static std::optional<InitialValueType> convert_constant_type(const ConstantType& value, const Type& target_type);
+    static std::optional<StaticInitialValueType> convert_constant_type(const ConstantType& value, const Type& target_type);
 
 private:
     std::unordered_map<std::string, SymbolEntry> m_symbols;

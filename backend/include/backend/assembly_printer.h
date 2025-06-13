@@ -1,9 +1,9 @@
 #pragma once
-#include "assembly/assembly_ast.h"
+#include "backend/assembly_ast.h"
 #include <sstream>
 #include <unordered_map>
 
-namespace assembly {
+namespace backend {
 
 class PrinterVisitor : public AssemblyVisitor {
 public:
@@ -21,6 +21,7 @@ public:
     void visit(DataOperand& node) override;
     void visit(ReturnInstruction& node) override;
     void visit(MovInstruction& node) override;
+    void visit(MovsxInstruction& node) override;
     void visit(UnaryInstruction& node) override;
     void visit(BinaryInstruction& node) override;
     void visit(CmpInstruction& node) override;
@@ -30,8 +31,6 @@ public:
     void visit(JmpCCInstruction& node) override;
     void visit(SetCCInstruction& node) override;
     void visit(LabelInstruction& node) override;
-    void visit(AllocateStackInstruction& node) override;
-    void visit(DeallocateStackInstruction& node) override;
     void visit(PushInstruction& node) override;
     void visit(CallInstruction& node) override;
     void visit(FunctionDefinition& node) override;
@@ -51,4 +50,4 @@ private:
     std::stringstream m_dot_content;                        // Buffer for dot file content
 };
 
-} // namespace assembly
+} // namespace backend

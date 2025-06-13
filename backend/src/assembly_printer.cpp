@@ -1,8 +1,8 @@
-#include "assembly/assembly_printer.h"
+#include "backend/assembly_printer.h"
 #include <fstream>
 #include <string>
 
-using namespace assembly;
+using namespace backend;
 
 PrinterVisitor::PrinterVisitor()
     : m_node_count(0)
@@ -43,64 +43,66 @@ void PrinterVisitor::visit(Identifier& node)
 void PrinterVisitor::visit(ImmediateValue& node)
 {
     int id = get_node_id(&node);
-    m_dot_content << "  node" << id << " [label=\"ImmediateValue\\nvalue: " << node.value << "\"];\n";
+    // TODO: FIX
+    // m_dot_content << "  node" << id << " [label=\"ImmediateValue\\nvalue: " << node.value << "\"];\n";
 }
 
 void PrinterVisitor::visit(Register& node)
 {
     int id = get_node_id(&node);
     std::string reg_name;
-    switch (node.reg) {
-    case RegisterName::AX:
-        reg_name = "AX";
-        break;
-    case RegisterName::DX:
-        reg_name = "DX";
-        break;
-    case RegisterName::CX:
-        reg_name = "CX";
-        break;
-    case RegisterName::DI:
-        reg_name = "DI";
-        break;
-    case RegisterName::SI:
-        reg_name = "SI";
-        break;
-    case RegisterName::R8:
-        reg_name = "R8";
-        break;
-    case RegisterName::R9:
-        reg_name = "R9";
-        break;
-    case RegisterName::R10:
-        reg_name = "R10";
-        break;
-    case RegisterName::R11:
-        reg_name = "R11";
-        break;
-    default:
-        reg_name = "UNKNOWN";
-        break;
-    }
+    // //TODO: FIX
+    // switch (node.reg) {
+    // case RegisterName::AX:
+    //     reg_name = "AX";
+    //     break;
+    // case RegisterName::DX:
+    //     reg_name = "DX";
+    //     break;
+    // case RegisterName::CX:
+    //     reg_name = "CX";
+    //     break;
+    // case RegisterName::DI:
+    //     reg_name = "DI";
+    //     break;
+    // case RegisterName::SI:
+    //     reg_name = "SI";
+    //     break;
+    // case RegisterName::R8:
+    //     reg_name = "R8";
+    //     break;
+    // case RegisterName::R9:
+    //     reg_name = "R9";
+    //     break;
+    // case RegisterName::R10:
+    //     reg_name = "R10";
+    //     break;
+    // case RegisterName::R11:
+    //     reg_name = "R11";
+    //     break;
+    // default:
+    //     reg_name = "UNKNOWN";
+    //     break;
+    // }
 
-    std::string type_name;
-    switch (node.type) {
-    case RegisterType::QWORD:
-        type_name = "QWORD (8-byte)";
-        break;
-    case RegisterType::DWORD:
-        type_name = "DWORD (4-byte)";
-        break;
-    case RegisterType::BYTE:
-        type_name = "BYTE (1-byte)";
-        break;
-    default:
-        type_name = "UNKNOWN";
-        break;
-    }
+    // std::string type_name;
+    // switch (node.type) {
+    // case RegisterType::QWORD:
+    //     type_name = "QWORD (8-byte)";
+    //     break;
+    // case RegisterType::DWORD:
+    //     type_name = "DWORD (4-byte)";
+    //     break;
+    // case RegisterType::BYTE:
+    //     type_name = "BYTE (1-byte)";
+    //     break;
+    // default:
+    //     type_name = "UNKNOWN";
+    //     break;
+    // }
 
-    m_dot_content << "  node" << id << " [label=\"Register\\nname: " << reg_name
-                  << "\\ntype: " << type_name << "\"];\n";
+    // m_dot_content << "  node" << id << " [label=\"Register\\nname: " << reg_name
+    //               << "\\ntype: " << type_name << "\"];\n";
 }
 
 void PrinterVisitor::visit(PseudoRegister& node)
@@ -130,6 +132,24 @@ void PrinterVisitor::visit(MovInstruction& node)
 {
     int id = get_node_id(&node);
     m_dot_content << "  node" << id << " [label=\"MovInstruction\"];\n";
+
+    if (node.source) {
+        node.source->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.source.get())
+                      << " [label=\"source\"];\n";
+    }
+
+    if (node.destination) {
+        node.destination->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.destination.get())
+                      << " [label=\"destination\"];\n";
+    }
+}
+
+void PrinterVisitor::visit(MovsxInstruction& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"MovsxInstruction\"];\n";
 
     if (node.source) {
         node.source->accept(*this);
@@ -259,18 +279,6 @@ void PrinterVisitor::visit(LabelInstruction& node)
                   << " [label=\"identifier\"];\n";
 }
 
-void PrinterVisitor::visit(AllocateStackInstruction& node)
-{
-    int id = get_node_id(&node);
-    m_dot_content << "  node" << id << " [label=\"AllocateStackInstruction\\nvalue: " << node.value << "\"];\n";
-}
-
-void PrinterVisitor::visit(DeallocateStackInstruction& node)
-{
-    int id = get_node_id(&node);
-    m_dot_content << "  node" << id << " [label=\"DeallocateStackInstruction\\nvalue: " << node.value << "\"];\n";
-}
-
 void PrinterVisitor::visit(PushInstruction& node)
 {
     int id = get_node_id(&node);
@@ -328,9 +336,10 @@ void PrinterVisitor::visit(DataOperand& node)
 void PrinterVisitor::visit(StaticVariable& node)
 {
     int id = get_node_id(&node);
-    m_dot_content << "  node" << id << " [label=\"StaticVariable\\nglobal: "
-                  << (node.global ? "true" : "false")
-                  << "\\ninitializer: " << node.initializer << "\"];\n";
+    // TODO: FIX
+    //  m_dot_content << "  node" << id << " [label=\"StaticVariable\\nglobal: "
+    //                << (node.global ? "true" : "false")
+    //                << "\\ninitializer: " << node.initializer << "\"];\n";
 
     // Visit the contained identifier
     node.name.accept(*this);

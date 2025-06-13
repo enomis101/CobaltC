@@ -2,6 +2,7 @@
 #include "backend/assembly_ast.h"
 #include "backend/backend_symbol_table.h"
 #include <cstdint>
+#include <memory>
 #include <variant>
 
 using namespace backend;
@@ -89,7 +90,7 @@ void FixUpInstructionsStep::visit(FunctionDefinition& node)
             }
         } else if (IdivInstruction* div_instruction = dynamic_cast<IdivInstruction*>(i.get())) {
             // idiv cant operate on immediate values:
-            auto type = cmp_instruction->type;
+            auto type = div_instruction->type;
             if (dynamic_cast<ImmediateValue*>(div_instruction->operand.get())) {
                 node.instructions.emplace_back(std::make_unique<MovInstruction>(type, std::move(div_instruction->operand), std::make_unique<Register>(RegisterName::R10)));
                 div_instruction->operand = std::make_unique<Register>(RegisterName::R10);
@@ -98,14 +99,21 @@ void FixUpInstructionsStep::visit(FunctionDefinition& node)
         } else if (MovsxInstruction* movsx_instruction = dynamic_cast<MovsxInstruction*>(i.get())) {
             // movsx cant use a memory address as destination OR an immediate value as source.
             if (dynamic_cast<ImmediateValue*>(movsx_instruction->source.get())) {
+                // src -> R10
                 node.instructions.emplace_back(std::make_unique<MovInstruction>(AssemblyType::LONG_WORD, std::move(movsx_instruction->source), std::make_unique<Register>(RegisterName::R10)));
                 movsx_instruction->source = std::make_unique<Register>(RegisterName::R10);
             }
+            std::unique_ptr<Instruction> additional_instruction = nullptr;
             if ((dynamic_cast<StackAddress*>(movsx_instruction->destination.get()) || dynamic_cast<DataOperand*>(movsx_instruction->destination.get()))) {
-                node.instructions.emplace_back(std::make_unique<MovInstruction>(AssemblyType::QUAD_WORD, std::move(movsx_instruction->destination), std::make_unique<Register>(RegisterName::R11)));
+                // R11 -> dst
+                additional_instruction = std::make_unique<MovInstruction>(AssemblyType::QUAD_WORD, std::make_unique<Register>(RegisterName::R11), std::move(movsx_instruction->destination));
                 movsx_instruction->destination = std::make_unique<Register>(RegisterName::R11);
             }
             node.instructions.emplace_back(std::move(i));
+            // The additional mov instruction should be placed after movsx
+            if (additional_instruction) {
+                node.instructions.emplace_back(std::move(additional_instruction));
+            }
         } else {
             node.instructions.emplace_back(std::move(i));
         }

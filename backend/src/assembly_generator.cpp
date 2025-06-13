@@ -44,6 +44,7 @@ void AssemblyGenerator::generate_backend_symbol_table()
 std::shared_ptr<AssemblyAST> AssemblyGenerator::generate()
 {
     std::shared_ptr<AssemblyAST> m_assembly_ast = transform_program(*dynamic_cast<tacky::Program*>(m_ast.get()));
+    generate_backend_symbol_table();
 
     PseudoRegisterReplaceStep step1(m_assembly_ast, m_backend_symbol_table);
     step1.replace();

@@ -295,7 +295,7 @@ void TypeCheckPass::resolve_function_param_declaration(Identifier& identifier)
 void TypeCheckPass::typecheck_file_scope_variable_declaration(VariableDeclaration& variable_declaration)
 {
     const std::string& variable_name = variable_declaration.identifier.name;
-    Initializer initial_value;
+    StaticInitializer initial_value;
     if (!variable_declaration.expression.has_value()) {
         if (variable_declaration.storage_class == StorageClass::EXTERN) {
             initial_value = NoInit {};
@@ -309,7 +309,7 @@ void TypeCheckPass::typecheck_file_scope_variable_declaration(VariableDeclaratio
             throw TypeCheckPassError(std::format("Failed convert_constant_type at:\n{}",
                 m_source_manager->get_source_line(variable_declaration.source_location)));
         }
-        initial_value = InitialValue { con_res.value() };
+        initial_value = StaticInitialValue { con_res.value() };
     } else {
         throw TypeCheckPassError(std::format("File-scope variable declaration of {} has non-constant initializer! at:\n{}",
             variable_name, m_source_manager->get_source_line(variable_declaration.source_location)));
@@ -335,13 +335,13 @@ void TypeCheckPass::typecheck_file_scope_variable_declaration(VariableDeclaratio
         }
 
         // Check prev initialization
-        if (std::holds_alternative<InitialValue>(old_attr.init)) {
-            if (std::holds_alternative<InitialValue>(initial_value)) {
+        if (std::holds_alternative<StaticInitialValue>(old_attr.init)) {
+            if (std::holds_alternative<StaticInitialValue>(initial_value)) {
                 throw TypeCheckPassError(std::format("Conflicting file scope variable definitions for {} at:\n{}", variable_name, m_source_manager->get_source_line(variable_declaration.source_location)));
             } else {
                 initial_value = old_attr.init;
             }
-        } else if (!std::holds_alternative<InitialValue>(initial_value) && std::holds_alternative<TentativeInit>(old_attr.init)) {
+        } else if (!std::holds_alternative<StaticInitialValue>(initial_value) && std::holds_alternative<TentativeInit>(old_attr.init)) {
             initial_value = TentativeInit {};
         }
     }
@@ -354,7 +354,7 @@ void TypeCheckPass::typecheck_local_variable_declaration(VariableDeclaration& va
     const std::string& variable_name = variable_declaration.identifier.name;
     if (variable_declaration.storage_class == StorageClass::EXTERN) {
         if (variable_declaration.expression.has_value()) {
-            throw TypeCheckPassError(std::format("Initializer on local extern variable declaration for {} at:\n{}", variable_name, m_source_manager->get_source_line(variable_declaration.source_location)));
+            throw TypeCheckPassError(std::format("StaticInitializer on local extern variable declaration for {} at:\n{}", variable_name, m_source_manager->get_source_line(variable_declaration.source_location)));
         }
         if (m_symbol_table->contains_symbol(variable_name)) {
             auto& old_decl = m_symbol_table->symbol_at(variable_name);
@@ -367,7 +367,7 @@ void TypeCheckPass::typecheck_local_variable_declaration(VariableDeclaration& va
             m_symbol_table->insert_symbol(variable_name, variable_declaration.type->clone(), StaticAttribute { NoInit {}, true });
         }
     } else if (variable_declaration.storage_class == StorageClass::STATIC) {
-        Initializer initial_value;
+        StaticInitializer initial_value;
         if (!variable_declaration.expression.has_value()) {
             // conversion is performed at compile time
             auto con_res = SymbolTable::convert_constant_type(ConstantType(0), *variable_declaration.type);
@@ -375,7 +375,7 @@ void TypeCheckPass::typecheck_local_variable_declaration(VariableDeclaration& va
                 throw TypeCheckPassError(std::format("Failed convert_constant_type at:\n{}",
                     m_source_manager->get_source_line(variable_declaration.source_location)));
             }
-            initial_value = InitialValue { con_res.value() };
+            initial_value = StaticInitialValue { con_res.value() };
         } else if (ConstantExpression* expr = dynamic_cast<ConstantExpression*>(variable_declaration.expression.value().get())) {
             // conversion is performed at compile time
             auto con_res = SymbolTable::convert_constant_type(expr->value, *variable_declaration.type);
@@ -383,7 +383,7 @@ void TypeCheckPass::typecheck_local_variable_declaration(VariableDeclaration& va
                 throw TypeCheckPassError(std::format("Failed convert_constant_type at:\n{}",
                     m_source_manager->get_source_line(variable_declaration.source_location)));
             }
-            initial_value = InitialValue { con_res.value() };
+            initial_value = StaticInitialValue { con_res.value() };
         } else {
             throw TypeCheckPassError(std::format("Local variable declaration of {} has non-constant initializer!at:\n{}", variable_name, m_source_manager->get_source_line(variable_declaration.source_location)));
         }

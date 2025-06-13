@@ -1,9 +1,11 @@
 #pragma once
+#include "common/data/symbol_table.h"
+#include "common/data/type.h"
 #include <memory>
 #include <string>
 #include <vector>
 
-namespace assembly {
+namespace backend {
 
 class Identifier;
 class ImmediateValue;
@@ -21,14 +23,13 @@ class JmpInstruction;
 class JmpCCInstruction;
 class SetCCInstruction;
 class LabelInstruction;
-class AllocateStackInstruction;
 class FunctionDefinition;
 class Program;
-class DeallocateStackInstruction;
 class PushInstruction;
 class CallInstruction;
 class StaticVariable;
 class DataOperand;
+class MovsxInstruction;
 
 class AssemblyVisitor {
 public:
@@ -40,6 +41,7 @@ public:
     virtual void visit(DataOperand& node) = 0;
     virtual void visit(ReturnInstruction& node) = 0;
     virtual void visit(MovInstruction& node) = 0;
+    virtual void visit(MovsxInstruction& node) = 0;
     virtual void visit(UnaryInstruction& node) = 0;
     virtual void visit(BinaryInstruction& node) = 0;
     virtual void visit(CmpInstruction& node) = 0;
@@ -49,10 +51,8 @@ public:
     virtual void visit(JmpCCInstruction& node) = 0;
     virtual void visit(SetCCInstruction& node) = 0;
     virtual void visit(LabelInstruction& node) = 0;
-    virtual void visit(DeallocateStackInstruction& node) = 0;
     virtual void visit(PushInstruction& node) = 0;
     virtual void visit(CallInstruction& node) = 0;
-    virtual void visit(AllocateStackInstruction& node) = 0;
     virtual void visit(FunctionDefinition& node) = 0;
     virtual void visit(StaticVariable& node) = 0;
     virtual void visit(Program& node) = 0;
@@ -68,14 +68,15 @@ enum class RegisterName {
     R8,
     R9,
     R10,
-    R11
+    R11,
+    SP
 };
 
-enum class RegisterType {
-    BYTE,  // 1-byte registers (AL, BL, CL, DL, etc.)
-    WORD,  // 2-byte registers (AX, BX, CX, DX, etc.)
-    DWORD, // 4-byte registers (EAX, EBX, ECX, EDX, etc.)
-    QWORD, // 8-byte registers (RAX, RBX, RCX, RDX, etc.)
+enum class AssemblyType {
+    BYTE,      // 1-byte
+    WORD,      // 2-byte
+    LONG_WORD, // 4-byte
+    QUAD_WORD, // 8-byte
 };
 
 // Abstract base class for all AssemblyAST nodes
@@ -134,7 +135,7 @@ public:
 
 class ImmediateValue : public Operand {
 public:
-    ImmediateValue(int v)
+    ImmediateValue(ConstantType v)
         : value(v)
     {
     }
@@ -149,14 +150,14 @@ public:
         return std::make_unique<ImmediateValue>(value);
     }
 
-    int value;
+    ConstantType value;
 };
 
 class Register : public Operand {
 public:
-    Register(RegisterName r, RegisterType t = RegisterType::DWORD)
-        : reg { r }
-        , type { t }
+    Register(RegisterName name, AssemblyType type = AssemblyType::LONG_WORD)
+        : name { name }
+        , type { type }
     {
     }
 
@@ -167,11 +168,11 @@ public:
 
     std::unique_ptr<Operand> clone() const override
     {
-        return std::make_unique<Register>(reg, type);
+        return std::make_unique<Register>(name, type);
     }
 
-    RegisterName reg;
-    RegisterType type;
+    RegisterName name;
+    AssemblyType type;
 };
 
 class PseudoRegister : public Operand {
@@ -255,56 +256,8 @@ public:
 
 class MovInstruction : public Instruction {
 public:
-    MovInstruction(std::unique_ptr<Operand> src, std::unique_ptr<Operand> dst)
-        : source(std::move(src))
-        , destination(std::move(dst))
-    {
-    }
-
-    void accept(AssemblyVisitor& visitor) override
-    {
-        visitor.visit(*this);
-    }
-
-    std::unique_ptr<Instruction> clone() const override
-    {
-        return std::make_unique<MovInstruction>(
-            source->clone(),
-            destination->clone());
-    }
-
-    std::unique_ptr<Operand> source;
-    std::unique_ptr<Operand> destination;
-};
-
-class UnaryInstruction : public Instruction {
-public:
-    UnaryInstruction(UnaryOperator u_op, std::unique_ptr<Operand> op)
-        : unary_operator(u_op)
-        , operand(std::move(op))
-    {
-    }
-
-    void accept(AssemblyVisitor& visitor) override
-    {
-        visitor.visit(*this);
-    }
-
-    std::unique_ptr<Instruction> clone() const override
-    {
-        return std::make_unique<UnaryInstruction>(
-            unary_operator,
-            operand->clone());
-    }
-
-    UnaryOperator unary_operator;
-    std::unique_ptr<Operand> operand;
-};
-
-class BinaryInstruction : public Instruction {
-public:
-    BinaryInstruction(BinaryOperator b_op, std::unique_ptr<Operand> src, std::unique_ptr<Operand> dst)
-        : binary_operator(b_op)
+    MovInstruction(AssemblyType type, std::unique_ptr<Operand> src, std::unique_ptr<Operand> dst)
+        : type(type)
         , source(std::move(src))
         , destination(std::move(dst))
     {
@@ -317,20 +270,19 @@ public:
 
     std::unique_ptr<Instruction> clone() const override
     {
-        return std::make_unique<BinaryInstruction>(
-            binary_operator,
+        return std::make_unique<MovInstruction>(type,
             source->clone(),
             destination->clone());
     }
 
-    BinaryOperator binary_operator;
+    AssemblyType type;
     std::unique_ptr<Operand> source;
     std::unique_ptr<Operand> destination;
 };
 
-class CmpInstruction : public Instruction {
+class MovsxInstruction : public Instruction {
 public:
-    CmpInstruction(std::unique_ptr<Operand> src, std::unique_ptr<Operand> dst)
+    MovsxInstruction(std::unique_ptr<Operand> src, std::unique_ptr<Operand> dst)
         : source(std::move(src))
         , destination(std::move(dst))
     {
@@ -343,7 +295,7 @@ public:
 
     std::unique_ptr<Instruction> clone() const override
     {
-        return std::make_unique<CmpInstruction>(
+        return std::make_unique<MovsxInstruction>(
             source->clone(),
             destination->clone());
     }
@@ -352,10 +304,94 @@ public:
     std::unique_ptr<Operand> destination;
 };
 
+class UnaryInstruction : public Instruction {
+public:
+    UnaryInstruction(UnaryOperator unary_operator, AssemblyType type, std::unique_ptr<Operand> operand)
+        : unary_operator(unary_operator)
+        , type(type)
+        , operand(std::move(operand))
+    {
+    }
+
+    void accept(AssemblyVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    std::unique_ptr<Instruction> clone() const override
+    {
+        return std::make_unique<UnaryInstruction>(
+            unary_operator,
+            type,
+            operand->clone());
+    }
+
+    UnaryOperator unary_operator;
+    AssemblyType type;
+    std::unique_ptr<Operand> operand;
+};
+
+class BinaryInstruction : public Instruction {
+public:
+    BinaryInstruction(BinaryOperator binary_operator, AssemblyType type, std::unique_ptr<Operand> source, std::unique_ptr<Operand> destination)
+        : binary_operator(binary_operator)
+        , type(type)
+        , source(std::move(source))
+        , destination(std::move(destination))
+    {
+    }
+
+    void accept(AssemblyVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    std::unique_ptr<Instruction> clone() const override
+    {
+        return std::make_unique<BinaryInstruction>(
+            binary_operator,
+            type,
+            source->clone(),
+            destination->clone());
+    }
+
+    BinaryOperator binary_operator;
+    AssemblyType type;
+    std::unique_ptr<Operand> source;
+    std::unique_ptr<Operand> destination;
+};
+
+class CmpInstruction : public Instruction {
+public:
+    CmpInstruction(AssemblyType type, std::unique_ptr<Operand> source, std::unique_ptr<Operand> destination)
+        : type(type)
+        , source(std::move(source))
+        , destination(std::move(destination))
+    {
+    }
+
+    void accept(AssemblyVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    std::unique_ptr<Instruction> clone() const override
+    {
+        return std::make_unique<CmpInstruction>(
+            type,
+            source->clone(),
+            destination->clone());
+    }
+    AssemblyType type;
+    std::unique_ptr<Operand> source;
+    std::unique_ptr<Operand> destination;
+};
+
 class IdivInstruction : public Instruction {
 public:
-    IdivInstruction(std::unique_ptr<Operand> op)
-        : operand(std::move(op))
+    IdivInstruction(AssemblyType type, std::unique_ptr<Operand> op)
+        : type(type)
+        , operand(std::move(op))
     {
     }
 
@@ -367,14 +403,20 @@ public:
     std::unique_ptr<Instruction> clone() const override
     {
         return std::make_unique<IdivInstruction>(
-            operand->clone());
+            type, operand->clone());
     }
 
+    AssemblyType type;
     std::unique_ptr<Operand> operand;
 };
 
 class CdqInstruction : public Instruction {
 public:
+    CdqInstruction(AssemblyType type)
+        : type(type)
+    {
+    }
+
     void accept(AssemblyVisitor& visitor) override
     {
         visitor.visit(*this);
@@ -382,8 +424,10 @@ public:
 
     std::unique_ptr<Instruction> clone() const override
     {
-        return std::make_unique<CdqInstruction>();
+        return std::make_unique<CdqInstruction>(type);
     }
+
+    AssemblyType type;
 };
 
 class JmpInstruction : public Instruction {
@@ -438,7 +482,7 @@ public:
         , destination(std::move(dst))
     {
         if (Register* reg = dynamic_cast<Register*>(destination.get())) {
-            reg->type = RegisterType::BYTE;
+            reg->type = AssemblyType::BYTE;
         }
     }
 
@@ -479,53 +523,13 @@ public:
     Identifier identifier;
 };
 
-class AllocateStackInstruction : public Instruction {
-public:
-    AllocateStackInstruction(int value)
-        : value(value)
-    {
-    }
-
-    void accept(AssemblyVisitor& visitor) override
-    {
-        visitor.visit(*this);
-    }
-
-    std::unique_ptr<Instruction> clone() const override
-    {
-        return std::make_unique<AllocateStackInstruction>(value);
-    }
-
-    int value;
-};
-
-class DeallocateStackInstruction : public Instruction {
-public:
-    DeallocateStackInstruction(int value)
-        : value(value)
-    {
-    }
-
-    void accept(AssemblyVisitor& visitor) override
-    {
-        visitor.visit(*this);
-    }
-
-    std::unique_ptr<Instruction> clone() const override
-    {
-        return std::make_unique<DeallocateStackInstruction>(value);
-    }
-
-    int value;
-};
-
 class PushInstruction : public Instruction {
 public:
     PushInstruction(std::unique_ptr<Operand> dst)
         : destination(std::move(dst))
     {
         if (Register* reg = dynamic_cast<Register*>(destination.get())) {
-            reg->type = RegisterType::QWORD;
+            reg->type = AssemblyType::QUAD_WORD;
         }
     }
 
@@ -602,10 +606,11 @@ public:
 
 class StaticVariable : public TopLevel {
 public:
-    StaticVariable(const std::string& n, bool glbl, int init)
+    StaticVariable(const std::string& n, bool glbl, size_t alignment, StaticInitialValueType static_init)
         : name { n }
         , global { glbl }
-        , initializer(init)
+        , alignment(alignment)
+        , static_init(static_init)
     {
     }
 
@@ -616,12 +621,13 @@ public:
 
     std::unique_ptr<TopLevel> clone() const
     {
-        return std::make_unique<StaticVariable>(name.name, global, initializer);
+        return std::make_unique<StaticVariable>(name.name, global, alignment, static_init);
     }
 
     Identifier name;
     bool global;
-    int initializer;
+    size_t alignment;
+    StaticInitialValueType static_init;
 };
 
 class Program : public AssemblyAST {

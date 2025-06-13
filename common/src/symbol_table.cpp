@@ -1,6 +1,6 @@
 #include "common/data/symbol_table.h"
 
-std::optional<InitialValueType> SymbolTable::convert_constant_type(const ConstantType& value, const Type& target_type)
+std::optional<StaticInitialValueType> SymbolTable::convert_constant_type(const ConstantType& value, const Type& target_type)
 {
     // Handle std::monostate input
     if (std::holds_alternative<std::monostate>(value)) {

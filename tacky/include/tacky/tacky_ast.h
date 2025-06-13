@@ -347,7 +347,7 @@ public:
 
 class StaticVariable : public TopLevel {
 public:
-    StaticVariable(const std::string& name, bool global, std::unique_ptr<Type> type, InitialValueType init)
+    StaticVariable(const std::string& name, bool global, std::unique_ptr<Type> type, StaticInitialValueType init)
         : name { name }
         , global { global }
         , type { std::move(type) }
@@ -363,7 +363,7 @@ public:
     Identifier name;
     bool global;
     std::unique_ptr<Type> type;
-    InitialValueType init;
+    StaticInitialValueType init;
 };
 
 class Program : public TackyAST {

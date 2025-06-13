@@ -1,9 +1,9 @@
-#include "assembly/code_emitter.h"
+#include "backend/code_emitter.h"
 #include "common/data/symbol_table.h"
 #include <filesystem>
 #include <format>
 
-using namespace assembly;
+using namespace backend;
 
 CodeEmitter::CodeEmitter(const std::string& output_file, std::shared_ptr<AssemblyAST> ast, std::shared_ptr<SymbolTable> symbol_table)
     : m_output_file { output_file }
@@ -46,159 +46,161 @@ void CodeEmitter::emit_code()
 
 void CodeEmitter::visit(ImmediateValue& node)
 {
-    *m_file_stream << std::format("${}", node.value);
+    // TODO: FIX
+    //*m_file_stream << std::format("${}", node.value);
 }
 
 void CodeEmitter::visit(Register& node)
 {
-    switch (node.reg) {
-    case RegisterName::AX: {
-        switch (node.type) {
-        case RegisterType::QWORD:
-            *m_file_stream << "%rax";
-            break;
-        case RegisterType::DWORD:
-            *m_file_stream << "%eax";
-            break;
-        case RegisterType::BYTE:
-            *m_file_stream << "%al";
-            break;
-        default:
-            throw CodeEmitterError("CodeEmitter: Unsupported RegisterType for AX");
-        }
-        break;
-    }
-    case RegisterName::DX: {
-        switch (node.type) {
-        case RegisterType::QWORD:
-            *m_file_stream << "%rdx";
-            break;
-        case RegisterType::DWORD:
-            *m_file_stream << "%edx";
-            break;
-        case RegisterType::BYTE:
-            *m_file_stream << "%dl";
-            break;
-        default:
-            throw CodeEmitterError("CodeEmitter: Unsupported RegisterType for DX");
-        }
-        break;
-    }
-    case RegisterName::CX: {
-        switch (node.type) {
-        case RegisterType::QWORD:
-            *m_file_stream << "%rcx";
-            break;
-        case RegisterType::DWORD:
-            *m_file_stream << "%ecx";
-            break;
-        case RegisterType::BYTE:
-            *m_file_stream << "%cl";
-            break;
-        default:
-            throw CodeEmitterError("CodeEmitter: Unsupported RegisterType for CX");
-        }
-        break;
-    }
-    case RegisterName::DI: {
-        switch (node.type) {
-        case RegisterType::QWORD:
-            *m_file_stream << "%rdi";
-            break;
-        case RegisterType::DWORD:
-            *m_file_stream << "%edi";
-            break;
-        case RegisterType::BYTE:
-            *m_file_stream << "%dil";
-            break;
-        default:
-            throw CodeEmitterError("CodeEmitter: Unsupported RegisterType for DI");
-        }
-        break;
-    }
-    case RegisterName::SI: {
-        switch (node.type) {
-        case RegisterType::QWORD:
-            *m_file_stream << "%rsi";
-            break;
-        case RegisterType::DWORD:
-            *m_file_stream << "%esi";
-            break;
-        case RegisterType::BYTE:
-            *m_file_stream << "%sil";
-            break;
-        default:
-            throw CodeEmitterError("CodeEmitter: Unsupported RegisterType for SI");
-        }
-        break;
-    }
-    case RegisterName::R8: {
-        switch (node.type) {
-        case RegisterType::QWORD:
-            *m_file_stream << "%r8";
-            break;
-        case RegisterType::DWORD:
-            *m_file_stream << "%r8d";
-            break;
-        case RegisterType::BYTE:
-            *m_file_stream << "%r8b";
-            break;
-        default:
-            throw CodeEmitterError("CodeEmitter: Unsupported RegisterType for R8");
-        }
-        break;
-    }
-    case RegisterName::R9: {
-        switch (node.type) {
-        case RegisterType::QWORD:
-            *m_file_stream << "%r9";
-            break;
-        case RegisterType::DWORD:
-            *m_file_stream << "%r9d";
-            break;
-        case RegisterType::BYTE:
-            *m_file_stream << "%r9b";
-            break;
-        default:
-            throw CodeEmitterError("CodeEmitter: Unsupported RegisterType for R9");
-        }
-        break;
-    }
-    case RegisterName::R10: {
-        switch (node.type) {
-        case RegisterType::QWORD:
-            *m_file_stream << "%r10";
-            break;
-        case RegisterType::DWORD:
-            *m_file_stream << "%r10d";
-            break;
-        case RegisterType::BYTE:
-            *m_file_stream << "%r10b";
-            break;
-        default:
-            throw CodeEmitterError("CodeEmitter: Unsupported RegisterType for R10");
-        }
-        break;
-    }
-    case RegisterName::R11: {
-        switch (node.type) {
-        case RegisterType::QWORD:
-            *m_file_stream << "%r11";
-            break;
-        case RegisterType::DWORD:
-            *m_file_stream << "%r11d";
-            break;
-        case RegisterType::BYTE:
-            *m_file_stream << "%r11b";
-            break;
-        default:
-            throw CodeEmitterError("CodeEmitter: Unsupported RegisterType for R11");
-        }
-        break;
-    }
-    default:
-        throw CodeEmitterError("CodeEmitter: Unsupported RegisterName");
-    }
+    // TODO FIX
+    //     switch (node.reg) {
+    //     case RegisterName::AX: {
+    //         switch (node.type) {
+    //         case RegisterType::QWORD:
+    //             *m_file_stream << "%rax";
+    //             break;
+    //         case RegisterType::DWORD:
+    //             *m_file_stream << "%eax";
+    //             break;
+    //         case RegisterType::BYTE:
+    //             *m_file_stream << "%al";
+    //             break;
+    //         default:
+    //             throw CodeEmitterError("CodeEmitter: Unsupported RegisterType for AX");
+    //         }
+    //         break;
+    //     }
+    //     case RegisterName::DX: {
+    //         switch (node.type) {
+    //         case RegisterType::QWORD:
+    //             *m_file_stream << "%rdx";
+    //             break;
+    //         case RegisterType::DWORD:
+    //             *m_file_stream << "%edx";
+    //             break;
+    //         case RegisterType::BYTE:
+    //             *m_file_stream << "%dl";
+    //             break;
+    //         default:
+    //             throw CodeEmitterError("CodeEmitter: Unsupported RegisterType for DX");
+    //         }
+    //         break;
+    //     }
+    //     case RegisterName::CX: {
+    //         switch (node.type) {
+    //         case RegisterType::QWORD:
+    //             *m_file_stream << "%rcx";
+    //             break;
+    //         case RegisterType::DWORD:
+    //             *m_file_stream << "%ecx";
+    //             break;
+    //         case RegisterType::BYTE:
+    //             *m_file_stream << "%cl";
+    //             break;
+    //         default:
+    //             throw CodeEmitterError("CodeEmitter: Unsupported RegisterType for CX");
+    //         }
+    //         break;
+    //     }
+    //     case RegisterName::DI: {
+    //         switch (node.type) {
+    //         case RegisterType::QWORD:
+    //             *m_file_stream << "%rdi";
+    //             break;
+    //         case RegisterType::DWORD:
+    //             *m_file_stream << "%edi";
+    //             break;
+    //         case RegisterType::BYTE:
+    //             *m_file_stream << "%dil";
+    //             break;
+    //         default:
+    //             throw CodeEmitterError("CodeEmitter: Unsupported RegisterType for DI");
+    //         }
+    //         break;
+    //     }
+    //     case RegisterName::SI: {
+    //         switch (node.type) {
+    //         case RegisterType::QWORD:
+    //             *m_file_stream << "%rsi";
+    //             break;
+    //         case RegisterType::DWORD:
+    //             *m_file_stream << "%esi";
+    //             break;
+    //         case RegisterType::BYTE:
+    //             *m_file_stream << "%sil";
+    //             break;
+    //         default:
+    //             throw CodeEmitterError("CodeEmitter: Unsupported RegisterType for SI");
+    //         }
+    //         break;
+    //     }
+    //     case RegisterName::R8: {
+    //         switch (node.type) {
+    //         case RegisterType::QWORD:
+    //             *m_file_stream << "%r8";
+    //             break;
+    //         case RegisterType::DWORD:
+    //             *m_file_stream << "%r8d";
+    //             break;
+    //         case RegisterType::BYTE:
+    //             *m_file_stream << "%r8b";
+    //             break;
+    //         default:
+    //             throw CodeEmitterError("CodeEmitter: Unsupported RegisterType for R8");
+    //         }
+    //         break;
+    //     }
+    //     case RegisterName::R9: {
+    //         switch (node.type) {
+    //         case RegisterType::QWORD:
+    //             *m_file_stream << "%r9";
+    //             break;
+    //         case RegisterType::DWORD:
+    //             *m_file_stream << "%r9d";
+    //             break;
+    //         case RegisterType::BYTE:
+    //             *m_file_stream << "%r9b";
+    //             break;
+    //         default:
+    //             throw CodeEmitterError("CodeEmitter: Unsupported RegisterType for R9");
+    //         }
+    //         break;
+    //     }
+    //     case RegisterName::R10: {
+    //         switch (node.type) {
+    //         case RegisterType::QWORD:
+    //             *m_file_stream << "%r10";
+    //             break;
+    //         case RegisterType::DWORD:
+    //             *m_file_stream << "%r10d";
+    //             break;
+    //         case RegisterType::BYTE:
+    //             *m_file_stream << "%r10b";
+    //             break;
+    //         default:
+    //             throw CodeEmitterError("CodeEmitter: Unsupported RegisterType for R10");
+    //         }
+    //         break;
+    //     }
+    //     case RegisterName::R11: {
+    //         switch (node.type) {
+    //         case RegisterType::QWORD:
+    //             *m_file_stream << "%r11";
+    //             break;
+    //         case RegisterType::DWORD:
+    //             *m_file_stream << "%r11d";
+    //             break;
+    //         case RegisterType::BYTE:
+    //             *m_file_stream << "%r11b";
+    //             break;
+    //         default:
+    //             throw CodeEmitterError("CodeEmitter: Unsupported RegisterType for R11");
+    //         }
+    //         break;
+    //     }
+    //     default:
+    //         throw CodeEmitterError("CodeEmitter: Unsupported RegisterName");
+    //     }
 }
 
 void CodeEmitter::visit(StackAddress& node)
@@ -286,15 +288,6 @@ void CodeEmitter::visit(LabelInstruction& node)
     *m_file_stream << std::format(".L{}:\n", node.identifier.name);
 }
 
-void CodeEmitter::visit(AllocateStackInstruction& node)
-{
-    *m_file_stream << std::format("\tsubq\t${}, %rsp\n", node.value);
-}
-
-void CodeEmitter::visit(DeallocateStackInstruction& node)
-{
-    *m_file_stream << std::format("\taddq\t${}, %rsp\n", node.value);
-}
 void CodeEmitter::visit(PushInstruction& node)
 {
     *m_file_stream << "\tpushq\t";
@@ -325,11 +318,12 @@ void CodeEmitter::visit(StaticVariable& node)
     if (node.global) {
         *m_file_stream << std::format("\t.globl {}\n", node.name.name);
     }
-    bool init_to_zero = node.initializer == 0;
-    *m_file_stream << std::format("\t{}\n", (init_to_zero ? ".bss" : ".data"));
-    *m_file_stream << "\t.balign 4\n";
-    *m_file_stream << std::format("{}:\n", node.name.name);
-    *m_file_stream << std::format("\t{} {}\n", (init_to_zero ? ".zero" : ".long"), (init_to_zero ? 4 : node.initializer));
+    // TODO: FIX
+    //  bool init_to_zero = node.initializer == 0;
+    //  *m_file_stream << std::format("\t{}\n", (init_to_zero ? ".bss" : ".data"));
+    //  *m_file_stream << "\t.balign 4\n";
+    //  *m_file_stream << std::format("{}:\n", node.name.name);
+    //  *m_file_stream << std::format("\t{} {}\n", (init_to_zero ? ".zero" : ".long"), (init_to_zero ? 4 : node.initializer));
 }
 
 void CodeEmitter::visit(Program& node)

@@ -14,6 +14,8 @@ public:
     // Returns a unique_ptr to a deep copy of the object
     virtual std::unique_ptr<Type> clone() const = 0;
 
+    virtual size_t alignment() const { return 0; }
+
     // Default equality comparison
     virtual bool equals(const Type& other) const
     {
@@ -33,6 +35,7 @@ public:
     {
         return std::make_unique<IntType>();
     }
+    size_t alignment() const override { return 4; }
 };
 
 class LongType : public Type {
@@ -43,6 +46,8 @@ public:
     {
         return std::make_unique<LongType>();
     }
+
+    size_t alignment() const override { return 8; }
 };
 
 class FunctionType : public Type {

@@ -1,7 +1,7 @@
 #include "compiler/compiler_application.h"
-#include "assembly/assembly_generator.h"
-#include "assembly/assembly_printer.h"
-#include "assembly/code_emitter.h"
+#include "backend/assembly_generator.h"
+#include "backend/assembly_printer.h"
+#include "backend/code_emitter.h"
 #include "common//data/source_manager.h"
 #include "common/data/token.h"
 #include "common/data/token_table.h"
@@ -205,19 +205,19 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
     // Code generation stage
     LOG_INFO(LOG_CONTEXT, "Starting assembly generation stage");
 
-    std::shared_ptr<assembly::AssemblyAST> assembly_ast;
+    std::shared_ptr<backend::AssemblyAST> assembly_ast;
     try {
-        assembly::AssemblyGenerator assembly_generator(tacky_ast, symbol_table);
+        backend::AssemblyGenerator assembly_generator(tacky_ast, symbol_table);
         assembly_ast = assembly_generator.generate();
         if (logging::LogManager::logger()->is_enabled(LOG_CONTEXT, logging::LogLevel::DEBUG)) {
             std::string debug_str = "Parsed Program\n";
             LOG_DEBUG(LOG_CONTEXT, debug_str);
-            assembly::PrinterVisitor printer;
+            backend::PrinterVisitor printer;
             std::string base_name = file_path.stem().string();
             printer.generate_dot_file("debug/" + base_name + "_assemblyAST.dot", *(assembly_ast.get()));
             LOG_DEBUG(LOG_CONTEXT, "Generated AssemblyAST visualization in 'ast.dot'");
         }
-    } catch (const assembly::AssemblyGeneratorError& e) {
+    } catch (const backend::AssemblyGeneratorError& e) {
         throw CompilerError(std::format("AssemblyGeneration: {}", e.what()));
     } catch (const std::exception& e) {
         throw CompilerError(std::format(
@@ -236,9 +236,9 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
     LOG_INFO(LOG_CONTEXT, std::format("Generating assembly file '{}'", assembly_file));
 
     try {
-        assembly::CodeEmitter code_emitter(assembly_file, assembly_ast, symbol_table);
+        backend::CodeEmitter code_emitter(assembly_file, assembly_ast, symbol_table);
         code_emitter.emit_code();
-    } catch (const assembly::CodeEmitterError& e) {
+    } catch (const backend::CodeEmitterError& e) {
         throw CompilerError(std::format("CodeEmitter error: {}", e.what()));
     } catch (const std::exception& e) {
         throw CompilerError(std::format(

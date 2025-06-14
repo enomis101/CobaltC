@@ -69,7 +69,7 @@ void FixUpInstructionsStep::fixup_mov_instruction(MovInstruction* mov_instructio
      * 1. Move from source memory to intermediate register (R10)
      * 2. Move from intermediate register to destination memory
      */
-
+    auto original_type = mov_instruction->type;
     bool source_is_memory = dynamic_cast<StackAddress*>(mov_instruction->source.get()) || dynamic_cast<DataOperand*>(mov_instruction->source.get());
     bool dest_is_memory = dynamic_cast<StackAddress*>(mov_instruction->destination.get()) || dynamic_cast<DataOperand*>(mov_instruction->destination.get());
 
@@ -80,7 +80,7 @@ void FixUpInstructionsStep::fixup_mov_instruction(MovInstruction* mov_instructio
             std::move(mov_instruction->source),
             std::make_unique<Register>(RegisterName::R10)));
         // Update the original instruction to use R10 as source
-        mov_instruction->source = std::make_unique<Register>(RegisterName::R10);
+        mov_instruction->source = std::make_unique<Register>(RegisterName::R10, original_type);
     }
 }
 
@@ -93,6 +93,7 @@ void FixUpInstructionsStep::fixup_cmp_instruction(CmpInstruction* cmp_instructio
      * 2. CMP cannot have both operands as memory addresses (same as MOV)
      */
 
+    auto original_type = cmp_instruction->type;
     // Fix immediate value as destination
     if (dynamic_cast<ImmediateValue*>(cmp_instruction->destination.get())) {
         // Move the immediate value to R11 register first
@@ -100,7 +101,7 @@ void FixUpInstructionsStep::fixup_cmp_instruction(CmpInstruction* cmp_instructio
             cmp_instruction->type,
             std::move(cmp_instruction->destination),
             std::make_unique<Register>(RegisterName::R11)));
-        cmp_instruction->destination = std::make_unique<Register>(RegisterName::R11);
+        cmp_instruction->destination = std::make_unique<Register>(RegisterName::R11, original_type);
     } else {
         // Fix double memory address case (similar to MOV instruction)
         bool source_is_memory = dynamic_cast<StackAddress*>(cmp_instruction->source.get()) || dynamic_cast<DataOperand*>(cmp_instruction->source.get());
@@ -112,7 +113,7 @@ void FixUpInstructionsStep::fixup_cmp_instruction(CmpInstruction* cmp_instructio
                 cmp_instruction->type,
                 std::move(cmp_instruction->source),
                 std::make_unique<Register>(RegisterName::R10)));
-            cmp_instruction->source = std::make_unique<Register>(RegisterName::R10);
+            cmp_instruction->source = std::make_unique<Register>(RegisterName::R10, original_type);
         }
     }
 }
@@ -141,7 +142,7 @@ void FixUpInstructionsStep::fixup_binary_instruction(BinaryInstruction* binary_i
                     type,
                     std::move(binary_instruction->source),
                     std::make_unique<Register>(RegisterName::R10)));
-                binary_instruction->source = std::make_unique<Register>(RegisterName::R10);
+                binary_instruction->source = std::make_unique<Register>(RegisterName::R10, type);
             }
         }
     }
@@ -159,7 +160,7 @@ void FixUpInstructionsStep::fixup_binary_instruction(BinaryInstruction* binary_i
                 type,
                 std::move(binary_instruction->source),
                 std::make_unique<Register>(RegisterName::R10)));
-            binary_instruction->source = std::make_unique<Register>(RegisterName::R10);
+            binary_instruction->source = std::make_unique<Register>(RegisterName::R10, type);
         }
 
         instructions.emplace_back(std::move(instruction));
@@ -175,7 +176,7 @@ void FixUpInstructionsStep::fixup_binary_instruction(BinaryInstruction* binary_i
             std::make_unique<Register>(RegisterName::R11)));
 
         // Update instruction to use R11 as destination
-        binary_instruction->destination = std::make_unique<Register>(RegisterName::R11);
+        binary_instruction->destination = std::make_unique<Register>(RegisterName::R11, type);
 
         // Add the multiplication instruction
         instructions.emplace_back(std::move(instruction));
@@ -200,14 +201,14 @@ void FixUpInstructionsStep::fixup_idiv_instruction(IdivInstruction* div_instruct
      * If the operand is an immediate value, we must first move it to a register
      * and then perform the division using that register.
      */
-
+    auto original_type = div_instruction->type;
     if (dynamic_cast<ImmediateValue*>(div_instruction->operand.get())) {
         // Move immediate value to R10 register
         instructions.emplace_back(std::make_unique<MovInstruction>(
             div_instruction->type,
             std::move(div_instruction->operand),
             std::make_unique<Register>(RegisterName::R10)));
-        div_instruction->operand = std::make_unique<Register>(RegisterName::R10);
+        div_instruction->operand = std::make_unique<Register>(RegisterName::R10, original_type);
     }
 }
 
@@ -232,7 +233,7 @@ void FixUpInstructionsStep::fixup_movsx_instruction(MovsxInstruction* movsx_inst
             AssemblyType::LONG_WORD,
             std::move(movsx_instruction->source),
             std::make_unique<Register>(RegisterName::R10)));
-        movsx_instruction->source = std::make_unique<Register>(RegisterName::R10);
+        movsx_instruction->source = std::make_unique<Register>(RegisterName::R10, AssemblyType::LONG_WORD);
     }
 
     // Fix memory address as destination
@@ -246,7 +247,7 @@ void FixUpInstructionsStep::fixup_movsx_instruction(MovsxInstruction* movsx_inst
             std::make_unique<Register>(RegisterName::R11),
             std::move(movsx_instruction->destination));
         // Use R11 as temporary destination
-        movsx_instruction->destination = std::make_unique<Register>(RegisterName::R11);
+        movsx_instruction->destination = std::make_unique<Register>(RegisterName::R11, AssemblyType::QUAD_WORD);
     }
 
     // Add the fixed MOVSX instruction

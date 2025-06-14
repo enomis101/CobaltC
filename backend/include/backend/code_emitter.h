@@ -30,7 +30,7 @@ private:
     void visit(DataOperand& node) override;
     void visit(ReturnInstruction& node) override;
     void visit(MovInstruction& node) override;
-    void visit(MovsxInstruction& node) override { } // TODO: IMPLEMENT
+    void visit(MovsxInstruction& node) override;
     void visit(UnaryInstruction& node) override;
     void visit(BinaryInstruction& node) override;
     void visit(CmpInstruction& node) override;
@@ -49,6 +49,7 @@ private:
     std::string operator_instruction(UnaryOperator op);
     std::string operator_instruction(BinaryOperator op);
     std::string to_instruction_suffix(ConditionCode cc);
+    std::string to_instruction_suffix(AssemblyType type);
     std::string get_function_name(const std::string& in_name);
     const std::string m_output_file;
     std::shared_ptr<AssemblyAST> m_ast;

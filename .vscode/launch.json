@@ -6,7 +6,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/compiler/cobaltc-compiler",
-            "args": ["/home/simone/compiler/writing-a-c-compiler-tests/tests/chapter_11/valid/long_expressions/type_specifiers.c"],
+            "args": ["/home/simone/compiler/writing-a-c-compiler-tests/tests/chapter_11/valid/explicit_casts/sign_extend.c", "-S"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/build/",
             "environment": [],

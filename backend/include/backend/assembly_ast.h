@@ -239,6 +239,14 @@ class Instruction : public AssemblyAST {
 public:
     virtual ~Instruction() = default;
     virtual std::unique_ptr<Instruction> clone() const = 0;
+
+protected:
+    void check_and_replace_register_type(AssemblyType type, Operand* operand)
+    {
+        if (Register* reg = dynamic_cast<Register*>(operand)) {
+            reg->type = type;
+        }
+    }
 };
 
 class ReturnInstruction : public Instruction {
@@ -261,6 +269,8 @@ public:
         , source(std::move(src))
         , destination(std::move(dst))
     {
+        check_and_replace_register_type(type, this->source.get());
+        check_and_replace_register_type(type, this->destination.get());
     }
 
     void accept(AssemblyVisitor& visitor) override
@@ -311,6 +321,7 @@ public:
         , type(type)
         , operand(std::move(operand))
     {
+        check_and_replace_register_type(type, this->operand.get());
     }
 
     void accept(AssemblyVisitor& visitor) override
@@ -339,6 +350,8 @@ public:
         , source(std::move(source))
         , destination(std::move(destination))
     {
+        check_and_replace_register_type(type, this->source.get());
+        check_and_replace_register_type(type, this->destination.get());
     }
 
     void accept(AssemblyVisitor& visitor) override
@@ -368,6 +381,8 @@ public:
         , source(std::move(source))
         , destination(std::move(destination))
     {
+        check_and_replace_register_type(type, this->source.get());
+        check_and_replace_register_type(type, this->destination.get());
     }
 
     void accept(AssemblyVisitor& visitor) override
@@ -382,6 +397,7 @@ public:
             source->clone(),
             destination->clone());
     }
+
     AssemblyType type;
     std::unique_ptr<Operand> source;
     std::unique_ptr<Operand> destination;
@@ -393,6 +409,7 @@ public:
         : type(type)
         , operand(std::move(op))
     {
+        check_and_replace_register_type(type, this->operand.get());
     }
 
     void accept(AssemblyVisitor& visitor) override
@@ -481,9 +498,7 @@ public:
         : condition_code(cc)
         , destination(std::move(dst))
     {
-        if (Register* reg = dynamic_cast<Register*>(destination.get())) {
-            reg->type = AssemblyType::BYTE;
-        }
+        check_and_replace_register_type(AssemblyType::BYTE, this->destination.get());
     }
 
     void accept(AssemblyVisitor& visitor) override
@@ -528,9 +543,7 @@ public:
     PushInstruction(std::unique_ptr<Operand> dst)
         : destination(std::move(dst))
     {
-        if (Register* reg = dynamic_cast<Register*>(destination.get())) {
-            reg->type = AssemblyType::QUAD_WORD;
-        }
+        check_and_replace_register_type(AssemblyType::QUAD_WORD, this->destination.get());
     }
 
     void accept(AssemblyVisitor& visitor) override

@@ -20,8 +20,7 @@ public:
 // Generate an AssemblyAST from a TackyAST
 class AssemblyGenerator {
 public:
-    AssemblyGenerator(std::shared_ptr<tacky::TackyAST> ast, std::shared_ptr<SymbolTable> symbol_table);
-
+    AssemblyGenerator(std::shared_ptr<tacky::TackyAST> ast, std::shared_ptr<SymbolTable> symbol_table, std::shared_ptr<BackendSymbolTable> backend_symbol_table);
     std::shared_ptr<AssemblyAST> generate();
 
 private:
@@ -29,6 +28,11 @@ private:
     UnaryOperator transform_operator(tacky::UnaryOperator& unary_operator);
     BinaryOperator transform_operator(tacky::BinaryOperator& binary_operator);
     std::vector<std::unique_ptr<Instruction>> transform_instruction(tacky::Instruction& instruction);
+    std::vector<std::unique_ptr<Instruction>> transform_return_instruction(tacky::ReturnInstruction& return_instruction);
+    std::vector<std::unique_ptr<Instruction>> transform_copy_instruction(tacky::CopyInstruction& copy_instruction);
+    std::vector<std::unique_ptr<Instruction>> transform_label_instruction(tacky::LabelInstruction& label_instruction);
+    std::vector<std::unique_ptr<Instruction>> transform_sign_extend_instruction(tacky::SignExtendInstruction& sign_extend_instruction);
+    std::vector<std::unique_ptr<Instruction>> transform_truncate_instruction(tacky::TruncateInstruction& truncate_instruction);
     std::vector<std::unique_ptr<Instruction>> transform_unary_instruction(tacky::UnaryInstruction& unary_instruction);
     std::vector<std::unique_ptr<Instruction>> transform_binary_instruction(tacky::BinaryInstruction& binary_instruction);
     std::vector<std::unique_ptr<Instruction>> transform_jump_instruction(tacky::Instruction& jump_instruction);
@@ -43,11 +47,10 @@ private:
     AssemblyType convert_type(const Type& type);
     std::shared_ptr<tacky::TackyAST> m_ast;
     std::shared_ptr<SymbolTable> m_symbol_table;
+    std::shared_ptr<BackendSymbolTable> m_backend_symbol_table;
     const std::vector<RegisterName> FUN_REGISTERS;
 
     void generate_backend_symbol_table();
-
-    std::shared_ptr<BackendSymbolTable> m_backend_symbol_table;
 };
 
 } // namespace backend

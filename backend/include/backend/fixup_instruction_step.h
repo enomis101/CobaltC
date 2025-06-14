@@ -59,6 +59,8 @@ private:
     void fixup_movsx_instruction(MovsxInstruction* movsx_instruction,
         std::vector<std::unique_ptr<Instruction>>& instructions,
         std::unique_ptr<Instruction>& instruction);
+    void fixup_push_instruction(PushInstruction* push_instruction,
+        std::vector<std::unique_ptr<Instruction>>& instructions);
 
     std::shared_ptr<AssemblyAST> m_ast;
     std::shared_ptr<BackendSymbolTable> m_symbol_table;

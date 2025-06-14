@@ -19,7 +19,7 @@ public:
     void visit(PseudoRegister& node) override;
     void visit(StackAddress& node) override;
     void visit(DataOperand& node) override;
-    void visit(CommentInstruction& node) override { } //NOT NEEDED
+    void visit(CommentInstruction& node) override { } // NOT NEEDED
     void visit(ReturnInstruction& node) override;
     void visit(MovInstruction& node) override;
     void visit(MovsxInstruction& node) override;

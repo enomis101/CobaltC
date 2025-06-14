@@ -22,7 +22,7 @@ AssemblyGenerator::AssemblyGenerator(std::shared_ptr<tacky::TackyAST> ast, std::
     , FUN_REGISTERS { RegisterName::DI, RegisterName::SI, RegisterName::DX, RegisterName::CX, RegisterName::R8, RegisterName::R9 }
 {
     if (!m_ast || !dynamic_cast<tacky::Program*>(m_ast.get())) {
-        throw AssemblyGeneratorError("AssemblyGenerator: Invalid AST");
+        assert(false && "AssemblyGenerator: Invalid AST");
     }
 }
 
@@ -61,7 +61,8 @@ std::unique_ptr<Operand> AssemblyGenerator::transform_operand(tacky::Value& val)
     } else if (tacky::TemporaryVariable* var = dynamic_cast<tacky::TemporaryVariable*>(&val)) {
         return std::make_unique<PseudoRegister>(var->identifier.name);
     } else {
-        throw AssemblyGeneratorError("AssemblyGenerator: Invalid or Unsupported tacky::Value");
+        assert(false && "AssemblyGenerator: Invalid or Unsupported tacky::Value");
+        return nullptr;
     }
 }
 
@@ -116,6 +117,7 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_instructi
         return transform_truncate_instruction(*truncate_instruction);
     } else {
         assert(false && "AssemblyGenerator: Invalid or Unsupported tacky::Instruction");
+        return {};
     }
 }
 
@@ -288,7 +290,10 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_function_
             std::make_unique<ImmediateValue>(stack_padding), std::make_unique<Register>(RegisterName::SP)));
     }
 
-    add_comment_instruction("function_call register arguments", instructions);
+    if (reg_args_size > 0) {
+        add_comment_instruction("function_call register arguments", instructions);
+    }
+
     for (size_t i = 0; i < reg_args_size; ++i) {
         RegisterName reg_name = FUN_REGISTERS[i];
         AssemblyType arg_type = get_operand_type(*tacky_arguments[i].get());
@@ -297,7 +302,10 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_function_
         instructions.emplace_back(std::make_unique<MovInstruction>(arg_type, std::move(assembly_arg), std::make_unique<Register>(reg_name)));
     }
 
-    add_comment_instruction("function_call stack arguments", instructions);
+    if (stack_args_size > 0) {
+        add_comment_instruction("function_call stack arguments", instructions);
+    }
+
     for (size_t i = 0; i < stack_args_size; ++i) {
         int j = tacky_arguments.size() - 1 - i; // reverse
         AssemblyType arg_type = get_operand_type(*tacky_arguments[j].get());
@@ -348,7 +356,10 @@ std::unique_ptr<FunctionDefinition> AssemblyGenerator::transform_function(tacky:
     const size_t reg_args_size = std::min(max_reg_args_size, tacky_parameters.size());
 
     // move register parameters from registers to pseudo registers
-    add_comment_instruction("start register parameters", instructions);
+    if (reg_args_size > 0) {
+        add_comment_instruction("function_definition register parameters", instructions);
+    }
+
     for (size_t i = 0; i < reg_args_size; ++i) {
         AssemblyType arg_type = convert_type(*arg_types.at(i));
 
@@ -357,7 +368,10 @@ std::unique_ptr<FunctionDefinition> AssemblyGenerator::transform_function(tacky:
         instructions.emplace_back(std::make_unique<MovInstruction>(arg_type, std::move(reg), std::move(pseudo_reg)));
     }
 
-    add_comment_instruction("start stack parameters", instructions);
+    if ((tacky_parameters.size() - reg_args_size) > 0) {
+        add_comment_instruction("function_definition stack parameters", instructions);
+    }
+
     int stack_offset = 16;
     for (size_t i = reg_args_size; i < tacky_parameters.size(); ++i, stack_offset += 8) {
         AssemblyType arg_type = convert_type(*arg_types.at(i));
@@ -365,8 +379,8 @@ std::unique_ptr<FunctionDefinition> AssemblyGenerator::transform_function(tacky:
         std::unique_ptr<PseudoRegister> pseudo_reg = std::make_unique<PseudoRegister>(tacky_parameters[i]);
         instructions.emplace_back(std::make_unique<MovInstruction>(arg_type, std::move(stack_addr), std::move(pseudo_reg)));
     }
-    add_comment_instruction("end function parameters", instructions);
 
+    add_comment_instruction("function_definition body", instructions);
     for (auto& i : function_definition.body) {
         std::vector<std::unique_ptr<Instruction>> tmp_instrucitons = transform_instruction(*i);
         for (auto& tmp_i : tmp_instrucitons) {
@@ -383,7 +397,8 @@ std::unique_ptr<TopLevel> AssemblyGenerator::transform_top_level(tacky::TopLevel
     } else if (tacky::StaticVariable* static_var = dynamic_cast<tacky::StaticVariable*>(&top_level)) {
         return std::make_unique<StaticVariable>(static_var->name.name, static_var->global, static_var->type->alignment(), static_var->init);
     } else {
-        throw AssemblyGeneratorError("In transform_top_level: invalid top level class");
+        assert(false && "In transform_top_level: invalid top level class");
+        return nullptr;
     }
 }
 
@@ -429,7 +444,8 @@ ConditionCode AssemblyGenerator::to_condition_code(tacky::BinaryOperator op)
     case tacky::BinaryOperator::GREATER_OR_EQUAL:
         return ConditionCode::GE;
     default:
-        throw AssemblyGeneratorError("AssemblyGenerator::to_condition_code is not a relational operator");
+        assert(false && "AssemblyGenerator::to_condition_code is not a relational operator");
+        return ConditionCode::NONE;
     }
 }
 
@@ -447,6 +463,7 @@ AssemblyType AssemblyGenerator::get_operand_type(tacky::Value& operand)
         return convert_type(*symbol.type);
     }
     assert(false && "Invalid tacky::Value");
+    return AssemblyType::NONE;
 }
 
 AssemblyType AssemblyGenerator::convert_type(const Type& type)
@@ -457,6 +474,7 @@ AssemblyType AssemblyGenerator::convert_type(const Type& type)
         return AssemblyType::QUAD_WORD;
     }
     assert(false && "Unsupported type for Type to AssemblyType conversion");
+    return AssemblyType::NONE;
 }
 
 void AssemblyGenerator::add_comment_instruction(const std::string& message, std::vector<std::unique_ptr<Instruction>>& instructions)

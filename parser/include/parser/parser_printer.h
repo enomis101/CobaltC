@@ -1,5 +1,7 @@
 #pragma once
+#include "common/data/type.h"
 #include "parser/parser_ast.h"
+#include <memory>
 #include <sstream>
 #include <unordered_map>
 
@@ -21,7 +23,7 @@ public:
     void visit(FunctionDeclaration& node) override;
     void visit(Program& node) override;
     void visit(VariableExpression& node) override;
-    void visit(CastExpression& node) override {}; // TODO: IMPLEMENT
+    void visit(CastExpression& node) override;
     void visit(AssignmentExpression& node) override;
     void visit(ConditionalExpression& node) override;
     void visit(FunctionCallExpression& node) override;
@@ -43,10 +45,14 @@ private:
     // Get or assign a unique ID for each node
     int get_node_id(const ParserAST* node);
 
+    // Helper methods for string conversion
     std::string operator_to_string(UnaryOperator op);
     std::string operator_to_string(BinaryOperator op);
     std::string storage_class_to_string(StorageClass sc);
     std::string declaration_scope_to_string(DeclarationScope scope);
+    std::string escape_string(const std::string& str);
+    std::string constant_value_to_string(const ConstantType& value);
+    std::string type_to_string(const std::unique_ptr<Type>& type);
 
     int m_node_count;                                     // Counter for generating unique node IDs
     std::unordered_map<const ParserAST*, int> m_node_ids; // Maps ParserAST nodes to their unique IDs

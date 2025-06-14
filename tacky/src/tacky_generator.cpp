@@ -279,7 +279,7 @@ std::unique_ptr<Value> TackyGenerator::transform_cast_expression(parser::CastExp
     std::unique_ptr<Value> expr_res = transform_expression(*cast_expression.expression, instructions);
 
     // If the types are the same, no cast is needed
-    if (cast_expression.type->equals(*cast_expression.target_type)) {
+    if (cast_expression.expression->type->equals(*cast_expression.target_type)) {
         return expr_res;
     }
 

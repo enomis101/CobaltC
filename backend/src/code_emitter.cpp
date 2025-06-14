@@ -1,5 +1,6 @@
 #include "backend/code_emitter.h"
 #include "backend/assembly_ast.h"
+#include "backend/backend_symbol_table.h"
 #include "common/data/symbol_table.h"
 #include <cassert>
 #include <filesystem>
@@ -8,7 +9,7 @@
 
 using namespace backend;
 
-CodeEmitter::CodeEmitter(const std::string& output_file, std::shared_ptr<AssemblyAST> ast, std::shared_ptr<SymbolTable> symbol_table)
+CodeEmitter::CodeEmitter(const std::string& output_file, std::shared_ptr<AssemblyAST> ast, std::shared_ptr<BackendSymbolTable> symbol_table)
     : m_output_file { output_file }
     , m_ast { ast }
     , m_symbol_table { symbol_table }
@@ -434,7 +435,7 @@ std::string CodeEmitter::to_instruction_suffix(AssemblyType type)
 
 std::string CodeEmitter::get_function_name(const std::string& in_name)
 {
-    FunctionAttribute& fun_attr = std::get<FunctionAttribute>(m_symbol_table->symbol_at(in_name).attribute);
+    const auto& fun_attr = std::get<FunctionEntry>(m_symbol_table->symbol_at(in_name));
     std::string suffix = fun_attr.defined ? "" : "@PLT";
     return in_name + suffix;
 }

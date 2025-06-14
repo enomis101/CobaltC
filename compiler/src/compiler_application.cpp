@@ -1,6 +1,7 @@
 #include "compiler/compiler_application.h"
 #include "backend/assembly_generator.h"
 #include "backend/assembly_printer.h"
+#include "backend/backend_symbol_table.h"
 #include "backend/code_emitter.h"
 #include "common//data/source_manager.h"
 #include "common/data/token.h"
@@ -78,6 +79,7 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
     std::shared_ptr<TokenTable> token_table = std::make_shared<TokenTable>();
     std::shared_ptr<NameGenerator> name_generator = std::make_shared<NameGenerator>();
     std::shared_ptr<SymbolTable> symbol_table = std::make_shared<SymbolTable>();
+    std::shared_ptr<backend::BackendSymbolTable> backend_symbol_table = std::make_shared<backend::BackendSymbolTable>();
     std::shared_ptr<SourceManager> source_manager = std::make_shared<SourceManager>();
     std::shared_ptr<std::vector<Token>> tokens;
 
@@ -207,7 +209,7 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
 
     std::shared_ptr<backend::AssemblyAST> assembly_ast;
     try {
-        backend::AssemblyGenerator assembly_generator(tacky_ast, symbol_table);
+        backend::AssemblyGenerator assembly_generator(tacky_ast, symbol_table, backend_symbol_table);
         assembly_ast = assembly_generator.generate();
         if (logging::LogManager::logger()->is_enabled(LOG_CONTEXT, logging::LogLevel::DEBUG)) {
             std::string debug_str = "Parsed Program\n";
@@ -236,7 +238,7 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
     LOG_INFO(LOG_CONTEXT, std::format("Generating assembly file '{}'", assembly_file));
 
     try {
-        backend::CodeEmitter code_emitter(assembly_file, assembly_ast, symbol_table);
+        backend::CodeEmitter code_emitter(assembly_file, assembly_ast, backend_symbol_table);
         code_emitter.emit_code();
     } catch (const backend::CodeEmitterError& e) {
         throw CompilerError(std::format("CodeEmitter error: {}", e.what()));

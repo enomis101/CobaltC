@@ -1,5 +1,7 @@
 #pragma once
 #include <memory>
+#include <sstream>
+#include <string>
 #include <typeinfo>
 #include <variant>
 #include <vector>
@@ -13,6 +15,9 @@ public:
     // Virtual clone function - the key addition
     // Returns a unique_ptr to a deep copy of the object
     virtual std::unique_ptr<Type> clone() const = 0;
+
+    // Virtual to_string function for polymorphic printing
+    virtual std::string to_string() const = 0;
 
     virtual size_t alignment() const { return 0; }
 
@@ -35,6 +40,12 @@ public:
     {
         return std::make_unique<IntType>();
     }
+
+    std::string to_string() const override
+    {
+        return "int";
+    }
+
     size_t alignment() const override { return 4; }
 };
 
@@ -45,6 +56,11 @@ public:
     std::unique_ptr<Type> clone() const override
     {
         return std::make_unique<LongType>();
+    }
+
+    std::string to_string() const override
+    {
+        return "long";
     }
 
     size_t alignment() const override { return 8; }
@@ -77,6 +93,22 @@ public:
         return std::make_unique<FunctionType>(
             std::move(cloned_return_type),
             std::move(cloned_parameters));
+    }
+
+    std::string to_string() const override
+    {
+        std::stringstream ss;
+        ss << return_type->to_string() << "(";
+
+        for (size_t i = 0; i < parameters_type.size(); ++i) {
+            if (i > 0) {
+                ss << ", ";
+            }
+            ss << parameters_type[i]->to_string();
+        }
+
+        ss << ")";
+        return ss.str();
     }
 
     bool equals(const Type& other) const override

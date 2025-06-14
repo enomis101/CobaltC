@@ -1,12 +1,12 @@
 #pragma once
 #include "backend/assembly_ast.h"
 #include "backend/backend_symbol_table.h"
+#include "common/data/compile_options.h"
 #include "common/data/symbol_table.h"
 #include "tacky/tacky_ast.h"
 #include <memory>
 #include <stdexcept>
 #include <vector>
-#include "common/data/compile_options.h"
 
 namespace backend {
 
@@ -52,7 +52,7 @@ private:
     std::shared_ptr<CompileOptions> m_compile_options;
 
     void add_comment_instruction(const std::string& message, std::vector<std::unique_ptr<Instruction>>& instructions);
-    
+
     const std::vector<RegisterName> FUN_REGISTERS;
 
     void generate_backend_symbol_table();

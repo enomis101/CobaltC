@@ -4,6 +4,7 @@
 #include "backend/backend_symbol_table.h"
 #include "backend/code_emitter.h"
 #include "common//data/source_manager.h"
+#include "common/data/compile_options.h"
 #include "common/data/token.h"
 #include "common/data/token_table.h"
 #include "common/log/log.h"
@@ -21,7 +22,6 @@
 #include <fstream>
 #include <memory>
 #include <vector>
-#include "common/data/compile_options.h"
 
 CompilerApplication::CompilerApplication()
 {
@@ -85,9 +85,8 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
     std::shared_ptr<SourceManager> source_manager = std::make_shared<SourceManager>();
     std::shared_ptr<std::vector<Token>> tokens;
 
-    //HARD-CODING COMPILER OPTIONS
+    // HARD-CODING COMPILER OPTIONS
     compile_options->enable_assembly_comments = true;
-
 
     // Lexing stage
     try {

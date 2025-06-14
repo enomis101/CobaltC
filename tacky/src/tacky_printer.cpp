@@ -47,7 +47,8 @@ std::string PrinterVisitor::constant_value_to_string(const ConstantType& value)
         } else {
             return "[unknown_type]";
         }
-    }, value);
+    },
+        value);
 }
 
 std::string PrinterVisitor::escape_string(const std::string& str)

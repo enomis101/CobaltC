@@ -137,7 +137,7 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_copy_inst
     AssemblyType type = get_operand_type(*copy_instruction.source);
     std::unique_ptr<Operand> src = transform_operand(*copy_instruction.source);
     std::unique_ptr<Operand> dst = transform_operand(*copy_instruction.destination);
-    //no comment is needed
+    // no comment is needed
     instructions.emplace_back(std::make_unique<MovInstruction>(type, std::move(src), std::move(dst)));
     return instructions;
 }
@@ -145,7 +145,7 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_copy_inst
 std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_label_instruction(tacky::LabelInstruction& label_instruction)
 {
     std::vector<std::unique_ptr<Instruction>> instructions;
-    //no comment is needed
+    // no comment is needed
     instructions.emplace_back(std::make_unique<LabelInstruction>(label_instruction.identifier.name));
     return instructions;
 }
@@ -461,7 +461,7 @@ AssemblyType AssemblyGenerator::convert_type(const Type& type)
 
 void AssemblyGenerator::add_comment_instruction(const std::string& message, std::vector<std::unique_ptr<Instruction>>& instructions)
 {
-    if(m_compile_options->enable_assembly_comments){
+    if (m_compile_options->enable_assembly_comments) {
         instructions.emplace_back(std::make_unique<CommentInstruction>(message));
     }
 }

@@ -256,7 +256,6 @@ public:
     CommentInstruction(const std::string& message)
         : message(message)
     {
-
     }
 
     void accept(AssemblyVisitor& visitor) override

@@ -47,6 +47,19 @@ private:
     void visit(StaticVariable& node) override { }
     void visit(Program& node) override;
 
+    void fixup_mov_instruction(MovInstruction* mov_instruction,
+        std::vector<std::unique_ptr<Instruction>>& instructions);
+    void fixup_cmp_instruction(CmpInstruction* cmp_instruction,
+        std::vector<std::unique_ptr<Instruction>>& instructions);
+    void fixup_binary_instruction(BinaryInstruction* binary_instruction,
+        std::vector<std::unique_ptr<Instruction>>& instructions,
+        std::unique_ptr<Instruction>& instruction);
+    void fixup_idiv_instruction(IdivInstruction* div_instruction,
+        std::vector<std::unique_ptr<Instruction>>& instructions);
+    void fixup_movsx_instruction(MovsxInstruction* movsx_instruction,
+        std::vector<std::unique_ptr<Instruction>>& instructions,
+        std::unique_ptr<Instruction>& instruction);
+
     std::shared_ptr<AssemblyAST> m_ast;
     std::shared_ptr<BackendSymbolTable> m_symbol_table;
 

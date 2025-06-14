@@ -14,14 +14,15 @@
 
 using namespace backend;
 
-AssemblyGenerator::AssemblyGenerator(std::shared_ptr<tacky::TackyAST> ast, std::shared_ptr<SymbolTable> symbol_table, std::shared_ptr<BackendSymbolTable> backend_symbol_table)
+AssemblyGenerator::AssemblyGenerator(std::shared_ptr<tacky::TackyAST> ast, std::shared_ptr<SymbolTable> symbol_table, std::shared_ptr<BackendSymbolTable> backend_symbol_table, std::shared_ptr<CompileOptions> compile_options)
     : m_ast { ast }
     , m_symbol_table(symbol_table)
     , m_backend_symbol_table(backend_symbol_table)
+    , m_compile_options(compile_options)
     , FUN_REGISTERS { RegisterName::DI, RegisterName::SI, RegisterName::DX, RegisterName::CX, RegisterName::R8, RegisterName::R9 }
 {
     if (!m_ast || !dynamic_cast<tacky::Program*>(m_ast.get())) {
-        throw AssemblyGeneratorError("AssemblyGenerator: Invalid AST");
+        assert(false && "AssemblyGenerator: Invalid AST");
     }
 }
 
@@ -60,7 +61,8 @@ std::unique_ptr<Operand> AssemblyGenerator::transform_operand(tacky::Value& val)
     } else if (tacky::TemporaryVariable* var = dynamic_cast<tacky::TemporaryVariable*>(&val)) {
         return std::make_unique<PseudoRegister>(var->identifier.name);
     } else {
-        throw AssemblyGeneratorError("AssemblyGenerator: Invalid or Unsupported tacky::Value");
+        assert(false && "AssemblyGenerator: Invalid or Unsupported tacky::Value");
+        return nullptr;
     }
 }
 
@@ -115,58 +117,64 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_instructi
         return transform_truncate_instruction(*truncate_instruction);
     } else {
         assert(false && "AssemblyGenerator: Invalid or Unsupported tacky::Instruction");
+        return {};
     }
 }
 
 std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_return_instruction(tacky::ReturnInstruction& return_instruction)
 {
-    std::vector<std::unique_ptr<Instruction>> res;
+    std::vector<std::unique_ptr<Instruction>> instructions;
     AssemblyType value_type = get_operand_type(*return_instruction.value);
     std::unique_ptr<Operand> src = transform_operand(*return_instruction.value);
     std::unique_ptr<Operand> dst = std::make_unique<Register>(RegisterName::AX);
-    res.emplace_back(std::make_unique<MovInstruction>(value_type, std::move(src), std::move(dst)));
-    res.emplace_back(std::make_unique<ReturnInstruction>());
-    return res;
+    add_comment_instruction("return_instruction", instructions);
+    instructions.emplace_back(std::make_unique<MovInstruction>(value_type, std::move(src), std::move(dst)));
+    instructions.emplace_back(std::make_unique<ReturnInstruction>());
+    return instructions;
 }
 
 std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_copy_instruction(tacky::CopyInstruction& copy_instruction)
 {
-    std::vector<std::unique_ptr<Instruction>> res;
+    std::vector<std::unique_ptr<Instruction>> instructions;
     AssemblyType type = get_operand_type(*copy_instruction.source);
     std::unique_ptr<Operand> src = transform_operand(*copy_instruction.source);
     std::unique_ptr<Operand> dst = transform_operand(*copy_instruction.destination);
-    res.emplace_back(std::make_unique<MovInstruction>(type, std::move(src), std::move(dst)));
-    return res;
+    // no comment is needed
+    instructions.emplace_back(std::make_unique<MovInstruction>(type, std::move(src), std::move(dst)));
+    return instructions;
 }
 
 std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_label_instruction(tacky::LabelInstruction& label_instruction)
 {
-    std::vector<std::unique_ptr<Instruction>> res;
-    res.emplace_back(std::make_unique<LabelInstruction>(label_instruction.identifier.name));
-    return res;
+    std::vector<std::unique_ptr<Instruction>> instructions;
+    // no comment is needed
+    instructions.emplace_back(std::make_unique<LabelInstruction>(label_instruction.identifier.name));
+    return instructions;
 }
 
 std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_sign_extend_instruction(tacky::SignExtendInstruction& sign_extend_instruction)
 {
-    std::vector<std::unique_ptr<Instruction>> res;
+    std::vector<std::unique_ptr<Instruction>> instructions;
     std::unique_ptr<Operand> src = transform_operand(*sign_extend_instruction.source);
     std::unique_ptr<Operand> dst = transform_operand(*sign_extend_instruction.destination);
-    res.emplace_back(std::make_unique<MovsxInstruction>(std::move(src), std::move(dst)));
-    return res;
+    add_comment_instruction("sign_extend_instruction", instructions);
+    instructions.emplace_back(std::make_unique<MovsxInstruction>(std::move(src), std::move(dst)));
+    return instructions;
 }
 
 std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_truncate_instruction(tacky::TruncateInstruction& truncate_instruction)
 {
-    std::vector<std::unique_ptr<Instruction>> res;
+    std::vector<std::unique_ptr<Instruction>> instructions;
     std::unique_ptr<Operand> src = transform_operand(*truncate_instruction.source);
     std::unique_ptr<Operand> dst = transform_operand(*truncate_instruction.destination);
-    res.emplace_back(std::make_unique<MovInstruction>(AssemblyType::LONG_WORD, std::move(src), std::move(dst)));
-    return res;
+    add_comment_instruction("truncate_instruction", instructions);
+    instructions.emplace_back(std::make_unique<MovInstruction>(AssemblyType::LONG_WORD, std::move(src), std::move(dst)));
+    return instructions;
 }
 
 std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_unary_instruction(tacky::UnaryInstruction& unary_instruction)
 {
-    std::vector<std::unique_ptr<Instruction>> res;
+    std::vector<std::unique_ptr<Instruction>> instructions;
     AssemblyType source_type = get_operand_type(*unary_instruction.source);
     AssemblyType destination_type = get_operand_type(*unary_instruction.destination);
     if (unary_instruction.unary_operator == tacky::UnaryOperator::NOT) {
@@ -174,25 +182,26 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_unary_ins
         std::unique_ptr<Operand> src = transform_operand(*unary_instruction.source);
         std::unique_ptr<Operand> dst = transform_operand(*unary_instruction.destination);
         std::unique_ptr<Operand> dst_copy = dst->clone();
-
-        res.emplace_back(std::make_unique<CmpInstruction>(source_type, std::make_unique<ImmediateValue>(0), std::move(src)));
-        res.emplace_back(std::make_unique<MovInstruction>(destination_type, std::make_unique<ImmediateValue>(0), std::move(dst)));
-        res.emplace_back(std::make_unique<SetCCInstruction>(ConditionCode::E, std::move(dst_copy)));
+        add_comment_instruction("not unary_instruction", instructions);
+        instructions.emplace_back(std::make_unique<CmpInstruction>(source_type, std::make_unique<ImmediateValue>(0), std::move(src)));
+        instructions.emplace_back(std::make_unique<MovInstruction>(destination_type, std::make_unique<ImmediateValue>(0), std::move(dst)));
+        instructions.emplace_back(std::make_unique<SetCCInstruction>(ConditionCode::E, std::move(dst_copy)));
     } else {
         std::unique_ptr<Operand> src = transform_operand(*unary_instruction.source);
         std::unique_ptr<Operand> dst = transform_operand(*unary_instruction.destination);
         std::unique_ptr<Operand> dst_copy = dst->clone();
-        res.emplace_back(std::make_unique<MovInstruction>(source_type, std::move(src), std::move(dst)));
+        add_comment_instruction("unary_instruction", instructions);
+        instructions.emplace_back(std::make_unique<MovInstruction>(source_type, std::move(src), std::move(dst)));
 
         UnaryOperator op = transform_operator(unary_instruction.unary_operator);
-        res.emplace_back(std::make_unique<UnaryInstruction>(op, source_type, std::move(dst_copy)));
+        instructions.emplace_back(std::make_unique<UnaryInstruction>(op, source_type, std::move(dst_copy)));
     }
-    return res;
+    return instructions;
 }
 
 std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_binary_instruction(tacky::BinaryInstruction& binary_instruction)
 {
-    std::vector<std::unique_ptr<Instruction>> res;
+    std::vector<std::unique_ptr<Instruction>> instructions;
     AssemblyType source1_type = get_operand_type(*binary_instruction.source1);
     AssemblyType destination_type = get_operand_type(*binary_instruction.destination);
     if (is_relational_operator(binary_instruction.binary_operator)) {
@@ -200,62 +209,69 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_binary_in
         std::unique_ptr<Operand> src2 = transform_operand(*binary_instruction.source2);
         std::unique_ptr<Operand> dst = transform_operand(*binary_instruction.destination);
         std::unique_ptr<Operand> dst_copy = dst->clone();
-        res.emplace_back(std::make_unique<CmpInstruction>(source1_type, std::move(src2), std::move(src1)));
-        res.emplace_back(std::make_unique<MovInstruction>(destination_type, std::make_unique<ImmediateValue>(0), std::move(dst)));
-        res.emplace_back(std::make_unique<SetCCInstruction>(to_condition_code(binary_instruction.binary_operator), std::move(dst_copy)));
+        add_comment_instruction("relational binary_instruction", instructions);
+        instructions.emplace_back(std::make_unique<CmpInstruction>(source1_type, std::move(src2), std::move(src1)));
+        instructions.emplace_back(std::make_unique<MovInstruction>(destination_type, std::make_unique<ImmediateValue>(0), std::move(dst)));
+        instructions.emplace_back(std::make_unique<SetCCInstruction>(to_condition_code(binary_instruction.binary_operator), std::move(dst_copy)));
     } else if (binary_instruction.binary_operator == tacky::BinaryOperator::DIVIDE) {
         std::unique_ptr<Operand> src1 = transform_operand(*binary_instruction.source1);
         std::unique_ptr<Operand> src2 = transform_operand(*binary_instruction.source2);
         std::unique_ptr<Operand> dst = transform_operand(*binary_instruction.destination);
-        res.emplace_back(std::make_unique<MovInstruction>(source1_type, std::move(src1), std::make_unique<Register>(RegisterName::AX)));
-        res.emplace_back(std::make_unique<CdqInstruction>(source1_type));
-        res.emplace_back(std::make_unique<IdivInstruction>(source1_type, std::move(src2)));
-        res.emplace_back(std::make_unique<MovInstruction>(source1_type, std::make_unique<Register>(RegisterName::AX), std::move(dst)));
+        add_comment_instruction("divide binary_instruction", instructions);
+        instructions.emplace_back(std::make_unique<MovInstruction>(source1_type, std::move(src1), std::make_unique<Register>(RegisterName::AX)));
+        instructions.emplace_back(std::make_unique<CdqInstruction>(source1_type));
+        instructions.emplace_back(std::make_unique<IdivInstruction>(source1_type, std::move(src2)));
+        instructions.emplace_back(std::make_unique<MovInstruction>(source1_type, std::make_unique<Register>(RegisterName::AX), std::move(dst)));
     } else if (binary_instruction.binary_operator == tacky::BinaryOperator::REMAINDER) {
         std::unique_ptr<Operand> src1 = transform_operand(*binary_instruction.source1);
         std::unique_ptr<Operand> src2 = transform_operand(*binary_instruction.source2);
         std::unique_ptr<Operand> dst = transform_operand(*binary_instruction.destination);
-        res.emplace_back(std::make_unique<MovInstruction>(source1_type, std::move(src1), std::make_unique<Register>(RegisterName::AX)));
-        res.emplace_back(std::make_unique<CdqInstruction>(source1_type));
-        res.emplace_back(std::make_unique<IdivInstruction>(source1_type, std::move(src2)));
-        res.emplace_back(std::make_unique<MovInstruction>(source1_type, std::make_unique<Register>(RegisterName::DX), std::move(dst)));
+        add_comment_instruction("remainder binary_instruction", instructions);
+        instructions.emplace_back(std::make_unique<MovInstruction>(source1_type, std::move(src1), std::make_unique<Register>(RegisterName::AX)));
+        instructions.emplace_back(std::make_unique<CdqInstruction>(source1_type));
+        instructions.emplace_back(std::make_unique<IdivInstruction>(source1_type, std::move(src2)));
+        instructions.emplace_back(std::make_unique<MovInstruction>(source1_type, std::make_unique<Register>(RegisterName::DX), std::move(dst)));
     } else {
         std::unique_ptr<Operand> src1 = transform_operand(*binary_instruction.source1);
         std::unique_ptr<Operand> dst = transform_operand(*binary_instruction.destination);
         std::unique_ptr<Operand> dst_copy = dst->clone();
-        res.emplace_back(std::make_unique<MovInstruction>(source1_type, std::move(src1), std::move(dst)));
+        add_comment_instruction("arithmetic binary_instruction", instructions);
+        instructions.emplace_back(std::make_unique<MovInstruction>(source1_type, std::move(src1), std::move(dst)));
 
         BinaryOperator op = transform_operator(binary_instruction.binary_operator);
         std::unique_ptr<Operand> src2 = transform_operand(*binary_instruction.source2);
-        res.emplace_back(std::make_unique<BinaryInstruction>(op, source1_type, std::move(src2), std::move(dst_copy)));
+        instructions.emplace_back(std::make_unique<BinaryInstruction>(op, source1_type, std::move(src2), std::move(dst_copy)));
     }
-    return res;
+    return instructions;
 }
 
 std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_jump_instruction(tacky::Instruction& instruction)
 {
-    std::vector<std::unique_ptr<Instruction>> res;
+    std::vector<std::unique_ptr<Instruction>> instructions;
     if (tacky::JumpInstruction* jump_instruction = dynamic_cast<tacky::JumpInstruction*>(&instruction)) {
-        res.emplace_back(std::make_unique<JmpInstruction>(jump_instruction->identifier.name));
+        add_comment_instruction("jump_instruction", instructions);
+        instructions.emplace_back(std::make_unique<JmpInstruction>(jump_instruction->identifier.name));
     } else if (tacky::JumpIfZeroInstruction* jump_if_zero_instruction = dynamic_cast<tacky::JumpIfZeroInstruction*>(&instruction)) {
         AssemblyType condition_type = get_operand_type(*jump_if_zero_instruction->condition);
         std::unique_ptr<Operand> cond = transform_operand(*jump_if_zero_instruction->condition);
-        res.emplace_back(std::make_unique<CmpInstruction>(condition_type, std::make_unique<ImmediateValue>(0), std::move(cond)));
-        res.emplace_back(std::make_unique<JmpCCInstruction>(ConditionCode::E, jump_if_zero_instruction->identifier.name));
+        add_comment_instruction("jump_if_zero_instruction", instructions);
+        instructions.emplace_back(std::make_unique<CmpInstruction>(condition_type, std::make_unique<ImmediateValue>(0), std::move(cond)));
+        instructions.emplace_back(std::make_unique<JmpCCInstruction>(ConditionCode::E, jump_if_zero_instruction->identifier.name));
     } else if (tacky::JumpIfNotZeroInstruction* jump_if_not_zero_instruction = dynamic_cast<tacky::JumpIfNotZeroInstruction*>(&instruction)) {
         AssemblyType condition_type = get_operand_type(*jump_if_not_zero_instruction->condition);
         std::unique_ptr<Operand> cond = transform_operand(*jump_if_not_zero_instruction->condition);
-        res.emplace_back(std::make_unique<CmpInstruction>(condition_type, std::make_unique<ImmediateValue>(0), std::move(cond)));
-        res.emplace_back(std::make_unique<JmpCCInstruction>(ConditionCode::NE, jump_if_not_zero_instruction->identifier.name));
+        add_comment_instruction("jump_if_not_zero_instruction", instructions);
+        instructions.emplace_back(std::make_unique<CmpInstruction>(condition_type, std::make_unique<ImmediateValue>(0), std::move(cond)));
+        instructions.emplace_back(std::make_unique<JmpCCInstruction>(ConditionCode::NE, jump_if_not_zero_instruction->identifier.name));
     } else {
-        throw AssemblyGeneratorError("AssemblyGenerator::transform_jump_instruction Invalid or Unsupported tacky::Instruction");
+        assert(false && "AssemblyGenerator::transform_jump_instruction Invalid or Unsupported tacky::Instruction");
     }
-    return res;
+    return instructions;
 }
 
 std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_function_call_instruction(tacky::FunctionCallInstruction& function_call_instruction)
 {
-    std::vector<std::unique_ptr<Instruction>> res;
+    std::vector<std::unique_ptr<Instruction>> instructions;
 
     std::vector<std::unique_ptr<tacky::Value>>& tacky_arguments = function_call_instruction.arguments;
     const size_t max_reg_args_size = FUN_REGISTERS.size();
@@ -269,8 +285,13 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_function_
     }
 
     if (stack_padding != 0) {
-        res.emplace_back(std::make_unique<BinaryInstruction>(BinaryOperator::SUB, AssemblyType::QUAD_WORD,
+        add_comment_instruction("function_call stack padding", instructions);
+        instructions.emplace_back(std::make_unique<BinaryInstruction>(BinaryOperator::SUB, AssemblyType::QUAD_WORD,
             std::make_unique<ImmediateValue>(stack_padding), std::make_unique<Register>(RegisterName::SP)));
+    }
+
+    if (reg_args_size > 0) {
+        add_comment_instruction("function_call register arguments", instructions);
     }
 
     for (size_t i = 0; i < reg_args_size; ++i) {
@@ -278,7 +299,11 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_function_
         AssemblyType arg_type = get_operand_type(*tacky_arguments[i].get());
         std::unique_ptr<Operand> assembly_arg = transform_operand(*tacky_arguments[i].get());
 
-        res.emplace_back(std::make_unique<MovInstruction>(arg_type, std::move(assembly_arg), std::make_unique<Register>(reg_name)));
+        instructions.emplace_back(std::make_unique<MovInstruction>(arg_type, std::move(assembly_arg), std::make_unique<Register>(reg_name)));
+    }
+
+    if (stack_args_size > 0) {
+        add_comment_instruction("function_call stack arguments", instructions);
     }
 
     for (size_t i = 0; i < stack_args_size; ++i) {
@@ -286,29 +311,31 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_function_
         AssemblyType arg_type = get_operand_type(*tacky_arguments[j].get());
         std::unique_ptr<Operand> assembly_arg = transform_operand(*tacky_arguments[j].get());
         if (dynamic_cast<Register*>(assembly_arg.get()) || dynamic_cast<ImmediateValue*>(assembly_arg.get()) || arg_type == AssemblyType::QUAD_WORD) {
-            res.emplace_back(std::make_unique<PushInstruction>(std::move(assembly_arg)));
+            instructions.emplace_back(std::make_unique<PushInstruction>(std::move(assembly_arg)));
         } else {
             // Because we can run into trouble if we push a 4-byte operand from memory into the stack we first move it into AX
-            res.emplace_back(std::make_unique<MovInstruction>(AssemblyType::LONG_WORD, std::move(assembly_arg), std::make_unique<Register>(RegisterName::AX)));
-            res.emplace_back(std::make_unique<PushInstruction>(std::make_unique<Register>(RegisterName::AX)));
+            instructions.emplace_back(std::make_unique<MovInstruction>(AssemblyType::LONG_WORD, std::move(assembly_arg), std::make_unique<Register>(RegisterName::AX)));
+            instructions.emplace_back(std::make_unique<PushInstruction>(std::make_unique<Register>(RegisterName::AX)));
         }
     }
 
     // emit call instruciton
-    res.emplace_back(std::make_unique<CallInstruction>(function_call_instruction.name.name));
+    instructions.emplace_back(std::make_unique<CallInstruction>(function_call_instruction.name.name));
 
     // adjust stack pointer
     int bytes_to_remove = 8 * stack_args_size + stack_padding;
     if (bytes_to_remove != 0) {
-        res.emplace_back(std::make_unique<BinaryInstruction>(BinaryOperator::ADD, AssemblyType::QUAD_WORD,
+        add_comment_instruction("function_call adjust stack pointer", instructions);
+        instructions.emplace_back(std::make_unique<BinaryInstruction>(BinaryOperator::ADD, AssemblyType::QUAD_WORD,
             std::make_unique<ImmediateValue>(bytes_to_remove), std::make_unique<Register>(RegisterName::SP)));
     }
 
     // retrieve return value
     std::unique_ptr<Operand> dst = transform_operand(*function_call_instruction.destination);
     AssemblyType dst_type = get_operand_type(*function_call_instruction.destination);
-    res.emplace_back(std::make_unique<MovInstruction>(dst_type, std::make_unique<Register>(RegisterName::AX), std::move(dst)));
-    return res;
+    add_comment_instruction("function_call mov return value", instructions);
+    instructions.emplace_back(std::make_unique<MovInstruction>(dst_type, std::make_unique<Register>(RegisterName::AX), std::move(dst)));
+    return instructions;
 }
 
 std::unique_ptr<FunctionDefinition> AssemblyGenerator::transform_function(tacky::FunctionDefinition& function_definition)
@@ -329,12 +356,20 @@ std::unique_ptr<FunctionDefinition> AssemblyGenerator::transform_function(tacky:
     const size_t reg_args_size = std::min(max_reg_args_size, tacky_parameters.size());
 
     // move register parameters from registers to pseudo registers
+    if (reg_args_size > 0) {
+        add_comment_instruction("function_definition register parameters", instructions);
+    }
+
     for (size_t i = 0; i < reg_args_size; ++i) {
         AssemblyType arg_type = convert_type(*arg_types.at(i));
 
         std::unique_ptr<Register> reg = std::make_unique<Register>(FUN_REGISTERS[i]);
         std::unique_ptr<PseudoRegister> pseudo_reg = std::make_unique<PseudoRegister>(tacky_parameters[i]);
         instructions.emplace_back(std::make_unique<MovInstruction>(arg_type, std::move(reg), std::move(pseudo_reg)));
+    }
+
+    if ((tacky_parameters.size() - reg_args_size) > 0) {
+        add_comment_instruction("function_definition stack parameters", instructions);
     }
 
     int stack_offset = 16;
@@ -345,6 +380,7 @@ std::unique_ptr<FunctionDefinition> AssemblyGenerator::transform_function(tacky:
         instructions.emplace_back(std::make_unique<MovInstruction>(arg_type, std::move(stack_addr), std::move(pseudo_reg)));
     }
 
+    add_comment_instruction("function_definition body", instructions);
     for (auto& i : function_definition.body) {
         std::vector<std::unique_ptr<Instruction>> tmp_instrucitons = transform_instruction(*i);
         for (auto& tmp_i : tmp_instrucitons) {
@@ -361,7 +397,8 @@ std::unique_ptr<TopLevel> AssemblyGenerator::transform_top_level(tacky::TopLevel
     } else if (tacky::StaticVariable* static_var = dynamic_cast<tacky::StaticVariable*>(&top_level)) {
         return std::make_unique<StaticVariable>(static_var->name.name, static_var->global, static_var->type->alignment(), static_var->init);
     } else {
-        throw AssemblyGeneratorError("In transform_top_level: invalid top level class");
+        assert(false && "In transform_top_level: invalid top level class");
+        return nullptr;
     }
 }
 
@@ -407,7 +444,8 @@ ConditionCode AssemblyGenerator::to_condition_code(tacky::BinaryOperator op)
     case tacky::BinaryOperator::GREATER_OR_EQUAL:
         return ConditionCode::GE;
     default:
-        throw AssemblyGeneratorError("AssemblyGenerator::to_condition_code is not a relational operator");
+        assert(false && "AssemblyGenerator::to_condition_code is not a relational operator");
+        return ConditionCode::NONE;
     }
 }
 
@@ -425,6 +463,7 @@ AssemblyType AssemblyGenerator::get_operand_type(tacky::Value& operand)
         return convert_type(*symbol.type);
     }
     assert(false && "Invalid tacky::Value");
+    return AssemblyType::NONE;
 }
 
 AssemblyType AssemblyGenerator::convert_type(const Type& type)
@@ -435,4 +474,12 @@ AssemblyType AssemblyGenerator::convert_type(const Type& type)
         return AssemblyType::QUAD_WORD;
     }
     assert(false && "Unsupported type for Type to AssemblyType conversion");
+    return AssemblyType::NONE;
+}
+
+void AssemblyGenerator::add_comment_instruction(const std::string& message, std::vector<std::unique_ptr<Instruction>>& instructions)
+{
+    if (m_compile_options->enable_assembly_comments) {
+        instructions.emplace_back(std::make_unique<CommentInstruction>(message));
+    }
 }

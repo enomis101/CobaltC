@@ -37,6 +37,8 @@ private:
 
     std::string operator_to_string(UnaryOperator op);
     std::string operator_to_string(BinaryOperator op);
+    std::string constant_value_to_string(const ConstantType& value);
+    std::string escape_string(const std::string& str);
 
     int m_node_count;                                    // Counter for generating unique node IDs
     std::unordered_map<const TackyAST*, int> m_node_ids; // Maps TackyAST nodes to their unique IDs

@@ -79,6 +79,7 @@ enum class AssemblyType {
     WORD,      // 2-byte
     LONG_WORD, // 4-byte
     QUAD_WORD, // 8-byte
+    NONE,
 };
 
 // Abstract base class for all AssemblyAST nodes
@@ -125,7 +126,8 @@ enum class ConditionCode {
     G,
     GE,
     L,
-    LE
+    LE,
+    NONE
 };
 
 // Abstract class for all expressions

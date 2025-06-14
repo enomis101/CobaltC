@@ -4,9 +4,9 @@ main:
 	pushq	%rbp
 	movq	%rsp, %rbp
 	subq	$16,	%rsp
-	;start register parameters
-	;start stack parameters
-	;end function parameters
+	;function_definition register parameters
+	;function_definition stack parameters
+	;function_definition body
 	;unary_instruction
 	movl $12, -4(%rbp)
 	notl	-4(%rbp)

@@ -34,17 +34,57 @@ void PrinterVisitor::generate_dot_file(const std::string& filename, TackyAST& as
     }
 }
 
+std::string PrinterVisitor::constant_value_to_string(const ConstantType& value)
+{
+    return std::visit([](const auto& v) -> std::string {
+        using T = std::decay_t<decltype(v)>;
+        if constexpr (std::is_same_v<T, std::monostate>) {
+            return "[uninitialized]";
+        } else if constexpr (std::is_same_v<T, int>) {
+            return std::to_string(v);
+        } else if constexpr (std::is_same_v<T, long>) {
+            return std::to_string(v) + "L";
+        } else {
+            return "[unknown_type]";
+        }
+    }, value);
+}
+
+std::string PrinterVisitor::escape_string(const std::string& str)
+{
+    std::string result;
+    for (char c : str) {
+        switch (c) {
+        case '"':
+            result += "\\\"";
+            break;
+        case '\\':
+            result += "\\\\";
+            break;
+        case '\n':
+            result += "\\n";
+            break;
+        case '\t':
+            result += "\\t";
+            break;
+        default:
+            result += c;
+            break;
+        }
+    }
+    return result;
+}
+
 void PrinterVisitor::visit(Identifier& node)
 {
     int id = get_node_id(&node);
-    m_dot_content << "  node" << id << " [label=\"Identifier\\nname: " << node.name << "\"];\n";
+    m_dot_content << "  node" << id << " [label=\"Identifier\\nname: " << escape_string(node.name) << "\"];\n";
 }
 
 void PrinterVisitor::visit(Constant& node)
 {
     int id = get_node_id(&node);
-    // TODO: FIX
-    // m_dot_content << "  node" << id << " [label=\"Constant\\nvalue: " << node.value << "\"];\n";
+    m_dot_content << "  node" << id << " [label=\"Constant\\nvalue: " << escape_string(constant_value_to_string(node.value)) << "\"];\n";
 }
 
 void PrinterVisitor::visit(TemporaryVariable& node)
@@ -72,11 +112,38 @@ void PrinterVisitor::visit(ReturnInstruction& node)
 
 void PrinterVisitor::visit(SignExtendInstruction& node)
 {
-    // TODO: FIX
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"SignExtendInstruction\"];\n";
+
+    if (node.source) {
+        node.source->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.source.get())
+                      << " [label=\"source\"];\n";
+    }
+
+    if (node.destination) {
+        node.destination->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.destination.get())
+                      << " [label=\"destination\"];\n";
+    }
 }
+
 void PrinterVisitor::visit(TruncateInstruction& node)
 {
-    // TODO: FIX
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"TruncateInstruction\"];\n";
+
+    if (node.source) {
+        node.source->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.source.get())
+                      << " [label=\"source\"];\n";
+    }
+
+    if (node.destination) {
+        node.destination->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.destination.get())
+                      << " [label=\"destination\"];\n";
+    }
 }
 
 void PrinterVisitor::visit(UnaryInstruction& node)
@@ -205,9 +272,6 @@ void PrinterVisitor::visit(LabelInstruction& node)
                   << " [label=\"identifier\"];\n";
 }
 
-// In tacky/src/tacky_printer.cpp
-// Replace the FunctionDefinition visit method with:
-
 void PrinterVisitor::visit(FunctionDefinition& node)
 {
     int id = get_node_id(&node);
@@ -236,14 +300,12 @@ void PrinterVisitor::visit(FunctionDefinition& node)
     }
 }
 
-// Replace the StaticVariable visit method with:
 void PrinterVisitor::visit(StaticVariable& node)
 {
     int id = get_node_id(&node);
-    // TODO: FIX
-    //  m_dot_content << "  node" << id << " [label=\"StaticVariable\\nglobal: "
-    //                << (node.global ? "true" : "false")
-    //                << "\\ninit: " << node.init << "\"];\n";
+    m_dot_content << "  node" << id << " [label=\"StaticVariable\\nglobal: "
+                  << (node.global ? "true" : "false")
+                  << "\\ninit: " << escape_string(constant_value_to_string(node.init)) << "\"];\n";
 
     // Process the name identifier
     node.name.accept(*this);
@@ -251,7 +313,6 @@ void PrinterVisitor::visit(StaticVariable& node)
                   << " [label=\"name\"];\n";
 }
 
-// Replace the Program visit method with:
 void PrinterVisitor::visit(Program& node)
 {
     int id = get_node_id(&node);

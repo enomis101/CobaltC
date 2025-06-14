@@ -30,6 +30,7 @@ class CallInstruction;
 class StaticVariable;
 class DataOperand;
 class MovsxInstruction;
+class CommentInstruction;
 
 class AssemblyVisitor {
 public:
@@ -39,6 +40,7 @@ public:
     virtual void visit(PseudoRegister& node) = 0;
     virtual void visit(StackAddress& node) = 0;
     virtual void visit(DataOperand& node) = 0;
+    virtual void visit(CommentInstruction& node) = 0;
     virtual void visit(ReturnInstruction& node) = 0;
     virtual void visit(MovInstruction& node) = 0;
     virtual void visit(MovsxInstruction& node) = 0;
@@ -247,6 +249,27 @@ protected:
             reg->type = type;
         }
     }
+};
+
+class CommentInstruction : public Instruction {
+public:
+    CommentInstruction(const std::string& message)
+        : message(message)
+    {
+
+    }
+
+    void accept(AssemblyVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    std::unique_ptr<Instruction> clone() const override
+    {
+        return std::make_unique<CommentInstruction>(message);
+    }
+
+    std::string message;
 };
 
 class ReturnInstruction : public Instruction {

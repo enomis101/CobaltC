@@ -227,6 +227,11 @@ void CodeEmitter::visit(DataOperand& node)
     *m_file_stream << std::format("{}(%rip)", node.identifier.name);
 }
 
+void CodeEmitter::visit(CommentInstruction& node) 
+{
+    *m_file_stream << std::format("\t#{}\n", node.message);
+}
+
 void CodeEmitter::visit(ReturnInstruction& node)
 {
     *m_file_stream << "\tmovq\t%rbp, %rsp\n";

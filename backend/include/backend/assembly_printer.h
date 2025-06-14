@@ -41,9 +41,14 @@ private:
     // Get or assign a unique ID for each node
     int get_node_id(const AssemblyAST* node);
 
+    // Helper methods for string conversion
     std::string operator_to_string(UnaryOperator op);
     std::string operator_to_string(BinaryOperator op);
     std::string operator_to_string(ConditionCode cc);
+    std::string constant_value_to_string(const ConstantType& value);
+    std::string escape_string(const std::string& str);
+    std::string register_name_to_string(RegisterName name);
+    std::string assembly_type_to_string(AssemblyType type);
 
     int m_node_count;                                       // Counter for generating unique node IDs
     std::unordered_map<const AssemblyAST*, int> m_node_ids; // Maps AssemblyAST nodes to their unique IDs

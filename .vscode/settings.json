@@ -91,5 +91,16 @@
         "*.inc": "cpp",
         ".clang-tidy": "yaml",
         "*.in": "cpp"
+    },
+    "editor.tokenColorCustomizations": {
+        "textMateRules": [
+        {
+            "scope": "comment.line.number-sign.assembly",
+            "settings": {
+            "foreground": "#6A9955"
+            }
+        }
+        ]
     }
+
 }

@@ -229,7 +229,7 @@ void CodeEmitter::visit(DataOperand& node)
 
 void CodeEmitter::visit(CommentInstruction& node)
 {
-    *m_file_stream << std::format("\t#{}\n", node.message);
+    *m_file_stream << std::format("\t;{}\n", node.message);
 }
 
 void CodeEmitter::visit(ReturnInstruction& node)

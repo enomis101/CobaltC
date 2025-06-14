@@ -21,6 +21,7 @@
 #include <fstream>
 #include <memory>
 #include <vector>
+#include "common/data/compile_options.h"
 
 CompilerApplication::CompilerApplication()
 {
@@ -80,8 +81,13 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
     std::shared_ptr<NameGenerator> name_generator = std::make_shared<NameGenerator>();
     std::shared_ptr<SymbolTable> symbol_table = std::make_shared<SymbolTable>();
     std::shared_ptr<backend::BackendSymbolTable> backend_symbol_table = std::make_shared<backend::BackendSymbolTable>();
+    std::shared_ptr<CompileOptions> compile_options = std::make_shared<CompileOptions>();
     std::shared_ptr<SourceManager> source_manager = std::make_shared<SourceManager>();
     std::shared_ptr<std::vector<Token>> tokens;
+
+    //HARD-CODING COMPILER OPTIONS
+    compile_options->enable_assembly_comments = true;
+
 
     // Lexing stage
     try {
@@ -209,7 +215,7 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
 
     std::shared_ptr<backend::AssemblyAST> assembly_ast;
     try {
-        backend::AssemblyGenerator assembly_generator(tacky_ast, symbol_table, backend_symbol_table);
+        backend::AssemblyGenerator assembly_generator(tacky_ast, symbol_table, backend_symbol_table, compile_options);
         assembly_ast = assembly_generator.generate();
         if (logging::LogManager::logger()->is_enabled(LOG_CONTEXT, logging::LogLevel::DEBUG)) {
             std::string debug_str = "Parsed Program\n";

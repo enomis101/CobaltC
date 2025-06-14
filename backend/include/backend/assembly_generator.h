@@ -6,6 +6,7 @@
 #include <memory>
 #include <stdexcept>
 #include <vector>
+#include "common/data/compile_options.h"
 
 namespace backend {
 
@@ -20,7 +21,7 @@ public:
 // Generate an AssemblyAST from a TackyAST
 class AssemblyGenerator {
 public:
-    AssemblyGenerator(std::shared_ptr<tacky::TackyAST> ast, std::shared_ptr<SymbolTable> symbol_table, std::shared_ptr<BackendSymbolTable> backend_symbol_table);
+    AssemblyGenerator(std::shared_ptr<tacky::TackyAST> ast, std::shared_ptr<SymbolTable> symbol_table, std::shared_ptr<BackendSymbolTable> backend_symbol_table, std::shared_ptr<CompileOptions> compile_options);
     std::shared_ptr<AssemblyAST> generate();
 
 private:
@@ -48,6 +49,10 @@ private:
     std::shared_ptr<tacky::TackyAST> m_ast;
     std::shared_ptr<SymbolTable> m_symbol_table;
     std::shared_ptr<BackendSymbolTable> m_backend_symbol_table;
+    std::shared_ptr<CompileOptions> m_compile_options;
+
+    void add_comment_instruction(const std::string& message, std::vector<std::unique_ptr<Instruction>>& instructions);
+    
     const std::vector<RegisterName> FUN_REGISTERS;
 
     void generate_backend_symbol_table();

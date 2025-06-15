@@ -1,7 +1,7 @@
 #include "lexer/lexer.h"
 #include "common/data/source_location.h"
 #include "common/data/token_table.h"
-#include "common/log/log.h"
+#include "common/data/warning_manager.h"
 #include <cassert>
 #include <filesystem>
 #include <format>
@@ -14,19 +14,20 @@ namespace fs = std::filesystem;
 
 const std::string Lexer::file_extension = ".i";
 
-Lexer::Lexer(const std::string& file_path, std::shared_ptr<TokenTable> token_table, std::shared_ptr<SourceManager> source_manager)
-    : m_file_path { file_path }
-    , m_token_table { token_table }
-    , m_source_manager { source_manager }
+Lexer::Lexer(const LexerContext& lexer_context)
+    : m_file_path { lexer_context.file_path }
+    , m_token_table { lexer_context.token_table }
+    , m_source_manager { lexer_context.source_manager }
+    , m_warning_manager(lexer_context.warning_manager)
     , m_curr_location_tracker { m_file_path }
 {
     // Check if file exists
-    if (!fs::exists(file_path)) {
-        throw LexerError(std::format("File not found: '{}' - Please check the path and try again", file_path));
+    if (!fs::exists(m_file_path)) {
+        throw LexerError(std::format("File not found: '{}' - Please check the path and try again", m_file_path));
     }
 
     // Check file extension
-    std::string extension = fs::path(file_path).extension().string();
+    std::string extension = fs::path(m_file_path).extension().string();
     if (extension != file_extension) {
         throw LexerError(std::format(
             "Invalid file extension: Expected '{}' but got '{}' - Preprocessed files must have '{}' extension",
@@ -34,11 +35,11 @@ Lexer::Lexer(const std::string& file_path, std::shared_ptr<TokenTable> token_tab
     }
 
     // Open the file
-    std::ifstream file(file_path, std::ios::binary);
+    std::ifstream file(m_file_path, std::ios::binary);
     if (!file.is_open()) {
         throw LexerError(std::format(
             "Failed to open file '{}' - Check file permissions and if the file is in use",
-            file_path));
+            m_file_path));
     }
 
     // Read the file content to string
@@ -49,7 +50,7 @@ Lexer::Lexer(const std::string& file_path, std::shared_ptr<TokenTable> token_tab
     if (m_file_content.empty()) {
         throw LexerError(std::format(
             "Empty file: '{}' - Input file contains no content to tokenize",
-            file_path));
+            m_file_path));
     }
 }
 
@@ -144,7 +145,7 @@ std::pair<TokenType, Token::LiteralType> Lexer::convert_constant(const std::stri
                  * it's automatically promoted to long, even without an 'L' suffix
                  */
                 auto warn_line = m_source_manager->get_source_line(m_curr_location_tracker.current());
-                LOG_WARN(LOG_CONTEXT, std::format("Integer constant '{}' exceeds int range [{}, {}], automatically promoting to long:\n{}", lexeme, INT_MIN, INT_MAX, warn_line));
+                m_warning_manager->raise_warning(LexerWarningType::CAST, std::format("Integer constant '{}' exceeds int range [{}, {}], automatically promoting to long:\n{}", lexeme, INT_MIN, INT_MAX, warn_line));
                 new_type = TokenType::LONG_CONSTANT;
                 new_literal = long_val;
             }
@@ -169,7 +170,7 @@ std::pair<TokenType, Token::LiteralType> Lexer::convert_constant(const std::stri
                  * it's automatically promoted to unsigned long, even with just 'U' suffix
                  */
                 auto warn_line = m_source_manager->get_source_line(m_curr_location_tracker.current());
-                LOG_WARN(LOG_CONTEXT, std::format("Unsigned constant '{}' exceeds unsigned int range [0, {}], automatically promoting to unsigned long:\n{}", lexeme, UINT_MAX, warn_line));
+                m_warning_manager->raise_warning(LexerWarningType::CAST, std::format("Unsigned constant '{}' exceeds unsigned int range [0, {}], automatically promoting to unsigned long:\n{}", lexeme, UINT_MAX, warn_line));
                 new_type = TokenType::UNSIGNED_LONG_CONSTANT;
                 new_literal = ulong_val;
             }

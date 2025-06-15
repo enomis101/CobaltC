@@ -31,6 +31,8 @@ class StaticVariable;
 class DataOperand;
 class MovsxInstruction;
 class CommentInstruction;
+class MovZeroExtendInstruction;
+class DivInstruction;
 
 class AssemblyVisitor {
 public:
@@ -44,10 +46,12 @@ public:
     virtual void visit(ReturnInstruction& node) = 0;
     virtual void visit(MovInstruction& node) = 0;
     virtual void visit(MovsxInstruction& node) = 0;
+    virtual void visit(MovZeroExtendInstruction& node) = 0;
     virtual void visit(UnaryInstruction& node) = 0;
     virtual void visit(BinaryInstruction& node) = 0;
     virtual void visit(CmpInstruction& node) = 0;
     virtual void visit(IdivInstruction& node) = 0;
+    virtual void visit(DivInstruction& node) = 0;
     virtual void visit(CdqInstruction& node) = 0;
     virtual void visit(JmpInstruction& node) = 0;
     virtual void visit(JmpCCInstruction& node) = 0;
@@ -127,6 +131,10 @@ enum class ConditionCode {
     GE,
     L,
     LE,
+    A,
+    AE,
+    B,
+    BE,
     NONE
 };
 
@@ -338,6 +346,30 @@ public:
     std::unique_ptr<Operand> destination;
 };
 
+class MovZeroExtendInstruction : public Instruction {
+public:
+    MovZeroExtendInstruction(std::unique_ptr<Operand> src, std::unique_ptr<Operand> dst)
+        : source(std::move(src))
+        , destination(std::move(dst))
+    {
+    }
+
+    void accept(AssemblyVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    std::unique_ptr<Instruction> clone() const override
+    {
+        return std::make_unique<MovZeroExtendInstruction>(
+            source->clone(),
+            destination->clone());
+    }
+
+    std::unique_ptr<Operand> source;
+    std::unique_ptr<Operand> destination;
+};
+
 class UnaryInstruction : public Instruction {
 public:
     UnaryInstruction(UnaryOperator unary_operator, AssemblyType type, std::unique_ptr<Operand> operand)
@@ -444,6 +476,30 @@ public:
     std::unique_ptr<Instruction> clone() const override
     {
         return std::make_unique<IdivInstruction>(
+            type, operand->clone());
+    }
+
+    AssemblyType type;
+    std::unique_ptr<Operand> operand;
+};
+
+class DivInstruction : public Instruction {
+public:
+    DivInstruction(AssemblyType type, std::unique_ptr<Operand> op)
+        : type(type)
+        , operand(std::move(op))
+    {
+        check_and_replace_register_type(type, this->operand.get());
+    }
+
+    void accept(AssemblyVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    std::unique_ptr<Instruction> clone() const override
+    {
+        return std::make_unique<DivInstruction>(
             type, operand->clone());
     }
 

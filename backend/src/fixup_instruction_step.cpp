@@ -49,8 +49,13 @@ void FixUpInstructionsStep::visit(FunctionDefinition& node)
         } else if (IdivInstruction* div_instruction = dynamic_cast<IdivInstruction*>(instruction.get())) {
             fixup_idiv_instruction(div_instruction, node.instructions);
             node.instructions.emplace_back(std::move(instruction));
+        } else if (DivInstruction* div_instruction = dynamic_cast<DivInstruction*>(instruction.get())) {
+            fixup_div_instruction(div_instruction, node.instructions);
+            node.instructions.emplace_back(std::move(instruction));
         } else if (MovsxInstruction* movsx_instruction = dynamic_cast<MovsxInstruction*>(instruction.get())) {
             fixup_movsx_instruction(movsx_instruction, node.instructions, instruction);
+        } else if (MovZeroExtendInstruction* mov_zero_extend_instruction = dynamic_cast<MovZeroExtendInstruction*>(instruction.get())) {
+            fixup_mov_zero_extend_instruction(mov_zero_extend_instruction, node.instructions, instruction);
         } else if (PushInstruction* push_instruction = dynamic_cast<PushInstruction*>(instruction.get())) {
             fixup_push_instruction(push_instruction, node.instructions);
             node.instructions.emplace_back(std::move(instruction));
@@ -61,8 +66,7 @@ void FixUpInstructionsStep::visit(FunctionDefinition& node)
     }
 }
 
-void FixUpInstructionsStep::fixup_mov_instruction(MovInstruction* mov_instruction,
-    std::vector<std::unique_ptr<Instruction>>& instructions)
+void FixUpInstructionsStep::fixup_mov_instruction(MovInstruction* mov_instruction, std::vector<std::unique_ptr<Instruction>>& instructions)
 {
     auto original_type = mov_instruction->type;
 
@@ -102,8 +106,7 @@ void FixUpInstructionsStep::fixup_mov_instruction(MovInstruction* mov_instructio
     }
 }
 
-void FixUpInstructionsStep::fixup_cmp_instruction(CmpInstruction* cmp_instruction,
-    std::vector<std::unique_ptr<Instruction>>& instructions)
+void FixUpInstructionsStep::fixup_cmp_instruction(CmpInstruction* cmp_instruction, std::vector<std::unique_ptr<Instruction>>& instructions)
 {
     auto original_type = cmp_instruction->type;
 
@@ -144,9 +147,7 @@ void FixUpInstructionsStep::fixup_cmp_instruction(CmpInstruction* cmp_instructio
     }
 }
 
-void FixUpInstructionsStep::fixup_binary_instruction(BinaryInstruction* binary_instruction,
-    std::vector<std::unique_ptr<Instruction>>& instructions,
-    std::unique_ptr<Instruction>& instruction)
+void FixUpInstructionsStep::fixup_binary_instruction(BinaryInstruction* binary_instruction, std::vector<std::unique_ptr<Instruction>>& instructions, std::unique_ptr<Instruction>& instruction)
 {
     auto type = binary_instruction->type;
 
@@ -204,8 +205,7 @@ void FixUpInstructionsStep::fixup_binary_instruction(BinaryInstruction* binary_i
     }
 }
 
-void FixUpInstructionsStep::fixup_idiv_instruction(IdivInstruction* div_instruction,
-    std::vector<std::unique_ptr<Instruction>>& instructions)
+void FixUpInstructionsStep::fixup_idiv_instruction(IdivInstruction* div_instruction, std::vector<std::unique_ptr<Instruction>>& instructions)
 {
     // IDIV cannot operate directly on immediate values
     auto original_type = div_instruction->type;
@@ -218,8 +218,20 @@ void FixUpInstructionsStep::fixup_idiv_instruction(IdivInstruction* div_instruct
     }
 }
 
-void FixUpInstructionsStep::fixup_push_instruction(PushInstruction* push_instruction,
-    std::vector<std::unique_ptr<Instruction>>& instructions)
+void FixUpInstructionsStep::fixup_div_instruction(DivInstruction* div_instruction, std::vector<std::unique_ptr<Instruction>>& instructions)
+{
+    // like IDIV, DIV cannot operate directly on immediate values
+    auto original_type = div_instruction->type;
+    if (dynamic_cast<ImmediateValue*>(div_instruction->operand.get())) {
+        instructions.emplace_back(std::make_unique<MovInstruction>(
+            div_instruction->type,
+            std::move(div_instruction->operand),
+            std::make_unique<Register>(RegisterName::R10)));
+        div_instruction->operand = std::make_unique<Register>(RegisterName::R10, original_type);
+    }
+}
+
+void FixUpInstructionsStep::fixup_push_instruction(PushInstruction* push_instruction, std::vector<std::unique_ptr<Instruction>>& instructions)
 {
     constexpr auto type = AssemblyType::QUAD_WORD;
     // pushq cannot handle immediate values outside signed 32-bit range
@@ -237,9 +249,7 @@ void FixUpInstructionsStep::fixup_push_instruction(PushInstruction* push_instruc
     }
 }
 
-void FixUpInstructionsStep::fixup_movsx_instruction(MovsxInstruction* movsx_instruction,
-    std::vector<std::unique_ptr<Instruction>>& instructions,
-    std::unique_ptr<Instruction>& instruction)
+void FixUpInstructionsStep::fixup_movsx_instruction(MovsxInstruction* movsx_instruction, std::vector<std::unique_ptr<Instruction>>& instructions, std::unique_ptr<Instruction>& instruction)
 {
     // Handle immediate value as source (not allowed)
     if (dynamic_cast<ImmediateValue*>(movsx_instruction->source.get())) {
@@ -270,6 +280,18 @@ void FixUpInstructionsStep::fixup_movsx_instruction(MovsxInstruction* movsx_inst
     // Add the final move instruction if needed (must come after MOVSX)
     if (additional_instruction) {
         instructions.emplace_back(std::move(additional_instruction));
+    }
+}
+
+void FixUpInstructionsStep::fixup_mov_zero_extend_instruction(MovZeroExtendInstruction* mov_zero_extend_instruction, std::vector<std::unique_ptr<Instruction>>& instructions, std::unique_ptr<Instruction>& instruction)
+{
+    bool dest_is_memory = dynamic_cast<StackAddress*>(mov_zero_extend_instruction->destination.get()) || dynamic_cast<DataOperand*>(mov_zero_extend_instruction->destination.get());
+
+    if (dest_is_memory) {
+        instructions.emplace_back(std::make_unique<MovInstruction>(AssemblyType::LONG_WORD, std::move(mov_zero_extend_instruction->source), std::move(mov_zero_extend_instruction->destination)));
+    } else {
+        instructions.emplace_back(std::make_unique<MovInstruction>(AssemblyType::LONG_WORD, std::move(mov_zero_extend_instruction->source), std::make_unique<Register>(RegisterName::R11)));
+        instructions.emplace_back(std::make_unique<MovInstruction>(AssemblyType::QUAD_WORD, std::make_unique<Register>(RegisterName::R11), std::move(mov_zero_extend_instruction->destination)));
     }
 }
 

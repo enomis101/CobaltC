@@ -6,7 +6,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/compiler/cobaltc-compiler",
-            "args": ["/home/simone/compiler/writing-a-c-compiler-tests/tests/chapter_12/valid/explicit_casts/chained_casts.c"],
+            "args": ["/home/simone/compiler/writing-a-c-compiler-tests/tests/chapter_12/valid/unsigned_expressions/logical.c"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/",
             "environment": [],

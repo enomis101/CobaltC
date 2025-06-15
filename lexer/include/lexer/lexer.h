@@ -3,6 +3,7 @@
 #include "common/data/source_manager.h"
 #include "common/data/token.h"
 #include "common/data/token_table.h"
+#include "common/data/warning_manager.h"
 #include <memory>
 #include <stdexcept>
 #include <vector>
@@ -49,9 +50,16 @@ private:
     SourceLocation m_source_location;
 };
 
+struct LexerContext {
+    std::string file_path;
+    std::shared_ptr<TokenTable> token_table;
+    std::shared_ptr<SourceManager> source_manager;
+    std::shared_ptr<WarningManager> warning_manager;
+};
+
 class Lexer {
 public:
-    Lexer(const std::string& file_path, std::shared_ptr<TokenTable> token_table, std::shared_ptr<SourceManager> source_manager);
+    Lexer(const LexerContext& lexer_context);
     std::vector<Token> tokenize();
 
 private:
@@ -60,8 +68,8 @@ private:
     std::string m_file_path;
     std::shared_ptr<TokenTable> m_token_table;
     std::shared_ptr<SourceManager> m_source_manager;
+    std::shared_ptr<WarningManager> m_warning_manager;
     LocationTracker m_curr_location_tracker;
 
     std::pair<TokenType, Token::LiteralType> convert_constant(const std::string& lexeme, TokenType type, Token::LiteralType literal);
-    static constexpr const char* LOG_CONTEXT = "Lexer";
 };

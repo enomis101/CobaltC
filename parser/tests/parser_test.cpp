@@ -1,5 +1,6 @@
 #include "common//data/source_manager.h"
 #include "common/data/token_table.h"
+#include "common/data/warning_manager.h"
 #include "lexer/lexer.h"
 #include "parser/parser.h"
 #include "parser/parser_ast.h"
@@ -18,7 +19,7 @@ protected:
         // Create a shared TokenTable for all tests
         token_table = std::make_shared<TokenTable>();
         source_manager = std::make_shared<SourceManager>();
-
+        warning_manager = std::make_shared<WarningManager>();
         // Create a temporary directory for test files
         test_dir = fs::temp_directory_path() / "parser_tests";
         fs::create_directories(test_dir);
@@ -44,7 +45,8 @@ protected:
     std::shared_ptr<Program> parse_string(const std::string& content)
     {
         std::string filepath = create_test_file(content);
-        Lexer lexer(filepath, token_table, source_manager);
+        LexerContext lexer_context { filepath, token_table, source_manager, warning_manager };
+        Lexer lexer(lexer_context);
         auto tokens = std::make_shared<std::vector<Token>>(lexer.tokenize());
         source_manager->set_token_list(tokens);
         Parser parser(*tokens, source_manager);
@@ -55,7 +57,8 @@ protected:
     void expect_parse_error(const std::string& content)
     {
         std::string filepath = create_test_file(content);
-        Lexer lexer(filepath, token_table, source_manager);
+        LexerContext lexer_context { filepath, token_table, source_manager, warning_manager };
+        Lexer lexer(lexer_context);
         auto tokens = std::make_shared<std::vector<Token>>(lexer.tokenize());
         source_manager->set_token_list(tokens);
         Parser parser(*tokens, source_manager);
@@ -64,6 +67,7 @@ protected:
 
     std::shared_ptr<TokenTable> token_table;
     std::shared_ptr<SourceManager> source_manager;
+    std::shared_ptr<WarningManager> warning_manager;
     fs::path test_dir;
 };
 

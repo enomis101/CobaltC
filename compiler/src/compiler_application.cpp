@@ -7,6 +7,7 @@
 #include "common/data/compile_options.h"
 #include "common/data/token.h"
 #include "common/data/token_table.h"
+#include "common/data/warning_manager.h"
 #include "common/log/log.h"
 #include "lexer/lexer.h"
 #include "parser/parser.h"
@@ -83,6 +84,7 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
     std::shared_ptr<backend::BackendSymbolTable> backend_symbol_table = std::make_shared<backend::BackendSymbolTable>();
     std::shared_ptr<CompileOptions> compile_options = std::make_shared<CompileOptions>();
     std::shared_ptr<SourceManager> source_manager = std::make_shared<SourceManager>();
+    std::shared_ptr<WarningManager> warning_manager = std::make_shared<WarningManager>();
     std::shared_ptr<std::vector<Token>> tokens;
 
     // HARD-CODING COMPILER OPTIONS
@@ -91,8 +93,8 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
     // Lexing stage
     try {
         LOG_INFO(LOG_CONTEXT, std::format("Lexing file '{}'", preprocessed_output_file));
-
-        Lexer lexer(preprocessed_output_file, token_table, source_manager);
+        LexerContext lexer_context { preprocessed_output_file, token_table, source_manager, warning_manager };
+        Lexer lexer(lexer_context);
         tokens = std::make_shared<std::vector<Token>>(lexer.tokenize());
         source_manager->set_token_list(tokens);
         LOG_INFO(LOG_CONTEXT, std::format("Lexing successful: {} tokens generated", tokens->size()));

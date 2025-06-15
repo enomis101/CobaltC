@@ -309,8 +309,8 @@ void TypeCheckPass::typecheck_file_scope_variable_declaration(VariableDeclaratio
         }
     } else if (ConstantExpression* expr = dynamic_cast<ConstantExpression*>(variable_declaration.expression.value().get())) {
         // conversion is performed at compile time
-        std::function<void(const std::string&)> warning_callback = [&](const std::string& message){m_warning_manager->raise_warning(ParserWarningType::CAST, std::format("typecheck_file_scope_variable_declaration {} at:\n", message, m_source_manager->get_source_line(variable_declaration.source_location)));};
-   
+        std::function<void(const std::string&)> warning_callback = [&](const std::string& message) { m_warning_manager->raise_warning(ParserWarningType::CAST, std::format("typecheck_file_scope_variable_declaration {} at:\n", message, m_source_manager->get_source_line(variable_declaration.source_location))); };
+
         auto con_res = SymbolTable::convert_constant_type(expr->value, *variable_declaration.type);
         if (!con_res.has_value()) {
             throw TypeCheckPassError(std::format("Failed convert_constant_type at:\n{}",
@@ -359,11 +359,11 @@ void TypeCheckPass::typecheck_file_scope_variable_declaration(VariableDeclaratio
 void TypeCheckPass::typecheck_local_variable_declaration(VariableDeclaration& variable_declaration)
 {
     const std::string& variable_name = variable_declaration.identifier.name;
-    std::function<void(const std::string&)> warning_callback = [&](const std::string& message){
-        m_warning_manager->raise_warning(ParserWarningType::CAST, 
+    std::function<void(const std::string&)> warning_callback = [&](const std::string& message) {
+        m_warning_manager->raise_warning(ParserWarningType::CAST,
             std::format("typecheck_local_variable_declaration {} at:\n", message, m_source_manager->get_source_line(variable_declaration.source_location)));
-        };
-            
+    };
+
     if (variable_declaration.storage_class == StorageClass::EXTERN) {
         if (variable_declaration.expression.has_value()) {
             throw TypeCheckPassError(std::format("StaticInitializer on local extern variable declaration for {} at:\n{}", variable_name, m_source_manager->get_source_line(variable_declaration.source_location)));
@@ -415,15 +415,15 @@ std::unique_ptr<Type> TypeCheckPass::get_common_type(const Type& t1, const Type&
 {
     if (t1.equals(t2)) {
         return t1.clone();
-    } else if(t1.size() == t2.size()){
-        if(t1.is_signed()){
+    } else if (t1.size() == t2.size()) {
+        if (t1.is_signed()) {
             return t2.clone();
-        } else{
+        } else {
             return t1.clone();
         }
-    } else if(t1.size() > t2.size()){
+    } else if (t1.size() > t2.size()) {
         return t1.clone();
-    } else{
+    } else {
         return t2.clone();
     }
 }

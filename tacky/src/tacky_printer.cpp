@@ -147,6 +147,24 @@ void PrinterVisitor::visit(TruncateInstruction& node)
     }
 }
 
+void PrinterVisitor::visit(ZeroExtendInstruction& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"ZeroExtendInstruction\"];\n";
+
+    if (node.source) {
+        node.source->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.source.get())
+                      << " [label=\"source\"];\n";
+    }
+
+    if (node.destination) {
+        node.destination->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.destination.get())
+                      << " [label=\"destination\"];\n";
+    }
+}
+
 void PrinterVisitor::visit(UnaryInstruction& node)
 {
     int id = get_node_id(&node);

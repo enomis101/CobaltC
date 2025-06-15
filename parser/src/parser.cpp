@@ -7,7 +7,7 @@
 #include "parser/parser_ast.h"
 #include <format>
 #include <memory>
-#include <ranges>
+#include <unordered_set>
 #include <vector>
 
 using namespace parser;
@@ -367,7 +367,7 @@ std::unique_ptr<Type> Parser::parse_type_specifier_list(const std::vector<TokenT
         }
     }
 
-    if(type_specifiers_set.empty()){
+    if (type_specifiers_set.empty()) {
         throw ParserError(*this, std::format("Missing type at:\n{}", m_source_manager->get_source_line(last_token().source_location())));
     }
 

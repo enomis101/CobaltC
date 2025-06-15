@@ -6,7 +6,6 @@
 #include "parser/parser_ast.h"
 #include <memory>
 #include <stdexcept>
-#include <unordered_set>
 #include <vector>
 
 namespace parser {

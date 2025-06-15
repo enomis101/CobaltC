@@ -60,8 +60,6 @@ public:
         return m_symbols.contains(name);
     }
 
-    static std::optional<StaticInitialValueType> convert_constant_type(const ConstantType& value, const Type& target_type);
-
 private:
     std::unordered_map<std::string, BackendSymbolTableEntry> m_symbols;
 };

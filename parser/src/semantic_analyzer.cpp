@@ -9,7 +9,7 @@ void SemanticAnalyzer::analyze()
 {
     IdentifierResolutionPass var_pass(m_ast, m_name_generator);
     var_pass.run();
-    TypeCheckPass type_pass(m_ast, m_symbol_table, m_source_manager);
+    TypeCheckPass type_pass(m_ast, m_symbol_table, m_source_manager, m_warning_manager);
     type_pass.run();
     LoopLabelingPass loop_pass(m_ast, m_name_generator);
     loop_pass.run();

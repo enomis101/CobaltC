@@ -1,5 +1,6 @@
 #pragma once
 #include "common/data/type.h"
+#include <functional>
 #include <memory>
 #include <optional>
 #include <stdexcept>
@@ -84,7 +85,7 @@ public:
         return m_symbols.contains(name);
     }
 
-    static std::optional<StaticInitialValueType> convert_constant_type(const ConstantType& value, const Type& target_type);
+    static std::optional<StaticInitialValueType> convert_constant_type(const ConstantType& value, const Type& target_type, std::function<void(const std::string&)> warning_callback = nullptr);
 
 private:
     std::unordered_map<std::string, SymbolEntry> m_symbols;

@@ -22,5 +22,6 @@ public:
     virtual void raise_warning(ParserWarningType warning_type, const std::string& message);
 
 private:
-    static constexpr const char* LEXER_LOG_CONTEXT = "Lexer";
+    static constexpr const char* LEXER_LOG_CONTEXT = "lexer";
+    static constexpr const char* PARSER_LOG_CONTEXT = "parser";
 };

@@ -8,4 +8,5 @@ void WarningManager::raise_warning(LexerWarningType warning_type, const std::str
 
 void WarningManager::raise_warning(ParserWarningType warning_type, const std::string& message)
 {
+    LOG_WARN(PARSER_LOG_CONTEXT, message);
 }

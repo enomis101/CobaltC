@@ -155,7 +155,7 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
     try {
         LOG_INFO(LOG_CONTEXT, "Starting Semantic Analysis stage");
 
-        parser::SemanticAnalyzer semantic_analyzer(parser_ast, name_generator, symbol_table, source_manager);
+        parser::SemanticAnalyzer semantic_analyzer(parser_ast, name_generator, symbol_table, source_manager, warning_manager);
         semantic_analyzer.analyze();
 
         LOG_INFO(LOG_CONTEXT, "Semantic Analysis");

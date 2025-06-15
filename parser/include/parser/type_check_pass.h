@@ -2,6 +2,7 @@
 #include "common/data/source_manager.h"
 #include "common/data/symbol_table.h"
 #include "common/data/type.h"
+#include "common/data/warning_manager.h"
 #include "parser/parser_ast.h"
 #include "parser/semantic_analyzer_error.h"
 #include <memory>
@@ -19,10 +20,11 @@ public:
 
 class TypeCheckPass : public ParserVisitor {
 public:
-    TypeCheckPass(std::shared_ptr<ParserAST> ast, std::shared_ptr<SymbolTable> symbol_table, std::shared_ptr<SourceManager> source_manager)
+    TypeCheckPass(std::shared_ptr<ParserAST> ast, std::shared_ptr<SymbolTable> symbol_table, std::shared_ptr<SourceManager> source_manager, std::shared_ptr<WarningManager> warning_manager)
         : m_ast { ast }
         , m_symbol_table { symbol_table }
         , m_source_manager(source_manager)
+        , m_warning_manager { warning_manager }
     {
     }
 
@@ -67,7 +69,7 @@ private:
     std::shared_ptr<ParserAST> m_ast;
     std::shared_ptr<SymbolTable> m_symbol_table;
     std::shared_ptr<SourceManager> m_source_manager;
-
+    std::shared_ptr<WarningManager> m_warning_manager;
     FunctionDeclaration* m_current_function_declaration; // needed to map a return statement to a function delcaration
 };
 

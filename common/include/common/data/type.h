@@ -20,6 +20,8 @@ public:
     virtual std::string to_string() const = 0;
 
     virtual size_t alignment() const { return 0; }
+    virtual size_t size() const { return 0; }
+    virtual bool is_signed() const { return false; }
 
     // Default equality comparison
     virtual bool equals(const Type& other) const
@@ -46,7 +48,9 @@ public:
         return "int";
     }
 
+    bool is_signed() const override { return true; }
     size_t alignment() const override { return 4; }
+    size_t size() const override { return 4; }
 };
 
 class LongType : public Type {
@@ -63,7 +67,9 @@ public:
         return "long";
     }
 
+    bool is_signed() const override { return true; }
     size_t alignment() const override { return 8; }
+    size_t size() const override { return 8; }
 };
 
 class UnsignedIntType : public Type {
@@ -81,6 +87,7 @@ public:
     }
 
     size_t alignment() const override { return 4; }
+    size_t size() const override { return 4; }
 };
 
 class UnsignedLongType : public Type {
@@ -98,6 +105,7 @@ public:
     }
 
     size_t alignment() const override { return 8; }
+    size_t size() const override { return 8; }
 };
 
 class FunctionType : public Type {

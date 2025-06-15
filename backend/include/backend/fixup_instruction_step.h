@@ -33,10 +33,12 @@ private:
     void visit(ReturnInstruction& node) override { }
     void visit(MovInstruction& node) override { }
     void visit(MovsxInstruction& node) override { }
+    void visit(MovZeroExtendInstruction& node) override { }
     void visit(UnaryInstruction& node) override { }
     void visit(BinaryInstruction& node) override { }
     void visit(CmpInstruction& node) override { }
     void visit(IdivInstruction& node) override { }
+    void visit(DivInstruction& node) override { }
     void visit(CdqInstruction& node) override { }
     void visit(JmpInstruction& node) override { }
     void visit(JmpCCInstruction& node) override { }
@@ -48,20 +50,14 @@ private:
     void visit(StaticVariable& node) override { }
     void visit(Program& node) override;
 
-    void fixup_mov_instruction(MovInstruction* mov_instruction,
-        std::vector<std::unique_ptr<Instruction>>& instructions);
-    void fixup_cmp_instruction(CmpInstruction* cmp_instruction,
-        std::vector<std::unique_ptr<Instruction>>& instructions);
-    void fixup_binary_instruction(BinaryInstruction* binary_instruction,
-        std::vector<std::unique_ptr<Instruction>>& instructions,
-        std::unique_ptr<Instruction>& instruction);
-    void fixup_idiv_instruction(IdivInstruction* div_instruction,
-        std::vector<std::unique_ptr<Instruction>>& instructions);
-    void fixup_movsx_instruction(MovsxInstruction* movsx_instruction,
-        std::vector<std::unique_ptr<Instruction>>& instructions,
-        std::unique_ptr<Instruction>& instruction);
-    void fixup_push_instruction(PushInstruction* push_instruction,
-        std::vector<std::unique_ptr<Instruction>>& instructions);
+    void fixup_mov_instruction(MovInstruction* mov_instruction, std::vector<std::unique_ptr<Instruction>>& instructions);
+    void fixup_cmp_instruction(CmpInstruction* cmp_instruction, std::vector<std::unique_ptr<Instruction>>& instructions);
+    void fixup_binary_instruction(BinaryInstruction* binary_instruction, std::vector<std::unique_ptr<Instruction>>& instructions, std::unique_ptr<Instruction>& instruction);
+    void fixup_idiv_instruction(IdivInstruction* div_instruction, std::vector<std::unique_ptr<Instruction>>& instructions);
+    void fixup_div_instruction(DivInstruction* div_instruction, std::vector<std::unique_ptr<Instruction>>& instructions);
+    void fixup_movsx_instruction(MovsxInstruction* movsx_instruction, std::vector<std::unique_ptr<Instruction>>& instructions, std::unique_ptr<Instruction>& instruction);
+    void fixup_mov_zero_extend_instruction(MovZeroExtendInstruction* mov_zero_extend_instruction, std::vector<std::unique_ptr<Instruction>>& instructions, std::unique_ptr<Instruction>& instruction);
+    void fixup_push_instruction(PushInstruction* push_instruction, std::vector<std::unique_ptr<Instruction>>& instructions);
 
     std::shared_ptr<AssemblyAST> m_ast;
     std::shared_ptr<BackendSymbolTable> m_symbol_table;

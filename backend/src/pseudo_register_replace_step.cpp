@@ -32,6 +32,12 @@ void PseudoRegisterReplaceStep::visit(MovsxInstruction& node)
     check_and_replace(node.destination);
 }
 
+void PseudoRegisterReplaceStep::visit(MovZeroExtendInstruction& node)
+{
+    check_and_replace(node.source);
+    check_and_replace(node.destination);
+}
+
 void PseudoRegisterReplaceStep::visit(UnaryInstruction& node)
 {
     check_and_replace(node.operand);
@@ -55,6 +61,11 @@ void PseudoRegisterReplaceStep::visit(SetCCInstruction& node)
 }
 
 void PseudoRegisterReplaceStep::visit(IdivInstruction& node)
+{
+    check_and_replace(node.operand);
+}
+
+void PseudoRegisterReplaceStep::visit(DivInstruction& node)
 {
     check_and_replace(node.operand);
 }

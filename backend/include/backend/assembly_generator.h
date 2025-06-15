@@ -34,6 +34,7 @@ private:
     std::vector<std::unique_ptr<Instruction>> transform_label_instruction(tacky::LabelInstruction& label_instruction);
     std::vector<std::unique_ptr<Instruction>> transform_sign_extend_instruction(tacky::SignExtendInstruction& sign_extend_instruction);
     std::vector<std::unique_ptr<Instruction>> transform_truncate_instruction(tacky::TruncateInstruction& truncate_instruction);
+    std::vector<std::unique_ptr<Instruction>> transform_zero_extend_instruction(tacky::ZeroExtendInstruction& zero_extend_instruction);
     std::vector<std::unique_ptr<Instruction>> transform_unary_instruction(tacky::UnaryInstruction& unary_instruction);
     std::vector<std::unique_ptr<Instruction>> transform_binary_instruction(tacky::BinaryInstruction& binary_instruction);
     std::vector<std::unique_ptr<Instruction>> transform_jump_instruction(tacky::Instruction& jump_instruction);
@@ -43,9 +44,9 @@ private:
     std::unique_ptr<Program> transform_program(tacky::Program& program);
 
     bool is_relational_operator(tacky::BinaryOperator op);
-    ConditionCode to_condition_code(tacky::BinaryOperator op);
-    AssemblyType get_operand_type(tacky::Value& operand);
-    AssemblyType convert_type(const Type& type);
+    ConditionCode to_condition_code(tacky::BinaryOperator op, bool is_signed);
+    std::pair<AssemblyType, bool> get_operand_type(tacky::Value& operand);
+    std::pair<AssemblyType, bool> convert_type(const Type& type);
     std::shared_ptr<tacky::TackyAST> m_ast;
     std::shared_ptr<SymbolTable> m_symbol_table;
     std::shared_ptr<BackendSymbolTable> m_backend_symbol_table;

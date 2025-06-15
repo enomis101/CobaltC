@@ -113,6 +113,7 @@ std::vector<Token> Lexer::tokenize()
         TokenType type = result.value();
         Token::LiteralType literal;
 
+        // TODO: do this only if constant
         auto [new_type, new_literal] = convert_constant(lexeme, type, literal);
 
         Token t(new_type, lexeme, new_literal, m_curr_location_tracker.current());

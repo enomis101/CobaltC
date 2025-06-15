@@ -51,10 +51,16 @@ void CodeEmitter::emit_code()
 void CodeEmitter::visit(ImmediateValue& node)
 {
     if (std::holds_alternative<int>(node.value)) {
-        int imm_value = std::get<int>(node.value);
+        auto imm_value = std::get<int>(node.value);
         *m_file_stream << std::format("${}", imm_value);
     } else if (std::holds_alternative<long>(node.value)) {
-        long imm_value = std::get<long>(node.value);
+        auto imm_value = std::get<long>(node.value);
+        *m_file_stream << std::format("${}", imm_value);
+    } else if (std::holds_alternative<unsigned int>(node.value)) {
+        auto imm_value = std::get<unsigned int>(node.value);
+        *m_file_stream << std::format("${}", imm_value);
+    } else if (std::holds_alternative<unsigned long>(node.value)) {
+        auto imm_value = std::get<unsigned long>(node.value);
         *m_file_stream << std::format("${}", imm_value);
     } else {
         assert(false);
@@ -229,7 +235,7 @@ void CodeEmitter::visit(DataOperand& node)
 
 void CodeEmitter::visit(CommentInstruction& node)
 {
-    *m_file_stream << std::format("\t;{}\n", node.message);
+    *m_file_stream << std::format("\t#{}\n", node.message);
 }
 
 void CodeEmitter::visit(ReturnInstruction& node)
@@ -283,6 +289,13 @@ void CodeEmitter::visit(CmpInstruction& node)
 }
 
 void CodeEmitter::visit(IdivInstruction& node)
+{
+    *m_file_stream << std::format("\tidiv{}\t", to_instruction_suffix(node.type));
+    node.operand->accept(*this);
+    *m_file_stream << "\n";
+}
+
+void CodeEmitter::visit(DivInstruction& node)
 {
     *m_file_stream << std::format("\tidiv{}\t", to_instruction_suffix(node.type));
     node.operand->accept(*this);
@@ -419,8 +432,16 @@ std::string CodeEmitter::to_instruction_suffix(ConditionCode cc)
         return "l";
     case ConditionCode::LE:
         return "le";
+    case ConditionCode::A:
+        return "a";
+    case ConditionCode::AE:
+        return "ae";
+    case ConditionCode::B:
+        return "b";
+    case ConditionCode::BE:
+        return "be";
     default:
-        return "unknown";
+        assert(false);
     }
 }
 

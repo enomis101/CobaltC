@@ -43,13 +43,15 @@ private:
     std::unique_ptr<Expression> parse_expression(int min_prec = 0);
     std::unique_ptr<Expression> parse_factor();
     std::unique_ptr<Type> parse_type();
-    std::unique_ptr<Type> parse_type_specifier_list(const std::unordered_set<TokenType>& type_specifiers);
+    std::unique_ptr<Type> parse_type_specifier_list(const std::vector<TokenType>& type_specifiers);
     void parse_parameter_list(std::vector<Identifier>& out_param_names, std::vector<std::unique_ptr<Type>>& out_param_types);
 
     std::pair<std::unique_ptr<Type>, StorageClass> parse_type_and_storage_class();
 
     UnaryOperator parse_unary_operator();
     BinaryOperator parse_binary_operator();
+    std::unique_ptr<Expression> parse_contant();
+
     StorageClass to_storage_class(TokenType tt);
 
     // Utility methods to check token types
@@ -57,6 +59,7 @@ private:
     bool is_unary_operator(TokenType type);
     bool is_specificer(TokenType type);
     bool is_type_specificer(TokenType type);
+    bool is_constant(TokenType type);
     // std::unique_ptr<Identifier> parse_identifier();
 
     const Token& expect(TokenType expected);

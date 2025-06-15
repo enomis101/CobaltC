@@ -66,6 +66,40 @@ public:
     size_t alignment() const override { return 8; }
 };
 
+class UnsignedIntType : public Type {
+public:
+    // Clone implementation for IntType
+    // Creates a new IntType object and returns it wrapped in unique_ptr
+    std::unique_ptr<Type> clone() const override
+    {
+        return std::make_unique<UnsignedIntType>();
+    }
+
+    std::string to_string() const override
+    {
+        return "unsigned int";
+    }
+
+    size_t alignment() const override { return 4; }
+};
+
+class UnsignedLongType : public Type {
+public:
+    // Clone implementation for LongType
+    // Creates a new LongType object and returns it wrapped in unique_ptr
+    std::unique_ptr<Type> clone() const override
+    {
+        return std::make_unique<UnsignedLongType>();
+    }
+
+    std::string to_string() const override
+    {
+        return "unsigned long";
+    }
+
+    size_t alignment() const override { return 8; }
+};
+
 class FunctionType : public Type {
 public:
     FunctionType(std::unique_ptr<Type> return_type, std::vector<std::unique_ptr<Type>> parameters_type)

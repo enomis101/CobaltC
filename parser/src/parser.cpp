@@ -7,6 +7,7 @@
 #include "parser/parser_ast.h"
 #include <format>
 #include <memory>
+#include <ranges>
 #include <vector>
 
 using namespace parser;
@@ -288,12 +289,8 @@ std::unique_ptr<Expression> Parser::parse_factor()
 
     const Token& next_token = peek();
     SourceLocationIndex loc = m_source_manager->get_index(next_token);
-    if (next_token.type() == TokenType::CONSTANT) {
-        take_token();
-        return std::make_unique<ConstantExpression>(loc, next_token.literal<int>());
-    } else if (next_token.type() == TokenType::LONG_CONSTANT) {
-        take_token();
-        return std::make_unique<ConstantExpression>(loc, next_token.literal<long>());
+    if (is_constant(next_token.type())) {
+        return parse_contant();
     } else if (is_unary_operator(next_token.type())) {
         UnaryOperator op = parse_unary_operator();
         std::unique_ptr<Expression> expr = parse_factor();
@@ -341,34 +338,52 @@ std::unique_ptr<Type> Parser::parse_type()
 {
     ENTER_CONTEXT("parse_type");
 
-    std::unordered_set<TokenType> specifiers;
+    std::vector<TokenType> specifiers;
     const Token* curr_token = &peek();
     while (is_type_specificer(curr_token->type())) {
         take_token();
         TokenType tt = curr_token->type();
-        auto res = specifiers.insert(tt);
-        if (!res.second) {
-            throw ParserError(*this, std::format("Multiple Type Specifier {} at\n{}", Token::type_to_string(tt), m_source_manager->get_source_line(curr_token->source_location())));
-        }
+        specifiers.push_back(tt);
 
         curr_token = &peek();
     }
     return parse_type_specifier_list(specifiers);
 }
 
-std::unique_ptr<Type> Parser::parse_type_specifier_list(const std::unordered_set<TokenType>& type_specifiers)
+std::unique_ptr<Type> Parser::parse_type_specifier_list(const std::vector<TokenType>& type_specifiers)
 {
     ENTER_CONTEXT("parse_type_specifier_list");
 
-    std::unique_ptr<Type> type;
-    if (type_specifiers.contains(TokenType::INT_KW) && type_specifiers.size() == 1) {
-        type = std::make_unique<IntType>();
-    } else if (type_specifiers.contains(TokenType::LONG_KW) && (type_specifiers.size() == 1 || (type_specifiers.size() == 2 && type_specifiers.contains(TokenType::INT_KW)))) {
-        type = std::make_unique<LongType>();
-    } else {
-        throw ParserError(*this, std::format("Invalid Type Specifier at:\n{}", m_source_manager->get_source_line(last_token().source_location())));
+    std::unordered_set<TokenType> type_specifiers_set;
+    for (auto tt : type_specifiers) {
+        auto res = type_specifiers_set.insert(tt);
+
+        if (!res.second) {
+            throw ParserError(*this, std::format("Multiple Type Specifier {} at\n{}", Token::type_to_string(tt), m_source_manager->get_source_line(last_token().source_location())));
+        }
+
+        if (!is_type_specificer(tt)) {
+            throw ParserError(*this, std::format("Type specifier contains invalid type:\n{}", m_source_manager->get_source_line(last_token().source_location())));
+        }
     }
-    return type;
+
+    if(type_specifiers_set.empty()){
+        throw ParserError(*this, std::format("Missing type at:\n{}", m_source_manager->get_source_line(last_token().source_location())));
+    }
+
+    if (type_specifiers_set.contains(TokenType::SIGNED_KW) && type_specifiers_set.contains(TokenType::UNSIGNED_KW)) {
+        throw ParserError(*this, std::format("Type specifier with both signed and unsigned at:\n{}", m_source_manager->get_source_line(last_token().source_location())));
+    }
+
+    if (type_specifiers_set.contains(TokenType::LONG_KW) && type_specifiers_set.contains(TokenType::UNSIGNED_KW)) {
+        return std::make_unique<UnsignedLongType>();
+    } else if (type_specifiers_set.contains(TokenType::UNSIGNED_KW)) {
+        return std::make_unique<UnsignedIntType>();
+    } else if (type_specifiers_set.contains(TokenType::LONG_KW)) {
+        return std::make_unique<LongType>();
+    } else {
+        return std::make_unique<IntType>();
+    }
 }
 
 UnaryOperator Parser::parse_unary_operator()
@@ -420,6 +435,28 @@ BinaryOperator Parser::parse_binary_operator()
 
     take_token();
     return it->second;
+}
+
+std::unique_ptr<Expression> Parser::parse_contant()
+{
+    ENTER_CONTEXT("parse_contant");
+    const Token& next_token = peek();
+    SourceLocationIndex loc = m_source_manager->get_index(next_token);
+    if (!is_constant(next_token.type())) {
+        throw ParserError(*this, std::format("parse_contant called with non constant token {}", Token::type_to_string(next_token.type())));
+    }
+    take_token();
+    if (next_token.type() == TokenType::CONSTANT) {
+        return std::make_unique<ConstantExpression>(loc, next_token.literal<int>());
+    } else if (next_token.type() == TokenType::UNSIGNED_CONSTANT) {
+        return std::make_unique<ConstantExpression>(loc, next_token.literal<unsigned int>());
+    } else if (next_token.type() == TokenType::LONG_CONSTANT) {
+        return std::make_unique<ConstantExpression>(loc, next_token.literal<long>());
+    } else if (next_token.type() == TokenType::UNSIGNED_LONG_CONSTANT) {
+        return std::make_unique<ConstantExpression>(loc, next_token.literal<unsigned long>());
+    } else {
+        throw ParserError(*this, std::format("Unsupported constant type {}", Token::type_to_string(next_token.type())));
+    }
 }
 
 const Token& Parser::expect(TokenType expected)
@@ -536,6 +573,8 @@ bool Parser::is_specificer(TokenType type)
     switch (type) {
     case TokenType::INT_KW:
     case TokenType::LONG_KW:
+    case TokenType::SIGNED_KW:
+    case TokenType::UNSIGNED_KW:
     case TokenType::STATIC_KW:
     case TokenType::EXTERN_KW:
         return true;
@@ -549,6 +588,21 @@ bool Parser::is_type_specificer(TokenType type)
     switch (type) {
     case TokenType::INT_KW:
     case TokenType::LONG_KW:
+    case TokenType::SIGNED_KW:
+    case TokenType::UNSIGNED_KW:
+        return true;
+    default:
+        return false;
+    }
+}
+
+bool Parser::is_constant(TokenType type)
+{
+    switch (type) {
+    case TokenType::CONSTANT:
+    case TokenType::UNSIGNED_CONSTANT:
+    case TokenType::LONG_CONSTANT:
+    case TokenType::UNSIGNED_LONG_CONSTANT:
         return true;
     default:
         return false;
@@ -571,17 +625,14 @@ std::pair<std::unique_ptr<Type>, StorageClass> Parser::parse_type_and_storage_cl
 {
     ENTER_CONTEXT("parse_type_and_storage_class");
 
-    std::unordered_set<TokenType> type_specifiers;
+    std::vector<TokenType> type_specifiers;
     std::vector<TokenType> storage_classes;
     const Token* next_token = &peek();
     while (next_token->type() != TokenType::IDENTIFIER) {
 
         TokenType token_type = next_token->type();
         if (is_type_specificer(token_type)) {
-            auto res = type_specifiers.insert(token_type);
-            if (!res.second) {
-                throw ParserError(*this, std::format("Multiple Type Specifier {} at\n{}", Token::type_to_string(token_type), m_source_manager->get_source_line(next_token->source_location())));
-            }
+            type_specifiers.push_back(token_type);
         } else if (token_type == TokenType::STATIC_KW || token_type == TokenType::EXTERN_KW) {
             storage_classes.push_back(token_type);
         } else {

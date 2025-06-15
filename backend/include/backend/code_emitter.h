@@ -32,12 +32,12 @@ private:
     void visit(ReturnInstruction& node) override;
     void visit(MovInstruction& node) override;
     void visit(MovsxInstruction& node) override;
-    void visit(MovZeroExtendInstruction& node) override { } // TODO
+    void visit(MovZeroExtendInstruction& node) override { throw CodeEmitterError("Found MovZeroExtendInstruction node during CodeEmission"); }
     void visit(UnaryInstruction& node) override;
     void visit(BinaryInstruction& node) override;
     void visit(CmpInstruction& node) override;
     void visit(IdivInstruction& node) override;
-    void visit(DivInstruction& node) override { } // TODO
+    void visit(DivInstruction& node) override;
     void visit(CdqInstruction& node) override;
     void visit(JmpInstruction& node) override;
     void visit(JmpCCInstruction& node) override;

@@ -31,6 +31,7 @@ class FunctionCallInstruction;
 class StaticVariable;
 class SignExtendInstruction;
 class TruncateInstruction;
+class ZeroExtendInstruction;
 
 // TackyVisitor interface
 class TackyVisitor {
@@ -41,6 +42,7 @@ public:
     virtual void visit(ReturnInstruction& node) = 0;
     virtual void visit(SignExtendInstruction& node) = 0;
     virtual void visit(TruncateInstruction& node) = 0;
+    virtual void visit(ZeroExtendInstruction& node) = 0;
     virtual void visit(UnaryInstruction& node) = 0;
     virtual void visit(BinaryInstruction& node) = 0;
     virtual void visit(CopyInstruction& node) = 0;
@@ -165,6 +167,23 @@ public:
 class TruncateInstruction : public Instruction {
 public:
     TruncateInstruction(std::unique_ptr<Value> src, std::unique_ptr<Value> dst)
+        : source(std::move(src))
+        , destination(std::move(dst))
+    {
+    }
+
+    void accept(TackyVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    std::unique_ptr<Value> source;
+    std::unique_ptr<Value> destination;
+};
+
+class ZeroExtendInstruction : public Instruction {
+public:
+    ZeroExtendInstruction(std::unique_ptr<Value> src, std::unique_ptr<Value> dst)
         : source(std::move(src))
         , destination(std::move(dst))
     {

@@ -19,6 +19,7 @@ public:
     void visit(ReturnInstruction& node) override;
     void visit(SignExtendInstruction& node) override;
     void visit(TruncateInstruction& node) override;
+    void visit(ZeroExtendInstruction& node) override;
     void visit(UnaryInstruction& node) override;
     void visit(BinaryInstruction& node) override;
     void visit(CopyInstruction& node) override;

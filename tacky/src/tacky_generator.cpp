@@ -7,6 +7,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <utility>
 
 using namespace tacky;
 
@@ -277,19 +278,26 @@ std::unique_ptr<Value> TackyGenerator::transform_cast_expression(parser::CastExp
 {
     std::unique_ptr<Value> expr_res = transform_expression(*cast_expression.expression, instructions);
 
+    const auto& target_type = cast_expression.target_type;
+    const auto& expr_type = cast_expression.expression->type;
+
     // If the types are the same, no cast is needed
-    if (cast_expression.expression->type->equals(*cast_expression.target_type)) {
+    if (expr_type->equals(*target_type)) {
         return expr_res;
     }
 
-    std::string tmp_name = make_and_add_temporary(*cast_expression.target_type, LocalAttribute {});
+    std::string tmp_name = make_and_add_temporary(*target_type, LocalAttribute {});
     std::unique_ptr<Value> dst = std::make_unique<TemporaryVariable>(tmp_name);
     std::unique_ptr<Value> dst_copy = std::make_unique<TemporaryVariable>(tmp_name);
 
-    if (cast_expression.target_type->equals(LongType {})) {
+    if (target_type->size() == expr_type->size()) {
+        instructions.emplace_back(std::make_unique<CopyInstruction>(std::move(expr_res), std::move(dst)));
+    } else if (target_type->size() < expr_type->size()) {
+        instructions.emplace_back(std::make_unique<TruncateInstruction>(std::move(expr_res), std::move(dst)));
+    } else if (expr_type->is_signed()) {
         instructions.emplace_back(std::make_unique<SignExtendInstruction>(std::move(expr_res), std::move(dst)));
     } else {
-        instructions.emplace_back(std::make_unique<TruncateInstruction>(std::move(expr_res), std::move(dst)));
+        instructions.emplace_back(std::make_unique<ZeroExtendInstruction>(std::move(expr_res), std::move(dst)));
     }
     return dst_copy;
 }

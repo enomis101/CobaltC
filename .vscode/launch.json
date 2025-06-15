@@ -32,10 +32,10 @@
             "miDebuggerPath": "/usr/bin/gdb"
         },
         {
-            "name": "Debug Parser Test",
+            "name": "Debug Lexer Test",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/parser/tests/parser_test",
+            "program": "${workspaceFolder}/build/lexer/tests/lexer_test",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/build/",
@@ -52,15 +52,20 @@
                     "description": "Set disassembly flavor to Intel",
                     "text": "-gdb-set disassembly-flavor intel",
                     "ignoreFailures": true
+                },
+                {
+                    "description": "Break on all exceptions",
+                    "text": "catch throw",
+                    "ignoreFailures": true
                 }
             ],
             "miDebuggerPath": "/usr/bin/gdb"
         },
         {
-            "name": "Debug Lexer Test",
+            "name": "Debug Parser Test",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/lexer/tests/lexer_test",
+            "program": "${workspaceFolder}/build/parser/tests/parser_test",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/build/",

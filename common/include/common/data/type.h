@@ -6,7 +6,7 @@
 #include <variant>
 #include <vector>
 
-using ConstantType = std::variant<std::monostate, int, long>;
+using ConstantType = std::variant<std::monostate, int, long, unsigned int, unsigned long>;
 
 class Type {
 public:

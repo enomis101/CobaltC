@@ -87,7 +87,9 @@ TokenTable::TokenTable()
         { "continue", TokenType::CONTINUE_KW },
         { "static", TokenType::STATIC_KW },
         { "extern", TokenType::EXTERN_KW },
-        { "long", TokenType::LONG_KW }
+        { "long", TokenType::LONG_KW },
+        { "signed", TokenType::SIGNED_KW },
+        { "unsigned", TokenType::UNSIGNED_KW }
     };
 
     // Initialize single-character tokens for optimization
@@ -126,6 +128,8 @@ TokenTable::TokenTable()
     m_patterns = {
         { boost::regex("^[0-9]+\\b"), TokenType::CONSTANT },
         { boost::regex("^[0-9]+[lL]\\b"), TokenType::LONG_CONSTANT },
+        { boost::regex("^[0-9]+[uU]\\b"), TokenType::UNSIGNED_CONSTANT },
+        { boost::regex("^[0-9]+([uU][lL]|[lL][uU])\\b"), TokenType::UNSIGNED_LONG_CONSTANT },
         { boost::regex("^[a-zA-Z_]\\w*\\b"), TokenType::IDENTIFIER }
     };
 }

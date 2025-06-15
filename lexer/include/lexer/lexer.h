@@ -60,4 +60,8 @@ private:
     std::string m_file_path;
     std::shared_ptr<TokenTable> m_token_table;
     std::shared_ptr<SourceManager> m_source_manager;
+    LocationTracker m_curr_location_tracker;
+
+    std::pair<TokenType, Token::LiteralType> convert_constant(const std::string& lexeme, TokenType type, Token::LiteralType literal);
+    static constexpr const char* LOG_CONTEXT = "Lexer";
 };

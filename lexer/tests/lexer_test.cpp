@@ -76,6 +76,141 @@ TEST_F(LexerTest, SimpleIntegerConstant)
     EXPECT_EQ(tokens[0].source_location().line_number, 1);
 }
 
+TEST_F(LexerTest, LongConstants)
+{
+    std::string filepath = create_test_file("123L 456l");
+
+    Lexer lexer(filepath, token_table, source_manager);
+    auto tokens = lexer.tokenize();
+
+    ASSERT_EQ(tokens.size(), 2);
+    
+    // Test uppercase L suffix
+    EXPECT_EQ(tokens[0].type(), TokenType::LONG_CONSTANT);
+    EXPECT_EQ(tokens[0].lexeme(), "123L");
+    EXPECT_EQ(tokens[0].literal<long>(), 123L);
+    EXPECT_EQ(tokens[0].source_location().line_number, 1);
+    
+    // Test lowercase l suffix
+    EXPECT_EQ(tokens[1].type(), TokenType::LONG_CONSTANT);
+    EXPECT_EQ(tokens[1].lexeme(), "456l");
+    EXPECT_EQ(tokens[1].literal<long>(), 456L);
+    EXPECT_EQ(tokens[1].source_location().line_number, 1);
+}
+
+TEST_F(LexerTest, UnsignedConstants)
+{
+    std::string filepath = create_test_file("123U 456u");
+
+    Lexer lexer(filepath, token_table, source_manager);
+    auto tokens = lexer.tokenize();
+
+    ASSERT_EQ(tokens.size(), 2);
+    
+    // Test uppercase U suffix
+    EXPECT_EQ(tokens[0].type(), TokenType::UNSIGNED_CONSTANT);
+    EXPECT_EQ(tokens[0].lexeme(), "123U");
+    EXPECT_EQ(tokens[0].literal<unsigned int>(), 123U);
+    EXPECT_EQ(tokens[0].source_location().line_number, 1);
+    
+    // Test lowercase u suffix
+    EXPECT_EQ(tokens[1].type(), TokenType::UNSIGNED_CONSTANT);
+    EXPECT_EQ(tokens[1].lexeme(), "456u");
+    EXPECT_EQ(tokens[1].literal<unsigned int>(), 456U);
+    EXPECT_EQ(tokens[1].source_location().line_number, 1);
+}
+
+TEST_F(LexerTest, UnsignedLongConstants)
+{
+    std::string filepath = create_test_file("123UL 456ul 789LU 101lu");
+
+    Lexer lexer(filepath, token_table, source_manager);
+    auto tokens = lexer.tokenize();
+
+    ASSERT_EQ(tokens.size(), 4);
+    
+    // Test UL suffix
+    EXPECT_EQ(tokens[0].type(), TokenType::UNSIGNED_LONG_CONSTANT);
+    EXPECT_EQ(tokens[0].lexeme(), "123UL");
+    EXPECT_EQ(tokens[0].literal<unsigned long>(), 123UL);
+    EXPECT_EQ(tokens[0].source_location().line_number, 1);
+    
+    // Test ul suffix
+    EXPECT_EQ(tokens[1].type(), TokenType::UNSIGNED_LONG_CONSTANT);
+    EXPECT_EQ(tokens[1].lexeme(), "456ul");
+    EXPECT_EQ(tokens[1].literal<unsigned long>(), 456UL);
+    EXPECT_EQ(tokens[1].source_location().line_number, 1);
+    
+    // Test LU suffix
+    EXPECT_EQ(tokens[2].type(), TokenType::UNSIGNED_LONG_CONSTANT);
+    EXPECT_EQ(tokens[2].lexeme(), "789LU");
+    EXPECT_EQ(tokens[2].literal<unsigned long>(), 789UL);
+    EXPECT_EQ(tokens[2].source_location().line_number, 1);
+    
+    // Test lu suffix
+    EXPECT_EQ(tokens[3].type(), TokenType::UNSIGNED_LONG_CONSTANT);
+    EXPECT_EQ(tokens[3].lexeme(), "101lu");
+    EXPECT_EQ(tokens[3].literal<unsigned long>(), 101UL);
+    EXPECT_EQ(tokens[3].source_location().line_number, 1);
+}
+
+TEST_F(LexerTest, MixedConstantTypes)
+{
+    std::string filepath = create_test_file("int x = 42; long y = 100L; unsigned int z = 50U; unsigned long w = 200UL;");
+
+    Lexer lexer(filepath, token_table, source_manager);
+    auto tokens = lexer.tokenize();
+
+    // Find and verify the constant tokens
+    std::vector<std::pair<TokenType, std::string>> expected_constants = {
+        {TokenType::CONSTANT, "42"},
+        {TokenType::LONG_CONSTANT, "100L"},
+        {TokenType::UNSIGNED_CONSTANT, "50U"},
+        {TokenType::UNSIGNED_LONG_CONSTANT, "200UL"}
+    };
+
+    int constant_index = 0;
+    for (const auto& token : tokens) {
+        if (token.type() == TokenType::CONSTANT || 
+            token.type() == TokenType::LONG_CONSTANT ||
+            token.type() == TokenType::UNSIGNED_CONSTANT ||
+            token.type() == TokenType::UNSIGNED_LONG_CONSTANT) {
+            
+            ASSERT_LT(constant_index, expected_constants.size());
+            EXPECT_EQ(token.type(), expected_constants[constant_index].first);
+            EXPECT_EQ(token.lexeme(), expected_constants[constant_index].second);
+            constant_index++;
+        }
+    }
+    
+    EXPECT_EQ(constant_index, expected_constants.size());
+}
+
+TEST_F(LexerTest, LargeConstants)
+{
+    std::string filepath = create_test_file("2147483647L 4294967295U 18446744073709551615UL");
+
+    Lexer lexer(filepath, token_table, source_manager);
+    auto tokens = lexer.tokenize();
+
+    ASSERT_EQ(tokens.size(), 3);
+    
+    // Test large long constant
+    EXPECT_EQ(tokens[0].type(), TokenType::LONG_CONSTANT);
+    EXPECT_EQ(tokens[0].lexeme(), "2147483647L");
+    EXPECT_EQ(tokens[0].literal<long>(), 2147483647L);
+    
+    // Test large unsigned constant
+    EXPECT_EQ(tokens[1].type(), TokenType::UNSIGNED_CONSTANT);
+    EXPECT_EQ(tokens[1].lexeme(), "4294967295U");
+    EXPECT_EQ(tokens[1].literal<unsigned int>(), 4294967295U);
+    
+    // Test large unsigned long constant
+    EXPECT_EQ(tokens[2].type(), TokenType::UNSIGNED_LONG_CONSTANT);
+    EXPECT_EQ(tokens[2].lexeme(), "18446744073709551615UL");
+    EXPECT_EQ(tokens[2].literal<unsigned long>(), 18446744073709551615UL);
+}
+
 TEST_F(LexerTest, SimpleIdentifier)
 {
     std::string filepath = create_test_file("myVariable");
@@ -236,10 +371,28 @@ TEST_F(LexerTest, ComplexExpression)
     EXPECT_EQ(tokens[0].type(), TokenType::IF_KW);
     EXPECT_EQ(tokens[1].type(), TokenType::OPEN_PAREN);
     EXPECT_EQ(tokens[2].type(), TokenType::IDENTIFIER);
+    EXPECT_EQ(tokens[2].lexeme(), "x");
     EXPECT_EQ(tokens[3].type(), TokenType::GREATER_THAN_EQUAL);
     EXPECT_EQ(tokens[4].type(), TokenType::CONSTANT);
+    EXPECT_EQ(tokens[4].literal<int>(), 10);
     EXPECT_EQ(tokens[5].type(), TokenType::LOGICAL_AND);
-    // ... and so on
+    EXPECT_EQ(tokens[6].type(), TokenType::IDENTIFIER);
+    EXPECT_EQ(tokens[6].lexeme(), "y");
+    EXPECT_EQ(tokens[7].type(), TokenType::NOT_EQUAL);
+    EXPECT_EQ(tokens[8].type(), TokenType::CONSTANT);
+    EXPECT_EQ(tokens[8].literal<int>(), 0);
+    EXPECT_EQ(tokens[9].type(), TokenType::CLOSE_PAREN);
+    EXPECT_EQ(tokens[10].type(), TokenType::OPEN_BRACE);
+    EXPECT_EQ(tokens[11].type(), TokenType::IDENTIFIER);
+    EXPECT_EQ(tokens[11].lexeme(), "z");
+    EXPECT_EQ(tokens[12].type(), TokenType::ASSIGNMENT);
+    EXPECT_EQ(tokens[13].type(), TokenType::IDENTIFIER);
+    EXPECT_EQ(tokens[13].lexeme(), "x");
+    EXPECT_EQ(tokens[14].type(), TokenType::FORWARD_SLASH);
+    EXPECT_EQ(tokens[15].type(), TokenType::IDENTIFIER);
+    EXPECT_EQ(tokens[15].lexeme(), "y");
+    EXPECT_EQ(tokens[16].type(), TokenType::SEMICOLON);
+    EXPECT_EQ(tokens[17].type(), TokenType::CLOSE_BRACE);
 }
 
 TEST_F(LexerTest, StaticExternKeywords)

@@ -297,7 +297,7 @@ void CodeEmitter::visit(IdivInstruction& node)
 
 void CodeEmitter::visit(DivInstruction& node)
 {
-    *m_file_stream << std::format("\tidiv{}\t", to_instruction_suffix(node.type));
+    *m_file_stream << std::format("\tdiv{}\t", to_instruction_suffix(node.type));
     node.operand->accept(*this);
     *m_file_stream << "\n";
 }
@@ -375,6 +375,20 @@ void CodeEmitter::visit(StaticVariable& node)
         *m_file_stream << std::format("\t{} {}\n", (init_to_zero ? ".zero" : ".long"), (init_to_zero ? 4 : init_value));
     } else if (std::holds_alternative<long>(node.static_init)) {
         long init_value = std::get<long>(node.static_init);
+        bool init_to_zero = init_value == 0;
+        *m_file_stream << std::format("\t{}\n", (init_to_zero ? ".bss" : ".data"));
+        *m_file_stream << std::format("\t.balign {}\n", node.alignment);
+        *m_file_stream << std::format("{}:\n", node.name.name);
+        *m_file_stream << std::format("\t{} {}\n", (init_to_zero ? ".zero" : ".quad"), (init_to_zero ? 8 : init_value));
+    } else if (std::holds_alternative<unsigned int>(node.static_init)) {
+        auto init_value = std::get<unsigned int>(node.static_init);
+        bool init_to_zero = init_value == 0;
+        *m_file_stream << std::format("\t{}\n", (init_to_zero ? ".bss" : ".data"));
+        *m_file_stream << std::format("\t.balign {}\n", node.alignment);
+        *m_file_stream << std::format("{}:\n", node.name.name);
+        *m_file_stream << std::format("\t{} {}\n", (init_to_zero ? ".zero" : ".long"), (init_to_zero ? 4 : init_value));
+    } else if (std::holds_alternative<unsigned long>(node.static_init)) {
+        auto init_value = std::get<unsigned long>(node.static_init);
         bool init_to_zero = init_value == 0;
         *m_file_stream << std::format("\t{}\n", (init_to_zero ? ".bss" : ".data"));
         *m_file_stream << std::format("\t.balign {}\n", node.alignment);

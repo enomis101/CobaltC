@@ -113,6 +113,10 @@ std::string Token::to_string() const
         ss << ", literal=" << std::get<int>(m_literal);
     } else if (std::holds_alternative<long>(m_literal)) {
         ss << ", literal=" << std::get<long>(m_literal);
+    } else if (std::holds_alternative<unsigned int>(m_literal)) {
+        ss << ", literal=" << std::get<unsigned int>(m_literal);
+    } else if (std::holds_alternative<unsigned long>(m_literal)) {
+        ss << ", literal=" << std::get<unsigned long>(m_literal);
     }
 
     ss << "}";

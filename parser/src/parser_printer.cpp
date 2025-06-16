@@ -71,6 +71,10 @@ std::string PrinterVisitor::constant_value_to_string(const ConstantType& value)
             return std::to_string(v);
         } else if constexpr (std::is_same_v<T, long>) {
             return std::to_string(v) + "L";
+        } else if constexpr (std::is_same_v<T, unsigned int>) {
+            return std::to_string(v) + "U";
+        } else if constexpr (std::is_same_v<T, unsigned long>) {
+            return std::to_string(v) + "UL";
         } else {
             return "[unknown_type]";
         }

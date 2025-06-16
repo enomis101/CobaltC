@@ -91,10 +91,26 @@ void FixUpInstructionsStep::fixup_mov_instruction(MovInstruction* mov_instructio
             }
         } else if (std::holds_alternative<unsigned long>(imm_val->value)) {
             auto value = std::get<unsigned long>(imm_val->value);
-            if (value > UINT32_MAX) {
+            if (value > static_cast<unsigned long>(INT32_MAX)) {
                 if (original_type == AssemblyType::LONG_WORD) {
                     // For movl instructions, truncate 8-byte immediates to avoid assembler warnings
                     // The assembler would do this automatically, but we do it explicitly
+                    imm_val->value = static_cast<int>(value);
+                } else if (dynamic_cast<StackAddress*>(mov_instruction->destination.get()) || dynamic_cast<DataOperand*>(mov_instruction->destination.get())) {
+                    // movq can move large immediates to registers but not directly to memory
+                    // Use two-step process: immediate -> R10 -> memory
+                    instructions.emplace_back(std::make_unique<MovInstruction>(
+                        original_type,
+                        std::move(mov_instruction->source),
+                        std::make_unique<Register>(RegisterName::R10)));
+                    mov_instruction->source = std::make_unique<Register>(RegisterName::R10, original_type);
+                }
+            }
+        } else if (std::holds_alternative<unsigned int>(imm_val->value)) {
+            auto value = std::get<unsigned int>(imm_val->value);
+            if (value > static_cast<unsigned int>(INT32_MAX)) {
+                if (original_type == AssemblyType::LONG_WORD) {
+                    // For movl instructions, truncate to avoid assembler warnings
                     imm_val->value = static_cast<int>(value);
                 } else if (dynamic_cast<StackAddress*>(mov_instruction->destination.get()) || dynamic_cast<DataOperand*>(mov_instruction->destination.get())) {
                     // movq can move large immediates to registers but not directly to memory
@@ -141,7 +157,16 @@ void FixUpInstructionsStep::fixup_cmp_instruction(CmpInstruction* cmp_instructio
             }
         } else if (std::holds_alternative<unsigned long>(imm_val->value)) {
             auto value = std::get<unsigned long>(imm_val->value);
-            if (value > UINT32_MAX) {
+            if (value > static_cast<unsigned long>(INT32_MAX)) {
+                instructions.emplace_back(std::make_unique<MovInstruction>(
+                    original_type,
+                    std::move(cmp_instruction->source),
+                    std::make_unique<Register>(RegisterName::R10)));
+                cmp_instruction->source = std::make_unique<Register>(RegisterName::R10, original_type);
+            }
+        } else if (std::holds_alternative<unsigned int>(imm_val->value)) {
+            auto value = std::get<unsigned int>(imm_val->value);
+            if (value > static_cast<unsigned int>(INT32_MAX)) {
                 instructions.emplace_back(std::make_unique<MovInstruction>(
                     original_type,
                     std::move(cmp_instruction->source),
@@ -191,7 +216,16 @@ void FixUpInstructionsStep::fixup_binary_instruction(BinaryInstruction* binary_i
             }
         } else if (std::holds_alternative<unsigned long>(imm_val->value)) {
             auto value = std::get<unsigned long>(imm_val->value);
-            if (value > UINT32_MAX) {
+            if (value > static_cast<unsigned long>(INT32_MAX)) {
+                instructions.emplace_back(std::make_unique<MovInstruction>(
+                    type,
+                    std::move(binary_instruction->source),
+                    std::make_unique<Register>(RegisterName::R10)));
+                binary_instruction->source = std::make_unique<Register>(RegisterName::R10, type);
+            }
+        } else if (std::holds_alternative<unsigned int>(imm_val->value)) {
+            auto value = std::get<unsigned int>(imm_val->value);
+            if (value > static_cast<unsigned int>(INT32_MAX)) {
                 instructions.emplace_back(std::make_unique<MovInstruction>(
                     type,
                     std::move(binary_instruction->source),
@@ -280,6 +314,24 @@ void FixUpInstructionsStep::fixup_push_instruction(PushInstruction* push_instruc
                     std::make_unique<Register>(RegisterName::R10)));
                 push_instruction->destination = std::make_unique<Register>(RegisterName::R10, type);
             }
+        } else if (std::holds_alternative<unsigned long>(imm_val->value)) {
+            auto value = std::get<unsigned long>(imm_val->value);
+            if (value > static_cast<unsigned long>(INT32_MAX)) {
+                instructions.emplace_back(std::make_unique<MovInstruction>(
+                    type,
+                    std::move(push_instruction->destination),
+                    std::make_unique<Register>(RegisterName::R10)));
+                push_instruction->destination = std::make_unique<Register>(RegisterName::R10, type);
+            }
+        } else if (std::holds_alternative<unsigned int>(imm_val->value)) {
+            auto value = std::get<unsigned int>(imm_val->value);
+            if (value > static_cast<unsigned int>(INT32_MAX)) {
+                instructions.emplace_back(std::make_unique<MovInstruction>(
+                    type,
+                    std::move(push_instruction->destination),
+                    std::make_unique<Register>(RegisterName::R10)));
+                push_instruction->destination = std::make_unique<Register>(RegisterName::R10, type);
+            }
         }
     }
 }
@@ -323,10 +375,6 @@ void FixUpInstructionsStep::fixup_mov_zero_extend_instruction(MovZeroExtendInstr
     bool dest_is_memory = dynamic_cast<StackAddress*>(mov_zero_extend_instruction->destination.get()) || dynamic_cast<DataOperand*>(mov_zero_extend_instruction->destination.get());
 
     if (dest_is_memory) {
-        auto mov_instr = std::make_unique<MovInstruction>(AssemblyType::LONG_WORD, std::move(mov_zero_extend_instruction->source), std::move(mov_zero_extend_instruction->destination));
-        fixup_mov_instruction(mov_instr.get(), instructions);
-        instructions.emplace_back(std::move(mov_instr));
-    } else {
         auto mov_instr1 = std::make_unique<MovInstruction>(AssemblyType::LONG_WORD, std::move(mov_zero_extend_instruction->source), std::make_unique<Register>(RegisterName::R11));
         fixup_mov_instruction(mov_instr1.get(), instructions);
         instructions.emplace_back(std::move(mov_instr1));
@@ -334,6 +382,10 @@ void FixUpInstructionsStep::fixup_mov_zero_extend_instruction(MovZeroExtendInstr
         auto mov_instr2 = std::make_unique<MovInstruction>(AssemblyType::QUAD_WORD, std::make_unique<Register>(RegisterName::R11), std::move(mov_zero_extend_instruction->destination));
         fixup_mov_instruction(mov_instr2.get(), instructions);
         instructions.emplace_back(std::move(mov_instr2));
+    } else {
+        auto mov_instr = std::make_unique<MovInstruction>(AssemblyType::LONG_WORD, std::move(mov_zero_extend_instruction->source), std::move(mov_zero_extend_instruction->destination));
+        fixup_mov_instruction(mov_instr.get(), instructions);
+        instructions.emplace_back(std::move(mov_instr));
     }
 }
 

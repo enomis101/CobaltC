@@ -74,8 +74,8 @@ public:
 
 class UnsignedIntType : public Type {
 public:
-    // Clone implementation for IntType
-    // Creates a new IntType object and returns it wrapped in unique_ptr
+    // Clone implementation for UnsignedIntType
+    // Creates a new UnsignedIntType object and returns it wrapped in unique_ptr
     std::unique_ptr<Type> clone() const override
     {
         return std::make_unique<UnsignedIntType>();
@@ -92,8 +92,8 @@ public:
 
 class UnsignedLongType : public Type {
 public:
-    // Clone implementation for LongType
-    // Creates a new LongType object and returns it wrapped in unique_ptr
+    // Clone implementation for UnsignedLongType
+    // Creates a new UnsignedLongType object and returns it wrapped in unique_ptr
     std::unique_ptr<Type> clone() const override
     {
         return std::make_unique<UnsignedLongType>();
@@ -102,6 +102,24 @@ public:
     std::string to_string() const override
     {
         return "unsigned long";
+    }
+
+    size_t alignment() const override { return 8; }
+    size_t size() const override { return 8; }
+};
+
+class DoubleType : public Type {
+public:
+    // Clone implementation for DoubleType
+    // Creates a new DoubleType object and returns it wrapped in unique_ptr
+    std::unique_ptr<Type> clone() const override
+    {
+        return std::make_unique<DoubleType>();
+    }
+
+    std::string to_string() const override
+    {
+        return "double";
     }
 
     size_t alignment() const override { return 8; }

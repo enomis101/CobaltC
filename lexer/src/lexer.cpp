@@ -117,7 +117,7 @@ std::vector<Token> Lexer::tokenize()
         TokenType type = result.value();
         Token::LiteralType literal;
 
-        if(is_constant(type)){
+        if (is_constant(type)) {
             std::tie(type, literal) = convert_constant(lexeme, type, literal);
         }
 
@@ -228,35 +228,33 @@ std::pair<TokenType, Token::LiteralType> Lexer::convert_constant(const std::stri
     return { new_type, new_literal };
 }
 
-
 bool Lexer::is_constant(TokenType type)
 {
     switch (type) {
-        case TokenType::CONSTANT:
-        case TokenType::LONG_CONSTANT:
-        case TokenType::UNSIGNED_CONSTANT:
-        case TokenType::UNSIGNED_LONG_CONSTANT:
-        case TokenType::DOUBLE_CONSTANT:
-            return true;
-        default:
-            return false;
-    
+    case TokenType::CONSTANT:
+    case TokenType::LONG_CONSTANT:
+    case TokenType::UNSIGNED_CONSTANT:
+    case TokenType::UNSIGNED_LONG_CONSTANT:
+    case TokenType::DOUBLE_CONSTANT:
+        return true;
+    default:
+        return false;
     }
 }
 
-
-double Lexer::parse_double(const std::string& lexeme) {
+double Lexer::parse_double(const std::string& lexeme)
+{
     double result;
     std::string_view sv(lexeme);
-    
-    //https://en.cppreference.com/w/cpp/utility/from_chars.html
+
+    // https://en.cppreference.com/w/cpp/utility/from_chars.html
     auto [ptr, ec] = std::from_chars(sv.data(), sv.data() + sv.size(), result);
-    
-    if (ec == std::errc{}) {
-        return result;  // Successfully parsed (including inf/-inf if supported)
+
+    if (ec == std::errc {}) {
+        return result; // Successfully parsed (including inf/-inf if supported)
     } else if (ec == std::errc::result_out_of_range) {
         // Handle overflow - assign appropriate infinity
-        return (lexeme[0] == '-') ? -std::numeric_limits<double>::infinity() 
+        return (lexeme[0] == '-') ? -std::numeric_limits<double>::infinity()
                                   : std::numeric_limits<double>::infinity();
     } else {
         throw std::invalid_argument("Invalid number format");

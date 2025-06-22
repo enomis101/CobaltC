@@ -1,5 +1,5 @@
 #pragma once
-#include <boost/regex.hpp>
+#include <regex>
 #include <optional>
 #include <string_view>
 #include <unordered_map>
@@ -11,8 +11,10 @@ enum class TokenType {
     LONG_CONSTANT,
     UNSIGNED_CONSTANT,
     UNSIGNED_LONG_CONSTANT,
+    DOUBLE_CONSTANT,
     INT_KW,
     LONG_KW,
+    DOUBLE_KW,
     SIGNED_KW,
     UNSIGNED_KW,
     VOID_KW,
@@ -78,7 +80,9 @@ public:
 private:
     // Data members
     std::unordered_map<std::string_view, TokenType> m_keywords;
-    std::vector<std::pair<boost::regex, TokenType>> m_patterns;
+    std::vector<std::pair<std::regex, TokenType>> m_constant_search_patterns;
+    std::vector<std::pair<std::regex, TokenType>> m_constant_match_patterns;
     std::unordered_map<char, TokenType> m_single_char_tokens;
     std::unordered_map<std::string_view, TokenType> m_double_char_tokens;
+    std::regex m_identifier_pattern;
 };

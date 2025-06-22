@@ -72,4 +72,6 @@ private:
     LocationTracker m_curr_location_tracker;
 
     std::pair<TokenType, Token::LiteralType> convert_constant(const std::string& lexeme, TokenType type, Token::LiteralType literal);
+    double parse_double(const std::string& lexeme);
+    bool is_constant(TokenType type);
 };

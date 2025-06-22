@@ -23,6 +23,7 @@
 #include <fstream>
 #include <memory>
 #include <vector>
+#include <regex>
 
 CompilerApplication::CompilerApplication()
 {
@@ -41,12 +42,15 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
 {
     // Check if operation is valid
     std::vector<std::string> valid_operations = { "--lex", "--parse", "--validate", "--tacky", "--codegen", "-S", "-c", "" };
-    if (std::find(valid_operations.begin(), valid_operations.end(), operation) == valid_operations.end()) {
+    std::regex lib_regex("-l([a-zA-Z_][a-zA-Z0-9_]*)");
+    bool is_lib_operation = std::regex_match(operation, lib_regex);
+    if (std::find(valid_operations.begin(), valid_operations.end(), operation) == valid_operations.end() && !is_lib_operation) {
         throw CompilerError(std::format(
             "Invalid operation: '{}'\n"
-            "Valid operations are: --lex, --parse, --validate, --tacky, --codegen, -S, -c, or no operation for full compilation",
+            "Valid operations are: --lex, --parse, --validate, --tacky, --codegen, -S, -c, -l<lib> or no operation for full compilation",
             operation));
     }
+
 
     // Check if input file has .c extension
     if (input_file.length() < 3 || input_file.substr(input_file.length() - 2) != ".c") {

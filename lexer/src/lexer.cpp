@@ -9,6 +9,10 @@
 #include <iostream>
 #include <regex>
 #include <string>
+#include <utility>
+
+#include <charconv>
+#include <string_view>
 
 namespace fs = std::filesystem;
 
@@ -113,10 +117,11 @@ std::vector<Token> Lexer::tokenize()
         TokenType type = result.value();
         Token::LiteralType literal;
 
-        // TODO: do this only if constant
-        auto [new_type, new_literal] = convert_constant(lexeme, type, literal);
+        if(is_constant(type)){
+            std::tie(type, literal) = convert_constant(lexeme, type, literal);
+        }
 
-        Token t(new_type, lexeme, new_literal, m_curr_location_tracker.current());
+        Token t(type, lexeme, literal, m_curr_location_tracker.current());
         res.push_back(t);
 
         m_curr_location_tracker.advance(search_res);
@@ -152,7 +157,7 @@ std::pair<TokenType, Token::LiteralType> Lexer::convert_constant(const std::stri
             }
         } catch (const std::exception& e) {
             auto err_line = m_source_manager->get_source_line(m_curr_location_tracker.current());
-            throw LexerError(std::format("Error parsing integer constant '{}' at:\n{}", lexeme, err_line));
+            throw LexerError(std::format("Error parsing integer constant '{}' {} at:\n{}", lexeme, e.what(), err_line));
         }
     } else if (type == TokenType::UNSIGNED_CONSTANT) {
         try {
@@ -177,7 +182,7 @@ std::pair<TokenType, Token::LiteralType> Lexer::convert_constant(const std::stri
             }
         } catch (const std::exception& e) {
             auto err_line = m_source_manager->get_source_line(m_curr_location_tracker.current());
-            throw LexerError(std::format("Error parsing unsigned constant '{}' at:\n{}", lexeme, err_line));
+            throw LexerError(std::format("Error parsing unsigned constant '{} {}' at:\n{}", lexeme, e.what(), err_line));
         }
     } else if (type == TokenType::LONG_CONSTANT) {
         try {
@@ -187,7 +192,7 @@ std::pair<TokenType, Token::LiteralType> Lexer::convert_constant(const std::stri
             new_literal = num;
         } catch (const std::exception& e) {
             auto err_line = m_source_manager->get_source_line(m_curr_location_tracker.current());
-            throw LexerError(std::format("Error parsing long constant '{}' at:\n{}", lexeme, err_line));
+            throw LexerError(std::format("Error parsing long constant '{}' {} at:\n{}", lexeme, e.what(), err_line));
         }
     } else if (type == TokenType::UNSIGNED_LONG_CONSTANT) {
         try {
@@ -209,8 +214,51 @@ std::pair<TokenType, Token::LiteralType> Lexer::convert_constant(const std::stri
             new_literal = num;
         } catch (const std::exception& e) {
             auto err_line = m_source_manager->get_source_line(m_curr_location_tracker.current());
-            throw LexerError(std::format("Error parsing unsigned long constant '{}' at:\n{}", lexeme, err_line));
+            throw LexerError(std::format("Error parsing unsigned long constant '{}' {} at:\n{}", lexeme, e.what(), err_line));
+        }
+    } else if (type == TokenType::DOUBLE_CONSTANT) {
+        try {
+            double num = parse_double(lexeme);
+            new_literal = num;
+        } catch (const std::exception& e) {
+            auto err_line = m_source_manager->get_source_line(m_curr_location_tracker.current());
+            throw LexerError(std::format("Error parsing double constant '{}' {} at:\n{}", lexeme, e.what(), err_line));
         }
     }
     return { new_type, new_literal };
+}
+
+
+bool Lexer::is_constant(TokenType type)
+{
+    switch (type) {
+        case TokenType::CONSTANT:
+        case TokenType::LONG_CONSTANT:
+        case TokenType::UNSIGNED_CONSTANT:
+        case TokenType::UNSIGNED_LONG_CONSTANT:
+        case TokenType::DOUBLE_CONSTANT:
+            return true;
+        default:
+            return false;
+    
+    }
+}
+
+
+double Lexer::parse_double(const std::string& lexeme) {
+    double result;
+    std::string_view sv(lexeme);
+    
+    //https://en.cppreference.com/w/cpp/utility/from_chars.html
+    auto [ptr, ec] = std::from_chars(sv.data(), sv.data() + sv.size(), result);
+    
+    if (ec == std::errc{}) {
+        return result;  // Successfully parsed (including inf/-inf if supported)
+    } else if (ec == std::errc::result_out_of_range) {
+        // Handle overflow - assign appropriate infinity
+        return (lexeme[0] == '-') ? -std::numeric_limits<double>::infinity() 
+                                  : std::numeric_limits<double>::infinity();
+    } else {
+        throw std::invalid_argument("Invalid number format");
+    }
 }

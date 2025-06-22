@@ -3,11 +3,11 @@
 #include "common/data/type.h"
 #include "common/data/warning_manager.h"
 #include "parser/parser_ast.h"
+#include <cassert>
 #include <format>
 #include <memory>
 #include <optional>
 #include <variant>
-#include <cassert>
 
 using namespace parser;
 

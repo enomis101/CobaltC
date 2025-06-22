@@ -5,11 +5,11 @@
 #include "common/data/token_table.h"
 #include "common/data/type.h"
 #include "parser/parser_ast.h"
+#include <cassert>
 #include <format>
 #include <memory>
 #include <unordered_set>
 #include <vector>
-#include <cassert>
 
 using namespace parser;
 
@@ -376,6 +376,12 @@ std::unique_ptr<Type> Parser::parse_type_specifier_list(const std::vector<TokenT
         throw ParserError(*this, std::format("Type specifier with both signed and unsigned at:\n{}", m_source_manager->get_source_line(last_token().source_location())));
     }
 
+    if (type_specifiers_set.size() == 1 && type_specifiers_set.contains(TokenType::DOUBLE_KW)) {
+        return std::make_unique<DoubleType>();
+    } else if (type_specifiers_set.contains(TokenType::DOUBLE_KW)) {
+        throw ParserError(*this, std::format("Can't combine double with other type specifiers at:\n{}", m_source_manager->get_source_line(last_token().source_location())));
+    }
+
     if (type_specifiers_set.contains(TokenType::LONG_KW) && type_specifiers_set.contains(TokenType::UNSIGNED_KW)) {
         return std::make_unique<UnsignedLongType>();
     } else if (type_specifiers_set.contains(TokenType::UNSIGNED_KW)) {
@@ -455,6 +461,8 @@ std::unique_ptr<Expression> Parser::parse_contant()
         return std::make_unique<ConstantExpression>(loc, next_token.literal<long>());
     } else if (next_token.type() == TokenType::UNSIGNED_LONG_CONSTANT) {
         return std::make_unique<ConstantExpression>(loc, next_token.literal<unsigned long>());
+    } else if (next_token.type() == TokenType::DOUBLE_CONSTANT) {
+        return std::make_unique<ConstantExpression>(loc, next_token.literal<double>());
     } else {
         throw ParserError(*this, std::format("Unsupported constant type {}", Token::type_to_string(next_token.type())));
     }
@@ -576,6 +584,7 @@ bool Parser::is_specificer(TokenType type)
     case TokenType::LONG_KW:
     case TokenType::SIGNED_KW:
     case TokenType::UNSIGNED_KW:
+    case TokenType::DOUBLE_KW:
     case TokenType::STATIC_KW:
     case TokenType::EXTERN_KW:
         return true;
@@ -591,6 +600,7 @@ bool Parser::is_type_specificer(TokenType type)
     case TokenType::LONG_KW:
     case TokenType::SIGNED_KW:
     case TokenType::UNSIGNED_KW:
+    case TokenType::DOUBLE_KW:
         return true;
     default:
         return false;
@@ -604,6 +614,7 @@ bool Parser::is_constant(TokenType type)
     case TokenType::UNSIGNED_CONSTANT:
     case TokenType::LONG_CONSTANT:
     case TokenType::UNSIGNED_LONG_CONSTANT:
+    case TokenType::DOUBLE_CONSTANT:
         return true;
     default:
         return false;

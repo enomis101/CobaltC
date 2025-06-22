@@ -22,8 +22,8 @@
 #include <format>
 #include <fstream>
 #include <memory>
-#include <vector>
 #include <regex>
+#include <vector>
 
 CompilerApplication::CompilerApplication()
 {
@@ -50,7 +50,6 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
             "Valid operations are: --lex, --parse, --validate, --tacky, --codegen, -S, -c, -l<lib> or no operation for full compilation",
             operation));
     }
-
 
     // Check if input file has .c extension
     if (input_file.length() < 3 || input_file.substr(input_file.length() - 2) != ".c") {

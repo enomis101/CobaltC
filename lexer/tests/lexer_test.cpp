@@ -127,7 +127,7 @@ TEST_F(LexerTest, EmptyFile)
 
 TEST_F(LexerTest, SimpleIntegerConstant)
 {
-    std::string filepath = create_test_file("42");
+    std::string filepath = create_test_file("42 ");
 
     auto lexer = create_lexer(filepath);
     auto tokens = lexer.tokenize();
@@ -141,7 +141,7 @@ TEST_F(LexerTest, SimpleIntegerConstant)
 
 TEST_F(LexerTest, LongConstants)
 {
-    std::string filepath = create_test_file("123L 456l");
+    std::string filepath = create_test_file("123L 456l ");
 
     auto lexer = create_lexer(filepath);
     auto tokens = lexer.tokenize();
@@ -163,7 +163,7 @@ TEST_F(LexerTest, LongConstants)
 
 TEST_F(LexerTest, UnsignedConstants)
 {
-    std::string filepath = create_test_file("123U 456u");
+    std::string filepath = create_test_file("123U 456u ");
 
     auto lexer = create_lexer(filepath);
     auto tokens = lexer.tokenize();
@@ -185,7 +185,7 @@ TEST_F(LexerTest, UnsignedConstants)
 
 TEST_F(LexerTest, UnsignedLongConstants)
 {
-    std::string filepath = create_test_file("123UL 456ul 789LU 101lu");
+    std::string filepath = create_test_file("123UL 456ul 789LU 101lu ");
 
     auto lexer = create_lexer(filepath);
     auto tokens = lexer.tokenize();
@@ -248,7 +248,7 @@ TEST_F(LexerTest, MixedConstantTypes)
 
 TEST_F(LexerTest, LargeConstants)
 {
-    std::string filepath = create_test_file("2147483647L 4294967295U 18446744073709551615UL");
+    std::string filepath = create_test_file("2147483647L 4294967295U 18446744073709551615UL ");
 
     auto lexer = create_lexer(filepath);
     auto tokens = lexer.tokenize();
@@ -275,7 +275,7 @@ TEST_F(LexerTest, LargeConstants)
 TEST_F(LexerTest, WarningForIntegerOverflow)
 {
     // Create a constant that exceeds INT_MAX to trigger automatic promotion to long
-    std::string filepath = create_test_file("2147483648"); // INT_MAX + 1
+    std::string filepath = create_test_file("2147483648 "); // INT_MAX + 1
 
     auto lexer = create_lexer(filepath);
     auto tokens = lexer.tokenize();
@@ -299,7 +299,7 @@ TEST_F(LexerTest, WarningForIntegerOverflow)
 TEST_F(LexerTest, WarningForUnsignedIntegerOverflow)
 {
     // Create an unsigned constant that exceeds UINT_MAX to trigger automatic promotion
-    std::string filepath = create_test_file("4294967296U"); // UINT_MAX + 1
+    std::string filepath = create_test_file("4294967296U "); // UINT_MAX + 1
 
     auto lexer = create_lexer(filepath);
     auto tokens = lexer.tokenize();
@@ -322,7 +322,7 @@ TEST_F(LexerTest, WarningForUnsignedIntegerOverflow)
 
 TEST_F(LexerTest, NoWarningForValidConstants)
 {
-    std::string filepath = create_test_file("42 100L 50U 200UL");
+    std::string filepath = create_test_file("42 100L 50U 200UL ");
 
     auto lexer = create_lexer(filepath);
     auto tokens = lexer.tokenize();
@@ -338,7 +338,7 @@ TEST_F(LexerTest, NoWarningForValidConstants)
 TEST_F(LexerTest, MultipleWarnings)
 {
     // Create multiple constants that will trigger warnings
-    std::string filepath = create_test_file("2147483648 4294967296U");
+    std::string filepath = create_test_file("2147483648 4294967296U ");
 
     auto lexer = create_lexer(filepath);
     auto tokens = lexer.tokenize();

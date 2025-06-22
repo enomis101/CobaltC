@@ -7,6 +7,7 @@
 #include <memory>
 #include <optional>
 #include <variant>
+#include <cassert>
 
 using namespace parser;
 

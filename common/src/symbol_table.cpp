@@ -9,118 +9,106 @@ std::optional<StaticInitialValueType> SymbolTable::convert_constant_type(const C
         return std::nullopt;
     }
 
-    // Helper lambda to check if a value will change when converted
-    auto check_value_change = [&warning_callback](auto from_val, auto to_type_name, bool from_signed, bool to_signed) {
-        using FromType = decltype(from_val);
+    // Helper to get type name from value
+    auto get_source_type_name = [](const ConstantType& val) -> std::string {
+        if (std::holds_alternative<int>(val)) return "int";
+        if (std::holds_alternative<long>(val)) return "long";
+        if (std::holds_alternative<unsigned int>(val)) return "unsigned int";
+        if (std::holds_alternative<unsigned long>(val)) return "unsigned long";
+        if (std::holds_alternative<double>(val)) return "double";
+        return "unknown";
+    };
 
-        // Check sign change warnings
-        if (from_signed && !to_signed && from_val < 0) {
-            if (warning_callback) {
-                warning_callback(std::format("converting negative value {} to unsigned {}", from_val, to_type_name));
-            }
-        } else if (!from_signed && to_signed) {
-            // Check if unsigned value is too large for signed type
-            if constexpr (std::is_same_v<FromType, unsigned int>) {
-                if (from_val > static_cast<unsigned int>(std::numeric_limits<int>::max())) {
-                    if (warning_callback) {
-                        warning_callback(std::format("large unsigned value {} may become negative when converted to signed {}", from_val, to_type_name));
-                    }
-                }
-            } else if constexpr (std::is_same_v<FromType, unsigned long>) {
-                if (from_val > static_cast<unsigned long>(std::numeric_limits<long>::max())) {
-                    if (warning_callback) {
-                        warning_callback(std::format("large unsigned value {} may become negative when converted to signed {}", from_val, to_type_name));
-                    }
-                }
-            }
+    // Helper to get target type name
+    auto get_target_type_name = [](const Type& target) -> std::string {
+        if (is_type<IntType>(target)) return "int";
+        if (is_type<LongType>(target)) return "long";
+        if (is_type<UnsignedIntType>(target)) return "unsigned int";
+        if (is_type<UnsignedLongType>(target)) return "unsigned long";
+        if (is_type<DoubleType>(target)) return "double";
+        return "unknown";
+    };
+
+    // Helper to check if conversion is needed and warn
+    auto warn_if_conversion_needed = [&](const std::string& source_type, const std::string& target_type_name) {
+        if (source_type != target_type_name && warning_callback) {
+            warning_callback(std::format("converting from {} to {}", source_type, target_type_name));
         }
     };
 
+    std::string source_type = get_source_type_name(value);
+    std::string target_type_name = get_target_type_name(target_type);
+            
+    warn_if_conversion_needed(source_type, target_type_name);
+
     // Handle IntType target
-    if (dynamic_cast<const IntType*>(&target_type)) {
+    if (is_type<IntType>(target_type)) {
+
         if (std::holds_alternative<int>(value)) {
             return std::get<int>(value);
         } else if (std::holds_alternative<long>(value)) {
-            long long_val = std::get<long>(value);
-            if (warning_callback) {
-                warning_callback(std::format("truncating from long to int"));
-            }
-            check_value_change(long_val, "int", true, true);
-            return static_cast<int>(long_val);
+            return static_cast<int>(std::get<long>(value));
         } else if (std::holds_alternative<unsigned int>(value)) {
-            unsigned int uint_val = std::get<unsigned int>(value);
-            check_value_change(uint_val, "int", false, true);
-            return static_cast<int>(uint_val);
+            return static_cast<int>(std::get<unsigned int>(value));
         } else if (std::holds_alternative<unsigned long>(value)) {
-            unsigned long ulong_val = std::get<unsigned long>(value);
-            if (warning_callback) {
-                warning_callback(std::format("truncating from unsigned long to int"));
-            }
-            check_value_change(ulong_val, "int", false, true);
-            return static_cast<int>(ulong_val);
+            return static_cast<int>(std::get<unsigned long>(value));
         }
     }
     // Handle LongType target
-    else if (dynamic_cast<const LongType*>(&target_type)) {
+    else if (is_type<LongType>(target_type)) {
+
         if (std::holds_alternative<int>(value)) {
             return static_cast<long>(std::get<int>(value));
         } else if (std::holds_alternative<long>(value)) {
             return std::get<long>(value);
         } else if (std::holds_alternative<unsigned int>(value)) {
-            unsigned int uint_val = std::get<unsigned int>(value);
-            // unsigned int always fits in long
-            return static_cast<long>(uint_val);
+            return static_cast<long>(std::get<unsigned int>(value));
         } else if (std::holds_alternative<unsigned long>(value)) {
-            unsigned long ulong_val = std::get<unsigned long>(value);
-            check_value_change(ulong_val, "long", false, true);
-            return static_cast<long>(ulong_val);
+            return static_cast<long>(std::get<unsigned long>(value));
         }
     }
     // Handle UnsignedIntType target
-    else if (dynamic_cast<const UnsignedIntType*>(&target_type)) {
+    else if (is_type<UnsignedIntType>(target_type)) {
+
         if (std::holds_alternative<int>(value)) {
-            int int_val = std::get<int>(value);
-            check_value_change(int_val, "unsigned int", true, false);
-            return static_cast<unsigned int>(int_val);
+            return static_cast<unsigned int>(std::get<int>(value));
         } else if (std::holds_alternative<long>(value)) {
-            long long_val = std::get<long>(value);
-            if (warning_callback) {
-                warning_callback(std::format("truncating from long to unsigned int"));
-            }
-            check_value_change(long_val, "unsigned int", true, false);
-            return static_cast<unsigned int>(long_val);
+            return static_cast<unsigned int>(std::get<long>(value));
         } else if (std::holds_alternative<unsigned int>(value)) {
             return std::get<unsigned int>(value);
         } else if (std::holds_alternative<unsigned long>(value)) {
-            unsigned long ulong_val = std::get<unsigned long>(value);
-            if (warning_callback) {
-                warning_callback(std::format("truncating from unsigned long to unsigned int"));
-            }
-            // Check if value is too large
-            if (ulong_val > std::numeric_limits<unsigned int>::max()) {
-                if (warning_callback) {
-                    warning_callback(std::format("value {} exceeds unsigned int range", ulong_val));
-                }
-            }
-            return static_cast<unsigned int>(ulong_val);
+            return static_cast<unsigned int>(std::get<unsigned long>(value));
         }
     }
     // Handle UnsignedLongType target
-    else if (dynamic_cast<const UnsignedLongType*>(&target_type)) {
+    else if (is_type<UnsignedLongType>(target_type)) {
+
         if (std::holds_alternative<int>(value)) {
-            int int_val = std::get<int>(value);
-            check_value_change(int_val, "unsigned long", true, false);
-            return static_cast<unsigned long>(int_val);
+            return static_cast<unsigned long>(std::get<int>(value));
         } else if (std::holds_alternative<long>(value)) {
-            long long_val = std::get<long>(value);
-            check_value_change(long_val, "unsigned long", true, false);
-            return static_cast<unsigned long>(long_val);
+            return static_cast<unsigned long>(std::get<long>(value));
         } else if (std::holds_alternative<unsigned int>(value)) {
             return static_cast<unsigned long>(std::get<unsigned int>(value));
         } else if (std::holds_alternative<unsigned long>(value)) {
             return std::get<unsigned long>(value);
+        }else if(std::holds_alternative<double>(value)){
+            return std::get<double>(value);
         }
     }
+    else if (is_type<DoubleType>(target_type)) {
+        if (std::holds_alternative<int>(value)) {
+            return static_cast<double>(std::get<int>(value));
+        } else if (std::holds_alternative<long>(value)) {
+            return static_cast<double>(std::get<long>(value));
+        } else if (std::holds_alternative<unsigned int>(value)) {
+            return static_cast<double>(std::get<unsigned int>(value));
+        } else if (std::holds_alternative<unsigned long>(value)) {
+            return static_cast<double>(std::get<unsigned long>(value));
+        } else if(std::holds_alternative<double>(value)){
+            return std::get<double>(value);
+        }
+    }
+
 
     return std::nullopt; // Unsupported target type
 }

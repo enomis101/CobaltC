@@ -202,3 +202,8 @@ public:
     std::unique_ptr<Type> return_type;
     std::vector<std::unique_ptr<Type>> parameters_type;
 };
+
+template<typename T>
+bool is_type(const Type& type) {
+    return dynamic_cast<const T*>(&type) != nullptr;
+}

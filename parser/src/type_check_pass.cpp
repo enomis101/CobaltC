@@ -30,6 +30,10 @@ void TypeCheckPass::visit(UnaryExpression& node)
     } else {
         node.type = node.expression->type->clone();
     }
+
+    if(node.unary_operator == UnaryOperator::COMPLEMENT && is_type<DoubleType>(*node.expression->type)){
+        throw TypeCheckPassError(std::format("Bitwise complement operator does not accept double operands at:\n{}", m_source_manager->get_source_line(node.source_location)));
+    }
 }
 
 void TypeCheckPass::visit(BinaryExpression& node)
@@ -58,6 +62,10 @@ void TypeCheckPass::visit(BinaryExpression& node)
         break;
     default:
         node.type = std::make_unique<IntType>();
+    }
+
+    if(node.binary_operator == BinaryOperator::REMAINDER && is_type<DoubleType>(*node.type)){
+        throw TypeCheckPassError(std::format("Remainder operator does not accept double operands at:\n{}", m_source_manager->get_source_line(node.source_location)));
     }
 }
 
@@ -416,6 +424,8 @@ std::unique_ptr<Type> TypeCheckPass::get_common_type(const Type& t1, const Type&
 {
     if (t1.equals(t2)) {
         return t1.clone();
+    } else if(is_type<DoubleType>(t1) || is_type<DoubleType>(t2)){
+        return std::make_unique<DoubleType>();
     } else if (t1.size() == t2.size()) {
         if (t1.is_signed()) {
             return t2.clone();

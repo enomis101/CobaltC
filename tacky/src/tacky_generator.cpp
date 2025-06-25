@@ -290,6 +290,24 @@ std::unique_ptr<Value> TackyGenerator::transform_cast_expression(parser::CastExp
     std::unique_ptr<Value> dst = std::make_unique<TemporaryVariable>(tmp_name);
     std::unique_ptr<Value> dst_copy = std::make_unique<TemporaryVariable>(tmp_name);
 
+    if (is_type<DoubleType>(*expr_type)) {
+        if (is_type<IntType>(*target_type) || is_type<LongType>(*target_type)) {
+            instructions.emplace_back(std::make_unique<DoubleToIntIntruction>(std::move(expr_res), std::move(dst)));
+        } else if (is_type<UnsignedIntType>(*target_type) || is_type<UnsignedLongType>(*target_type)) {
+            instructions.emplace_back(std::make_unique<DoubleToUIntIntruction>(std::move(expr_res), std::move(dst)));
+        } else {
+            assert(false);
+        }
+    } else if (is_type<DoubleType>(*target_type)) {
+        if (is_type<IntType>(*expr_type) || is_type<LongType>(*expr_type)) {
+            instructions.emplace_back(std::make_unique<IntToDoubleIntruction>(std::move(expr_res), std::move(dst)));
+        } else if (is_type<UnsignedIntType>(*expr_type) || is_type<UnsignedLongType>(*expr_type)) {
+            instructions.emplace_back(std::make_unique<UIntToDoubleIntruction>(std::move(expr_res), std::move(dst)));
+        } else {
+            assert(false);
+        }
+    }
+
     if (target_type->size() == expr_type->size()) {
         instructions.emplace_back(std::make_unique<CopyInstruction>(std::move(expr_res), std::move(dst)));
     } else if (target_type->size() < expr_type->size()) {

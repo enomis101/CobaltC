@@ -20,6 +20,10 @@ public:
     void visit(SignExtendInstruction& node) override;
     void visit(TruncateInstruction& node) override;
     void visit(ZeroExtendInstruction& node) override;
+    void visit(DoubleToIntIntruction& node) override;
+    void visit(DoubleToUIntIntruction& node) override;
+    void visit(IntToDoubleIntruction& node) override;
+    void visit(UIntToDoubleIntruction& node) override;
     void visit(UnaryInstruction& node) override;
     void visit(BinaryInstruction& node) override;
     void visit(CopyInstruction& node) override;

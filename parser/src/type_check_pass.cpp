@@ -31,7 +31,7 @@ void TypeCheckPass::visit(UnaryExpression& node)
         node.type = node.expression->type->clone();
     }
 
-    if(node.unary_operator == UnaryOperator::COMPLEMENT && is_type<DoubleType>(*node.expression->type)){
+    if (node.unary_operator == UnaryOperator::COMPLEMENT && is_type<DoubleType>(*node.expression->type)) {
         throw TypeCheckPassError(std::format("Bitwise complement operator does not accept double operands at:\n{}", m_source_manager->get_source_line(node.source_location)));
     }
 }
@@ -64,7 +64,7 @@ void TypeCheckPass::visit(BinaryExpression& node)
         node.type = std::make_unique<IntType>();
     }
 
-    if(node.binary_operator == BinaryOperator::REMAINDER && is_type<DoubleType>(*node.type)){
+    if (node.binary_operator == BinaryOperator::REMAINDER && is_type<DoubleType>(*node.type)) {
         throw TypeCheckPassError(std::format("Remainder operator does not accept double operands at:\n{}", m_source_manager->get_source_line(node.source_location)));
     }
 }
@@ -79,7 +79,9 @@ void TypeCheckPass::visit(ConstantExpression& node)
         node.type = std::make_unique<LongType>();
     } else if (std::holds_alternative<unsigned long>(node.value)) {
         node.type = std::make_unique<UnsignedLongType>();
-    } else if (std::holds_alternative<std::monostate>(node.value)) {
+    } else if (std::holds_alternative<double>(node.value)) {
+        node.type = std::make_unique<DoubleType>();
+    } else {
         throw TypeCheckPassError(std::format("Unsupported ConstantExpression at:\n{}", m_source_manager->get_source_line(node.source_location)));
     }
 }
@@ -321,9 +323,9 @@ void TypeCheckPass::typecheck_file_scope_variable_declaration(VariableDeclaratio
         std::function<void(const std::string&)> warning_callback = [&](const std::string& message) { m_warning_manager->raise_warning(ParserWarningType::CAST, std::format("typecheck_file_scope_variable_declaration {} at:\n", message, m_source_manager->get_source_line(variable_declaration.source_location))); };
 
         auto con_res = SymbolTable::convert_constant_type(expr->value, *variable_declaration.type);
-        if (!con_res.has_value()) {
-            throw TypeCheckPassError(std::format("Failed convert_constant_type at:\n{}",
-                m_source_manager->get_source_line(variable_declaration.source_location)));
+        if (!con_res) {
+            throw TypeCheckPassError(std::format("Failed convert_constant_type {} at:\n{}",
+                con_res.error(), m_source_manager->get_source_line(variable_declaration.source_location)));
         }
         initial_value = StaticInitialValue { con_res.value() };
     } else {
@@ -394,17 +396,17 @@ void TypeCheckPass::typecheck_local_variable_declaration(VariableDeclaration& va
 
             auto con_res = SymbolTable::convert_constant_type(ConstantType(0), *variable_declaration.type, warning_callback);
 
-            if (!con_res.has_value()) {
-                throw TypeCheckPassError(std::format("Failed convert_constant_type at:\n{}",
-                    m_source_manager->get_source_line(variable_declaration.source_location)));
+            if (!con_res) {
+                throw TypeCheckPassError(std::format("Failed convert_constant_type {}  at:\n{}",
+                    con_res.error(), m_source_manager->get_source_line(variable_declaration.source_location)));
             }
             initial_value = StaticInitialValue { con_res.value() };
         } else if (ConstantExpression* expr = dynamic_cast<ConstantExpression*>(variable_declaration.expression.value().get())) {
             // conversion is performed at compile time
             auto con_res = SymbolTable::convert_constant_type(expr->value, *variable_declaration.type, warning_callback);
-            if (!con_res.has_value()) {
-                throw TypeCheckPassError(std::format("Failed convert_constant_type at:\n{}",
-                    m_source_manager->get_source_line(variable_declaration.source_location)));
+            if (!con_res) {
+                throw TypeCheckPassError(std::format("Failed convert_constant_type {}  at:\n{}",
+                    con_res.error(), m_source_manager->get_source_line(variable_declaration.source_location)));
             }
             initial_value = StaticInitialValue { con_res.value() };
         } else {
@@ -424,7 +426,7 @@ std::unique_ptr<Type> TypeCheckPass::get_common_type(const Type& t1, const Type&
 {
     if (t1.equals(t2)) {
         return t1.clone();
-    } else if(is_type<DoubleType>(t1) || is_type<DoubleType>(t2)){
+    } else if (is_type<DoubleType>(t1) || is_type<DoubleType>(t2)) {
         return std::make_unique<DoubleType>();
     } else if (t1.size() == t2.size()) {
         if (t1.is_signed()) {

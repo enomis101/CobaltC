@@ -6,7 +6,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/compiler/cobaltc-compiler",
-            "args": ["/home/simone/compiler/writing-a-c-compiler-tests/tests/chapter_13/valid/floating_expressions/logical.c", "-S"],
+            "args": ["/home/simone/compiler/writing-a-c-compiler-tests/tests/chapter_13/valid/special_values/subnormal_not_zero.c", "-S"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/",
             "environment": [],

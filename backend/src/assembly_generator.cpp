@@ -58,7 +58,14 @@ std::shared_ptr<AssemblyAST> AssemblyGenerator::generate()
 std::unique_ptr<Operand> AssemblyGenerator::transform_operand(tacky::Value& val)
 {
     if (tacky::Constant* constant = dynamic_cast<tacky::Constant*>(&val)) {
-        return std::make_unique<ImmediateValue>(constant->value);
+        if(std::holds_alternative<double>(constant->value)){
+            auto double_val = std::get<double>(constant->value);
+            std::string constant_label = add_static_constant(double_val, 8);
+            return std::make_unique<DataOperand>(constant_label);
+        } else{
+            return std::make_unique<ImmediateValue>(constant->value);
+        }
+
     } else if (tacky::TemporaryVariable* var = dynamic_cast<tacky::TemporaryVariable*>(&val)) {
         return std::make_unique<PseudoRegister>(var->identifier.name);
     } else {
@@ -215,6 +222,7 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_binary_in
 {
     std::vector<std::unique_ptr<Instruction>> instructions;
     auto [source1_type, is_signed] = get_operand_type(*binary_instruction.source1);
+    bool is_double = source1_type == AssemblyType::DOUBLE;
     auto destination_type = get_operand_type(*binary_instruction.destination).first;
     if (is_relational_operator(binary_instruction.binary_operator)) {
         std::unique_ptr<Operand> src1 = transform_operand(*binary_instruction.source1);
@@ -230,6 +238,11 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_binary_in
         std::unique_ptr<Operand> src2 = transform_operand(*binary_instruction.source2);
         std::unique_ptr<Operand> dst = transform_operand(*binary_instruction.destination);
         add_comment_instruction("divide binary_instruction", instructions);
+        if(is_double){
+
+        } else{
+            
+        }
         instructions.emplace_back(std::make_unique<MovInstruction>(source1_type, std::move(src1), std::make_unique<Register>(RegisterName::AX)));
         if (is_signed) {
             instructions.emplace_back(std::make_unique<CdqInstruction>(source1_type));
@@ -433,6 +446,11 @@ std::unique_ptr<Program> AssemblyGenerator::transform_program(tacky::Program& pr
         definitions.emplace_back(transform_top_level(*def));
     }
 
+    //Add constants to the list of top level constructs
+    for(auto& p : m_static_constants_map){
+        definitions.emplace_back(std::move(p.second));
+    }
+
     return std::make_unique<Program>(std::move(definitions));
 }
 
@@ -519,4 +537,20 @@ void AssemblyGenerator::add_comment_instruction(const std::string& message, std:
     if (m_compile_options->enable_assembly_comments) {
         instructions.emplace_back(std::make_unique<CommentInstruction>(message));
     }
+}
+
+std::string AssemblyGenerator::add_static_constant(double val, size_t alignment)
+{
+    std::string label = get_constant_label(val, alignment);
+    if(!m_static_constants_map.contains(label)){
+        m_static_constants_map[label] = std::make_unique<StaticConstant>(label, alignment, val);
+        m_backend_symbol_table->insert_symbol(label, ObjectEntry{AssemblyType::DOUBLE, true, true});
+    }
+    return label;
+}
+
+std::string AssemblyGenerator::get_constant_label(double val, size_t alignment)
+{
+    //This prevent duplicate constants
+    return "const.label_" + std::to_string(val) + "_" + std::to_string(alignment);
 }

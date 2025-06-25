@@ -10,6 +10,7 @@ namespace backend {
 struct ObjectEntry {
     AssemblyType type;
     bool is_static;
+    bool is_constant;
 };
 
 struct FunctionEntry {

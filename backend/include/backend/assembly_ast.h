@@ -33,6 +33,9 @@ class MovsxInstruction;
 class CommentInstruction;
 class MovZeroExtendInstruction;
 class DivInstruction;
+class StaticConstant;
+class Cvttsd2siInstruction;
+class Cvtsi2sdInstruction;
 
 class AssemblyVisitor {
 public:
@@ -47,6 +50,8 @@ public:
     virtual void visit(MovInstruction& node) = 0;
     virtual void visit(MovsxInstruction& node) = 0;
     virtual void visit(MovZeroExtendInstruction& node) = 0;
+    virtual void visit(Cvttsd2siInstruction& node) = 0;
+    virtual void visit(Cvtsi2sdInstruction& node) = 0;
     virtual void visit(UnaryInstruction& node) = 0;
     virtual void visit(BinaryInstruction& node) = 0;
     virtual void visit(CmpInstruction& node) = 0;
@@ -61,6 +66,7 @@ public:
     virtual void visit(CallInstruction& node) = 0;
     virtual void visit(FunctionDefinition& node) = 0;
     virtual void visit(StaticVariable& node) = 0;
+    virtual void visit(StaticConstant& node) = 0;
     virtual void visit(Program& node) = 0;
     virtual ~AssemblyVisitor() = default;
 };
@@ -75,7 +81,17 @@ enum class RegisterName {
     R9,
     R10,
     R11,
-    SP
+    SP,
+    XMM0,
+    XMM1,
+    XMM2,
+    XMM3,
+    XMM4,
+    XMM5,
+    XMM6,
+    XMM7,
+    XMM14,
+    XMM15
 };
 
 enum class AssemblyType {
@@ -83,6 +99,7 @@ enum class AssemblyType {
     WORD,      // 2-byte
     LONG_WORD, // 4-byte
     QUAD_WORD, // 8-byte
+    DOUBLE,
     NONE,
 };
 
@@ -115,13 +132,18 @@ public:
 
 enum class UnaryOperator {
     NEG,
-    NOT
+    NOT,
+    SHR
 };
 
 enum class BinaryOperator {
     ADD,
     SUB,
-    MULT
+    MULT,
+    DIV_DOUBLE,
+    AND,
+    OR,
+    XOR
 };
 
 enum class ConditionCode {
@@ -366,6 +388,64 @@ public:
             destination->clone());
     }
 
+    std::unique_ptr<Operand> source;
+    std::unique_ptr<Operand> destination;
+};
+
+class Cvttsd2siInstruction : public Instruction {
+public:
+    Cvttsd2siInstruction(AssemblyType type, std::unique_ptr<Operand> source, std::unique_ptr<Operand> destination)
+        : type(type)
+        , source(std::move(source))
+        , destination(std::move(destination))
+    {
+        check_and_replace_register_type(type, this->source.get());
+        check_and_replace_register_type(type, this->destination.get());
+    }
+
+    void accept(AssemblyVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    std::unique_ptr<Instruction> clone() const override
+    {
+        return std::make_unique<Cvttsd2siInstruction>(
+            type,
+            source->clone(),
+            destination->clone());
+    }
+
+    AssemblyType type;
+    std::unique_ptr<Operand> source;
+    std::unique_ptr<Operand> destination;
+};
+
+class Cvtsi2sdInstruction : public Instruction {
+public:
+    Cvtsi2sdInstruction(AssemblyType type, std::unique_ptr<Operand> source, std::unique_ptr<Operand> destination)
+        : type(type)
+        , source(std::move(source))
+        , destination(std::move(destination))
+    {
+        check_and_replace_register_type(type, this->source.get());
+        check_and_replace_register_type(type, this->destination.get());
+    }
+
+    void accept(AssemblyVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    std::unique_ptr<Instruction> clone() const override
+    {
+        return std::make_unique<Cvtsi2sdInstruction>(
+            type,
+            source->clone(),
+            destination->clone());
+    }
+
+    AssemblyType type;
     std::unique_ptr<Operand> source;
     std::unique_ptr<Operand> destination;
 };
@@ -699,9 +779,9 @@ public:
 
 class StaticVariable : public TopLevel {
 public:
-    StaticVariable(const std::string& n, bool glbl, size_t alignment, StaticInitialValueType static_init)
-        : name { n }
-        , global { glbl }
+    StaticVariable(const std::string& name, bool global, size_t alignment, StaticInitialValueType static_init)
+        : name { name }
+        , global { global }
         , alignment(alignment)
         , static_init(static_init)
     {
@@ -719,6 +799,30 @@ public:
 
     Identifier name;
     bool global;
+    size_t alignment;
+    StaticInitialValueType static_init;
+};
+
+class StaticConstant : public TopLevel {
+public:
+    StaticConstant(const std::string& name, size_t alignment, StaticInitialValueType static_init)
+        : name { name }
+        , alignment(alignment)
+        , static_init(static_init)
+    {
+    }
+
+    void accept(AssemblyVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    std::unique_ptr<TopLevel> clone() const
+    {
+        return std::make_unique<StaticConstant>(name.name, alignment, static_init);
+    }
+
+    Identifier name;
     size_t alignment;
     StaticInitialValueType static_init;
 };

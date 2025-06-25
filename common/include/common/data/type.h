@@ -204,6 +204,7 @@ public:
 };
 
 template<typename T>
-bool is_type(const Type& type) {
+bool is_type(const Type& type)
+{
     return dynamic_cast<const T*>(&type) != nullptr;
 }

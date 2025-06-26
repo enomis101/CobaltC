@@ -197,14 +197,24 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_unary_ins
     std::vector<std::unique_ptr<Instruction>> instructions;
     auto source_type = get_operand_type(*unary_instruction.source).first;
     auto destination_type = get_operand_type(*unary_instruction.destination).first;
+    bool is_double = (source_type == AssemblyType::DOUBLE);
     if (unary_instruction.unary_operator == tacky::UnaryOperator::NOT) {
         std::unique_ptr<Operand> src = transform_operand(*unary_instruction.source);
         std::unique_ptr<Operand> dst = transform_operand(*unary_instruction.destination);
         std::unique_ptr<Operand> dst_copy = dst->clone();
         add_comment_instruction("not unary_instruction", instructions);
-        instructions.emplace_back(std::make_unique<CmpInstruction>(source_type, std::make_unique<ImmediateValue>(0), std::move(src)));
-        instructions.emplace_back(std::make_unique<MovInstruction>(destination_type, std::make_unique<ImmediateValue>(0), std::move(dst)));
-        instructions.emplace_back(std::make_unique<SetCCInstruction>(ConditionCode::E, std::move(dst_copy)));
+        if(is_double){
+            //We need to align -0.0 to 16 bytes so that we can use it in the xorpd instruction
+            std::string const_label = add_static_constant(-0.0, 16);
+            auto data_operand = std::make_unique<DataOperand>(const_label);
+            instructions.emplace_back(std::make_unique<MovInstruction>(AssemblyType::DOUBLE, std::move(src), std::move(dst)));
+            instructions.emplace_back(std::make_unique<BinaryInstruction>(BinaryOperator::XOR, AssemblyType::DOUBLE, std::move(data_operand), std::move(dst_copy) ));
+        } else {
+            instructions.emplace_back(std::make_unique<CmpInstruction>(source_type, std::make_unique<ImmediateValue>(0), std::move(src)));
+            instructions.emplace_back(std::make_unique<MovInstruction>(destination_type, std::make_unique<ImmediateValue>(0), std::move(dst)));
+            instructions.emplace_back(std::make_unique<SetCCInstruction>(ConditionCode::E, std::move(dst_copy)));
+        }
+
     } else {
         std::unique_ptr<Operand> src = transform_operand(*unary_instruction.source);
         std::unique_ptr<Operand> dst = transform_operand(*unary_instruction.destination);
@@ -232,27 +242,30 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_binary_in
         add_comment_instruction("relational binary_instruction", instructions);
         instructions.emplace_back(std::make_unique<CmpInstruction>(source1_type, std::move(src2), std::move(src1)));
         instructions.emplace_back(std::make_unique<MovInstruction>(destination_type, std::make_unique<ImmediateValue>(0), std::move(dst)));
+        //condition code differs between signed and unsigned/double
         instructions.emplace_back(std::make_unique<SetCCInstruction>(to_condition_code(binary_instruction.binary_operator, is_signed), std::move(dst_copy)));
     } else if (binary_instruction.binary_operator == tacky::BinaryOperator::DIVIDE) {
         std::unique_ptr<Operand> src1 = transform_operand(*binary_instruction.source1);
         std::unique_ptr<Operand> src2 = transform_operand(*binary_instruction.source2);
         std::unique_ptr<Operand> dst = transform_operand(*binary_instruction.destination);
+        std::unique_ptr<Operand> dst_copy = dst->clone();
         add_comment_instruction("divide binary_instruction", instructions);
         if(is_double){
-
+            instructions.emplace_back(std::make_unique<MovInstruction>(source1_type, std::move(src1), std::move(dst)));
+            instructions.emplace_back(std::make_unique<BinaryInstruction>(BinaryOperator::DIV_DOUBLE, source1_type, std::move(src2), std::move(dst_copy)));
         } else{
-            
-        }
-        instructions.emplace_back(std::make_unique<MovInstruction>(source1_type, std::move(src1), std::make_unique<Register>(RegisterName::AX)));
-        if (is_signed) {
-            instructions.emplace_back(std::make_unique<CdqInstruction>(source1_type));
-            instructions.emplace_back(std::make_unique<IdivInstruction>(source1_type, std::move(src2)));
-        } else {
-            instructions.emplace_back(std::make_unique<MovInstruction>(source1_type, std::make_unique<ImmediateValue>(0), std::make_unique<Register>(RegisterName::DX)));
-            instructions.emplace_back(std::make_unique<DivInstruction>(source1_type, std::move(src2)));
+            instructions.emplace_back(std::make_unique<MovInstruction>(source1_type, std::move(src1), std::make_unique<Register>(RegisterName::AX)));
+            if (is_signed) {
+                instructions.emplace_back(std::make_unique<CdqInstruction>(source1_type));
+                instructions.emplace_back(std::make_unique<IdivInstruction>(source1_type, std::move(src2)));
+            } else {
+                instructions.emplace_back(std::make_unique<MovInstruction>(source1_type, std::make_unique<ImmediateValue>(0), std::make_unique<Register>(RegisterName::DX)));
+                instructions.emplace_back(std::make_unique<DivInstruction>(source1_type, std::move(src2)));
+            }
+
+            instructions.emplace_back(std::make_unique<MovInstruction>(source1_type, std::make_unique<Register>(RegisterName::AX), std::move(dst)));
         }
 
-        instructions.emplace_back(std::make_unique<MovInstruction>(source1_type, std::make_unique<Register>(RegisterName::AX), std::move(dst)));
     } else if (binary_instruction.binary_operator == tacky::BinaryOperator::REMAINDER) {
         std::unique_ptr<Operand> src1 = transform_operand(*binary_instruction.source1);
         std::unique_ptr<Operand> src2 = transform_operand(*binary_instruction.source2);
@@ -289,16 +302,31 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_jump_inst
         instructions.emplace_back(std::make_unique<JmpInstruction>(jump_instruction->identifier.name));
     } else if (tacky::JumpIfZeroInstruction* jump_if_zero_instruction = dynamic_cast<tacky::JumpIfZeroInstruction*>(&instruction)) {
         auto [condition_type, _] = get_operand_type(*jump_if_zero_instruction->condition);
+        bool is_double = (condition_type == AssemblyType::DOUBLE);
         std::unique_ptr<Operand> cond = transform_operand(*jump_if_zero_instruction->condition);
         add_comment_instruction("jump_if_zero_instruction", instructions);
-        instructions.emplace_back(std::make_unique<CmpInstruction>(condition_type, std::make_unique<ImmediateValue>(0), std::move(cond)));
+        if(is_double){
+            //zero-out XMM0
+            instructions.emplace_back(std::make_unique<BinaryInstruction>(BinaryOperator::XOR, condition_type, std::make_unique<Register>(RegisterName::XMM0), std::make_unique<Register>(RegisterName::XMM0)));
+            instructions.emplace_back(std::make_unique<CmpInstruction>(condition_type, std::make_unique<Register>(RegisterName::XMM0), std::move(cond)));
+        } else {
+            instructions.emplace_back(std::make_unique<CmpInstruction>(condition_type, std::make_unique<ImmediateValue>(0), std::move(cond)));
+        }
+
         instructions.emplace_back(std::make_unique<JmpCCInstruction>(ConditionCode::E, jump_if_zero_instruction->identifier.name));
     } else if (tacky::JumpIfNotZeroInstruction* jump_if_not_zero_instruction = dynamic_cast<tacky::JumpIfNotZeroInstruction*>(&instruction)) {
         auto [condition_type, _] = get_operand_type(*jump_if_not_zero_instruction->condition);
+        bool is_double = (condition_type == AssemblyType::DOUBLE);
         std::unique_ptr<Operand> cond = transform_operand(*jump_if_not_zero_instruction->condition);
         add_comment_instruction("jump_if_not_zero_instruction", instructions);
-        instructions.emplace_back(std::make_unique<CmpInstruction>(condition_type, std::make_unique<ImmediateValue>(0), std::move(cond)));
-        instructions.emplace_back(std::make_unique<JmpCCInstruction>(ConditionCode::NE, jump_if_not_zero_instruction->identifier.name));
+        if(is_double){
+            //zero-out XMM0
+            instructions.emplace_back(std::make_unique<BinaryInstruction>(BinaryOperator::XOR, AssemblyType::DOUBLE, std::make_unique<Register>(RegisterName::XMM0), std::make_unique<Register>(RegisterName::XMM0)));
+            instructions.emplace_back(std::make_unique<CmpInstruction>(condition_type, std::make_unique<Register>(RegisterName::XMM0), std::move(cond)));
+        } else {
+            instructions.emplace_back(std::make_unique<CmpInstruction>(condition_type, std::make_unique<ImmediateValue>(0), std::move(cond)));
+            instructions.emplace_back(std::make_unique<JmpCCInstruction>(ConditionCode::NE, jump_if_not_zero_instruction->identifier.name));
+        }
     } else {
         assert(false && "AssemblyGenerator::transform_jump_instruction Invalid or Unsupported tacky::Instruction");
     }

@@ -2,6 +2,7 @@
 #include "backend/assembly_ast.h"
 #include "backend/backend_symbol_table.h"
 #include "common/data/compile_options.h"
+#include "common/data/name_generator.h"
 #include "common/data/symbol_table.h"
 #include "tacky/tacky_ast.h"
 #include <memory>
@@ -21,7 +22,7 @@ public:
 // Generate an AssemblyAST from a TackyAST
 class AssemblyGenerator {
 public:
-    AssemblyGenerator(std::shared_ptr<tacky::TackyAST> ast, std::shared_ptr<SymbolTable> symbol_table, std::shared_ptr<BackendSymbolTable> backend_symbol_table, std::shared_ptr<CompileOptions> compile_options);
+    AssemblyGenerator(std::shared_ptr<tacky::TackyAST> ast, std::shared_ptr<SymbolTable> symbol_table, std::shared_ptr<BackendSymbolTable> backend_symbol_table, std::shared_ptr<CompileOptions> compile_options, std::shared_ptr<NameGenerator> name_generator);
     std::shared_ptr<AssemblyAST> generate();
 
 private:
@@ -35,6 +36,10 @@ private:
     std::vector<std::unique_ptr<Instruction>> transform_sign_extend_instruction(tacky::SignExtendInstruction& sign_extend_instruction);
     std::vector<std::unique_ptr<Instruction>> transform_truncate_instruction(tacky::TruncateInstruction& truncate_instruction);
     std::vector<std::unique_ptr<Instruction>> transform_zero_extend_instruction(tacky::ZeroExtendInstruction& zero_extend_instruction);
+    std::vector<std::unique_ptr<Instruction>> transform_int_to_double_instruction(tacky::IntToDoubleIntruction& int_to_double_instruction);
+    std::vector<std::unique_ptr<Instruction>> transform_double_to_int_instruction(tacky::DoubleToIntIntruction& double_to_int_instruction);
+    std::vector<std::unique_ptr<Instruction>> transform_uint_to_double_instruction(tacky::UIntToDoubleIntruction& uint_to_double_instruction);
+    std::vector<std::unique_ptr<Instruction>> transform_double_to_uint_instruction(tacky::DoubleToUIntIntruction& double_to_uint_instruction);
     std::vector<std::unique_ptr<Instruction>> transform_unary_instruction(tacky::UnaryInstruction& unary_instruction);
     std::vector<std::unique_ptr<Instruction>> transform_binary_instruction(tacky::BinaryInstruction& binary_instruction);
     std::vector<std::unique_ptr<Instruction>> transform_jump_instruction(tacky::Instruction& jump_instruction);
@@ -51,10 +56,12 @@ private:
     std::shared_ptr<SymbolTable> m_symbol_table;
     std::shared_ptr<BackendSymbolTable> m_backend_symbol_table;
     std::shared_ptr<CompileOptions> m_compile_options;
+    std::shared_ptr<NameGenerator> m_name_generator;
 
     void add_comment_instruction(const std::string& message, std::vector<std::unique_ptr<Instruction>>& instructions);
 
-    const std::vector<RegisterName> FUN_REGISTERS;
+    const std::vector<RegisterName> INT_FUNCTION_REGISTERS;
+    const std::vector<RegisterName> DOUBLE_FUNCTION_REGISTERS;
 
     void generate_backend_symbol_table();
     std::string add_static_constant(double val, size_t alignment);

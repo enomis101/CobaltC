@@ -34,6 +34,8 @@ private:
     void visit(MovInstruction& node) override { }
     void visit(MovsxInstruction& node) override { }
     void visit(MovZeroExtendInstruction& node) override { }
+    void visit(Cvttsd2siInstruction& node) override { } //TODO: IMPLEMENT IF NEEDED
+    void visit(Cvtsi2sdInstruction& node) override { } //TODO: IMPLEMENT IF NEEDED
     void visit(UnaryInstruction& node) override { }
     void visit(BinaryInstruction& node) override { }
     void visit(CmpInstruction& node) override { }
@@ -48,6 +50,7 @@ private:
     void visit(CallInstruction& node) override { }
     void visit(FunctionDefinition& node) override;
     void visit(StaticVariable& node) override { }
+    void visit(StaticConstant& node) override { } //TODO: IMPLEMENT IF NEEDED
     void visit(Program& node) override;
 
     void fixup_mov_instruction(MovInstruction* mov_instruction, std::vector<std::unique_ptr<Instruction>>& instructions);

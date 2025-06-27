@@ -306,16 +306,16 @@ std::unique_ptr<Value> TackyGenerator::transform_cast_expression(parser::CastExp
         } else {
             assert(false);
         }
-    }
-
-    if (target_type->size() == expr_type->size()) {
-        instructions.emplace_back(std::make_unique<CopyInstruction>(std::move(expr_res), std::move(dst)));
-    } else if (target_type->size() < expr_type->size()) {
-        instructions.emplace_back(std::make_unique<TruncateInstruction>(std::move(expr_res), std::move(dst)));
-    } else if (expr_type->is_signed()) {
-        instructions.emplace_back(std::make_unique<SignExtendInstruction>(std::move(expr_res), std::move(dst)));
     } else {
-        instructions.emplace_back(std::make_unique<ZeroExtendInstruction>(std::move(expr_res), std::move(dst)));
+        if (target_type->size() == expr_type->size()) {
+            instructions.emplace_back(std::make_unique<CopyInstruction>(std::move(expr_res), std::move(dst)));
+        } else if (target_type->size() < expr_type->size()) {
+            instructions.emplace_back(std::make_unique<TruncateInstruction>(std::move(expr_res), std::move(dst)));
+        } else if (expr_type->is_signed()) {
+            instructions.emplace_back(std::make_unique<SignExtendInstruction>(std::move(expr_res), std::move(dst)));
+        } else {
+            instructions.emplace_back(std::make_unique<ZeroExtendInstruction>(std::move(expr_res), std::move(dst)));
+        }
     }
     return dst_copy;
 }

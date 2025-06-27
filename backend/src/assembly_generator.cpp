@@ -8,19 +8,23 @@
 #include "common/data/type.h"
 #include "tacky/tacky_ast.h"
 #include <cassert>
+#include <format>
 #include <memory>
+#include <ranges>
 #include <string>
 #include <tuple>
 #include <variant>
 
 using namespace backend;
 
-AssemblyGenerator::AssemblyGenerator(std::shared_ptr<tacky::TackyAST> ast, std::shared_ptr<SymbolTable> symbol_table, std::shared_ptr<BackendSymbolTable> backend_symbol_table, std::shared_ptr<CompileOptions> compile_options)
+AssemblyGenerator::AssemblyGenerator(std::shared_ptr<tacky::TackyAST> ast, std::shared_ptr<SymbolTable> symbol_table, std::shared_ptr<BackendSymbolTable> backend_symbol_table, std::shared_ptr<CompileOptions> compile_options, std::shared_ptr<NameGenerator> name_generator)
     : m_ast { ast }
     , m_symbol_table(symbol_table)
     , m_backend_symbol_table(backend_symbol_table)
     , m_compile_options(compile_options)
-    , FUN_REGISTERS { RegisterName::DI, RegisterName::SI, RegisterName::DX, RegisterName::CX, RegisterName::R8, RegisterName::R9 }
+    , m_name_generator(name_generator)
+    , INT_FUNCTION_REGISTERS { RegisterName::DI, RegisterName::SI, RegisterName::DX, RegisterName::CX, RegisterName::R8, RegisterName::R9 }
+    , DOUBLE_FUNCTION_REGISTERS { RegisterName::XMM0, RegisterName::XMM1, RegisterName::XMM2, RegisterName::XMM3, RegisterName::XMM4, RegisterName::XMM5, RegisterName::XMM6, RegisterName::XMM7 }
 {
     if (!m_ast || !dynamic_cast<tacky::Program*>(m_ast.get())) {
         assert(false && "AssemblyGenerator: Invalid AST");
@@ -58,11 +62,11 @@ std::shared_ptr<AssemblyAST> AssemblyGenerator::generate()
 std::unique_ptr<Operand> AssemblyGenerator::transform_operand(tacky::Value& val)
 {
     if (tacky::Constant* constant = dynamic_cast<tacky::Constant*>(&val)) {
-        if(std::holds_alternative<double>(constant->value)){
+        if (std::holds_alternative<double>(constant->value)) {
             auto double_val = std::get<double>(constant->value);
             std::string constant_label = add_static_constant(double_val, 8);
             return std::make_unique<DataOperand>(constant_label);
-        } else{
+        } else {
             return std::make_unique<ImmediateValue>(constant->value);
         }
 
@@ -125,6 +129,14 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_instructi
         return transform_truncate_instruction(*truncate_instruction);
     } else if (tacky::ZeroExtendInstruction* zero_extend_instruction = dynamic_cast<tacky::ZeroExtendInstruction*>(&instruction)) {
         return transform_zero_extend_instruction(*zero_extend_instruction);
+    } else if (tacky::IntToDoubleIntruction* int_to_double_instruction = dynamic_cast<tacky::IntToDoubleIntruction*>(&instruction)) {
+        return transform_int_to_double_instruction(*int_to_double_instruction);
+    } else if (tacky::DoubleToIntIntruction* double_to_int_instruction = dynamic_cast<tacky::DoubleToIntIntruction*>(&instruction)) {
+        return transform_double_to_int_instruction(*double_to_int_instruction);
+    } else if (tacky::UIntToDoubleIntruction* uint_to_double_instruction = dynamic_cast<tacky::UIntToDoubleIntruction*>(&instruction)) {
+        return transform_uint_to_double_instruction(*uint_to_double_instruction);
+    } else if (tacky::DoubleToUIntIntruction* double_to_uint_instruction = dynamic_cast<tacky::DoubleToUIntIntruction*>(&instruction)) {
+        return transform_double_to_uint_instruction(*double_to_uint_instruction);
     } else {
         assert(false && "AssemblyGenerator: Invalid or Unsupported tacky::Instruction");
         return {};
@@ -135,8 +147,9 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_return_in
 {
     std::vector<std::unique_ptr<Instruction>> instructions;
     auto [value_type, _] = get_operand_type(*return_instruction.value);
+    bool is_double = (value_type == AssemblyType::DOUBLE);
     std::unique_ptr<Operand> src = transform_operand(*return_instruction.value);
-    std::unique_ptr<Operand> dst = std::make_unique<Register>(RegisterName::AX);
+    std::unique_ptr<Operand> dst = std::make_unique<Register>(is_double ? RegisterName::XMM0 : RegisterName::AX);
     add_comment_instruction("return_instruction", instructions);
     instructions.emplace_back(std::make_unique<MovInstruction>(value_type, std::move(src), std::move(dst)));
     instructions.emplace_back(std::make_unique<ReturnInstruction>());
@@ -192,36 +205,129 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_zero_exte
     return instructions;
 }
 
+std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_int_to_double_instruction(tacky::IntToDoubleIntruction& int_to_double_instruction)
+{
+    std::vector<std::unique_ptr<Instruction>> instructions;
+    add_comment_instruction("int_to_double_instruction", instructions);
+    auto [src_type, _] = get_operand_type(*int_to_double_instruction.source);
+    std::unique_ptr<Operand> src = transform_operand(*int_to_double_instruction.source);
+    std::unique_ptr<Operand> dst = transform_operand(*int_to_double_instruction.destination);
+
+    instructions.emplace_back(std::make_unique<Cvtsi2sdInstruction>(src_type, std::move(src), std::move(dst)));
+    return instructions;
+}
+
+std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_double_to_int_instruction(tacky::DoubleToIntIntruction& double_to_int_instruction)
+{
+
+    std::vector<std::unique_ptr<Instruction>> instructions;
+    add_comment_instruction("double_to_int_instruction", instructions);
+    auto [dst_type, _] = get_operand_type(*double_to_int_instruction.destination);
+    std::unique_ptr<Operand> src = transform_operand(*double_to_int_instruction.source);
+    std::unique_ptr<Operand> dst = transform_operand(*double_to_int_instruction.destination);
+
+    instructions.emplace_back(std::make_unique<Cvtsi2sdInstruction>(dst_type, std::move(src), std::move(dst)));
+    return instructions;
+}
+
+std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_uint_to_double_instruction(tacky::UIntToDoubleIntruction& uint_to_double_instruction)
+{
+    std::vector<std::unique_ptr<Instruction>> instructions;
+    add_comment_instruction("uint_to_double_instruction", instructions);
+    auto [src_type, _] = get_operand_type(*uint_to_double_instruction.source);
+    std::unique_ptr<Operand> src = transform_operand(*uint_to_double_instruction.source);
+    std::unique_ptr<Operand> dst = transform_operand(*uint_to_double_instruction.destination);
+    RegisterName reg1_name = RegisterName::AX;
+    auto reg1 = std::make_unique<Register>(reg1_name);
+    RegisterName reg2_name = RegisterName::DX;
+    auto reg2 = std::make_unique<Register>(reg2_name);
+    if (src_type == AssemblyType::LONG_WORD) {
+        instructions.emplace_back(std::make_unique<MovZeroExtendInstruction>(std::move(src), reg1->clone()));
+        instructions.emplace_back(std::make_unique<Cvtsi2sdInstruction>(AssemblyType::QUAD_WORD, std::move(src), std::move(dst)));
+    } else {
+        std::string label1 = m_name_generator->make_label("uint_to_double");
+        std::string label2 = m_name_generator->make_label("uint_to_double");
+        instructions.emplace_back(std::make_unique<CmpInstruction>(AssemblyType::QUAD_WORD, std::make_unique<ImmediateValue>(0), src->clone()));
+        instructions.emplace_back(std::make_unique<JmpCCInstruction>(ConditionCode::L, label1));
+        instructions.emplace_back(std::make_unique<Cvtsi2sdInstruction>(AssemblyType::QUAD_WORD, src->clone(), dst->clone()));
+        instructions.emplace_back(std::make_unique<JmpInstruction>(label2));
+        instructions.emplace_back(std::make_unique<LabelInstruction>(label1));
+        instructions.emplace_back(std::make_unique<MovInstruction>(AssemblyType::QUAD_WORD, src->clone(), reg1->clone()));
+        instructions.emplace_back(std::make_unique<MovInstruction>(AssemblyType::QUAD_WORD, reg1->clone(), reg2->clone()));
+        instructions.emplace_back(std::make_unique<UnaryInstruction>(UnaryOperator::SHR, AssemblyType::QUAD_WORD, reg2->clone()));
+        instructions.emplace_back(std::make_unique<BinaryInstruction>(BinaryOperator::AND, AssemblyType::QUAD_WORD, std::make_unique<ImmediateValue>(1), reg1->clone()));
+        instructions.emplace_back(std::make_unique<BinaryInstruction>(BinaryOperator::OR, AssemblyType::QUAD_WORD, reg1->clone(), reg2->clone()));
+        instructions.emplace_back(std::make_unique<Cvtsi2sdInstruction>(AssemblyType::QUAD_WORD, reg2->clone(), dst->clone()));
+        instructions.emplace_back(std::make_unique<BinaryInstruction>(BinaryOperator::ADD, AssemblyType::DOUBLE, dst->clone(), dst->clone()));
+        instructions.emplace_back(std::make_unique<LabelInstruction>(label2));
+    }
+    return instructions;
+}
+
+std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_double_to_uint_instruction(tacky::DoubleToUIntIntruction& double_to_uint_instruction)
+{
+    std::vector<std::unique_ptr<Instruction>> instructions;
+    add_comment_instruction("double_to_uint_instruction", instructions);
+    auto [src_type, _] = get_operand_type(*double_to_uint_instruction.source);
+    std::unique_ptr<Operand> src = transform_operand(*double_to_uint_instruction.source);
+    std::unique_ptr<Operand> dst = transform_operand(*double_to_uint_instruction.destination);
+    RegisterName regr_name = RegisterName::AX;
+    auto regr = std::make_unique<Register>(regr_name);
+    RegisterName regx_name = RegisterName::XMM0;
+    auto regx = std::make_unique<Register>(regx_name);
+    if (src_type == AssemblyType::LONG_WORD) {
+        instructions.emplace_back(std::make_unique<Cvttsd2siInstruction>(AssemblyType::QUAD_WORD, std::move(src), regr->clone()));
+        instructions.emplace_back(std::make_unique<MovInstruction>(AssemblyType::LONG_WORD, regr->clone(), std::move(dst)));
+    } else {
+        std::string label1 = m_name_generator->make_label("uint_to_double");
+        std::string label2 = m_name_generator->make_label("uint_to_double");
+        std::string upper_bound_label = add_static_constant(9223372036854775808.0, 8);
+
+        instructions.emplace_back(std::make_unique<CmpInstruction>(AssemblyType::QUAD_WORD, std::make_unique<DataOperand>(upper_bound_label), src->clone()));
+        instructions.emplace_back(std::make_unique<JmpCCInstruction>(ConditionCode::AE, label1));
+        instructions.emplace_back(std::make_unique<Cvttsd2siInstruction>(AssemblyType::QUAD_WORD, src->clone(), dst->clone()));
+        instructions.emplace_back(std::make_unique<JmpInstruction>(label2));
+        instructions.emplace_back(std::make_unique<LabelInstruction>(label1));
+        instructions.emplace_back(std::make_unique<MovInstruction>(AssemblyType::DOUBLE, src->clone(), regx->clone()));
+        instructions.emplace_back(std::make_unique<BinaryInstruction>(BinaryOperator::SUB, AssemblyType::DOUBLE, std::make_unique<DataOperand>(upper_bound_label), regx->clone()));
+        instructions.emplace_back(std::make_unique<Cvttsd2siInstruction>(AssemblyType::QUAD_WORD, regx->clone(), dst->clone()));
+        instructions.emplace_back(std::make_unique<BinaryInstruction>(BinaryOperator::AND, AssemblyType::QUAD_WORD, std::make_unique<ImmediateValue>(9223372036854775808ul), regr->clone()));
+        instructions.emplace_back(std::make_unique<BinaryInstruction>(BinaryOperator::ADD, AssemblyType::QUAD_WORD, regr->clone(), dst->clone()));
+        instructions.emplace_back(std::make_unique<LabelInstruction>(label2));
+    }
+    return instructions;
+}
+
 std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_unary_instruction(tacky::UnaryInstruction& unary_instruction)
 {
     std::vector<std::unique_ptr<Instruction>> instructions;
     auto source_type = get_operand_type(*unary_instruction.source).first;
     auto destination_type = get_operand_type(*unary_instruction.destination).first;
     bool is_double = (source_type == AssemblyType::DOUBLE);
+    std::unique_ptr<Operand> src = transform_operand(*unary_instruction.source);
+    std::unique_ptr<Operand> dst = transform_operand(*unary_instruction.destination);
+    std::unique_ptr<Operand> dst_copy = dst->clone();
+    add_comment_instruction(std::format("unary_instruction operator: {}", static_cast<int>(unary_instruction.unary_operator)), instructions);
     if (unary_instruction.unary_operator == tacky::UnaryOperator::NOT) {
-        std::unique_ptr<Operand> src = transform_operand(*unary_instruction.source);
-        std::unique_ptr<Operand> dst = transform_operand(*unary_instruction.destination);
-        std::unique_ptr<Operand> dst_copy = dst->clone();
-        add_comment_instruction("not unary_instruction", instructions);
-        if(is_double){
-            //We need to align -0.0 to 16 bytes so that we can use it in the xorpd instruction
-            std::string const_label = add_static_constant(-0.0, 16);
-            auto data_operand = std::make_unique<DataOperand>(const_label);
-            instructions.emplace_back(std::make_unique<MovInstruction>(AssemblyType::DOUBLE, std::move(src), std::move(dst)));
-            instructions.emplace_back(std::make_unique<BinaryInstruction>(BinaryOperator::XOR, AssemblyType::DOUBLE, std::move(data_operand), std::move(dst_copy) ));
+        if (is_double) {
+            RegisterName reg = RegisterName::XMM0;
+            instructions.emplace_back(std::make_unique<BinaryInstruction>(BinaryOperator::XOR, AssemblyType::DOUBLE, std::make_unique<Register>(reg), std::make_unique<Register>(reg)));
+            instructions.emplace_back(std::make_unique<CmpInstruction>(source_type, std::make_unique<Register>(reg), std::move(src)));
         } else {
             instructions.emplace_back(std::make_unique<CmpInstruction>(source_type, std::make_unique<ImmediateValue>(0), std::move(src)));
-            instructions.emplace_back(std::make_unique<MovInstruction>(destination_type, std::make_unique<ImmediateValue>(0), std::move(dst)));
-            instructions.emplace_back(std::make_unique<SetCCInstruction>(ConditionCode::E, std::move(dst_copy)));
         }
+        instructions.emplace_back(std::make_unique<MovInstruction>(destination_type, std::make_unique<ImmediateValue>(0), std::move(dst)));
+        instructions.emplace_back(std::make_unique<SetCCInstruction>(ConditionCode::E, std::move(dst_copy)));
 
+    } else if (is_double && unary_instruction.unary_operator == tacky::UnaryOperator::NEGATE) {
+        // We need to align -0.0 to 16 bytes so that we can use it in the xorpd instruction
+        std::string const_label = add_static_constant(-0.0, 16);
+        auto data_operand = std::make_unique<DataOperand>(const_label);
+        instructions.emplace_back(std::make_unique<MovInstruction>(AssemblyType::DOUBLE, std::move(src), std::move(dst)));
+        instructions.emplace_back(std::make_unique<BinaryInstruction>(BinaryOperator::XOR, AssemblyType::DOUBLE, std::move(data_operand), std::move(dst_copy)));
     } else {
-        std::unique_ptr<Operand> src = transform_operand(*unary_instruction.source);
-        std::unique_ptr<Operand> dst = transform_operand(*unary_instruction.destination);
-        std::unique_ptr<Operand> dst_copy = dst->clone();
-        add_comment_instruction("unary_instruction", instructions);
-        instructions.emplace_back(std::make_unique<MovInstruction>(source_type, std::move(src), std::move(dst)));
 
+        instructions.emplace_back(std::make_unique<MovInstruction>(source_type, std::move(src), std::move(dst)));
         UnaryOperator op = transform_operator(unary_instruction.unary_operator);
         instructions.emplace_back(std::make_unique<UnaryInstruction>(op, source_type, std::move(dst_copy)));
     }
@@ -242,7 +348,7 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_binary_in
         add_comment_instruction("relational binary_instruction", instructions);
         instructions.emplace_back(std::make_unique<CmpInstruction>(source1_type, std::move(src2), std::move(src1)));
         instructions.emplace_back(std::make_unique<MovInstruction>(destination_type, std::make_unique<ImmediateValue>(0), std::move(dst)));
-        //condition code differs between signed and unsigned/double
+        // condition code differs between signed and unsigned/double
         instructions.emplace_back(std::make_unique<SetCCInstruction>(to_condition_code(binary_instruction.binary_operator, is_signed), std::move(dst_copy)));
     } else if (binary_instruction.binary_operator == tacky::BinaryOperator::DIVIDE) {
         std::unique_ptr<Operand> src1 = transform_operand(*binary_instruction.source1);
@@ -250,10 +356,10 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_binary_in
         std::unique_ptr<Operand> dst = transform_operand(*binary_instruction.destination);
         std::unique_ptr<Operand> dst_copy = dst->clone();
         add_comment_instruction("divide binary_instruction", instructions);
-        if(is_double){
+        if (is_double) {
             instructions.emplace_back(std::make_unique<MovInstruction>(source1_type, std::move(src1), std::move(dst)));
             instructions.emplace_back(std::make_unique<BinaryInstruction>(BinaryOperator::DIV_DOUBLE, source1_type, std::move(src2), std::move(dst_copy)));
-        } else{
+        } else {
             instructions.emplace_back(std::make_unique<MovInstruction>(source1_type, std::move(src1), std::make_unique<Register>(RegisterName::AX)));
             if (is_signed) {
                 instructions.emplace_back(std::make_unique<CdqInstruction>(source1_type));
@@ -305,8 +411,8 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_jump_inst
         bool is_double = (condition_type == AssemblyType::DOUBLE);
         std::unique_ptr<Operand> cond = transform_operand(*jump_if_zero_instruction->condition);
         add_comment_instruction("jump_if_zero_instruction", instructions);
-        if(is_double){
-            //zero-out XMM0
+        if (is_double) {
+            // zero-out XMM0
             instructions.emplace_back(std::make_unique<BinaryInstruction>(BinaryOperator::XOR, condition_type, std::make_unique<Register>(RegisterName::XMM0), std::make_unique<Register>(RegisterName::XMM0)));
             instructions.emplace_back(std::make_unique<CmpInstruction>(condition_type, std::make_unique<Register>(RegisterName::XMM0), std::move(cond)));
         } else {
@@ -319,8 +425,8 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_jump_inst
         bool is_double = (condition_type == AssemblyType::DOUBLE);
         std::unique_ptr<Operand> cond = transform_operand(*jump_if_not_zero_instruction->condition);
         add_comment_instruction("jump_if_not_zero_instruction", instructions);
-        if(is_double){
-            //zero-out XMM0
+        if (is_double) {
+            // zero-out XMM0
             instructions.emplace_back(std::make_unique<BinaryInstruction>(BinaryOperator::XOR, AssemblyType::DOUBLE, std::make_unique<Register>(RegisterName::XMM0), std::make_unique<Register>(RegisterName::XMM0)));
             instructions.emplace_back(std::make_unique<CmpInstruction>(condition_type, std::make_unique<Register>(RegisterName::XMM0), std::move(cond)));
         } else {
@@ -338,13 +444,31 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_function_
     std::vector<std::unique_ptr<Instruction>> instructions;
 
     std::vector<std::unique_ptr<tacky::Value>>& tacky_arguments = function_call_instruction.arguments;
-    const size_t max_reg_args_size = FUN_REGISTERS.size();
-    const size_t reg_args_size = std::min(max_reg_args_size, tacky_arguments.size());
-    const size_t stack_args_size = std::max(0, (int)tacky_arguments.size() - (int)max_reg_args_size);
+
+    // classify parameters
+    std::vector<size_t> int_reg_args;
+    std::vector<size_t> double_reg_args;
+    std::vector<size_t> stack_args;
+    for (size_t i = 0; i < tacky_arguments.size(); ++i) {
+        auto [arg_type, _] = get_operand_type(*tacky_arguments[i].get());
+        if (arg_type == AssemblyType::DOUBLE) {
+            if (double_reg_args.size() < DOUBLE_FUNCTION_REGISTERS.size()) {
+                double_reg_args.push_back(i);
+            } else {
+                stack_args.push_back(i);
+            }
+        } else {
+            if (int_reg_args.size() < INT_FUNCTION_REGISTERS.size()) {
+                int_reg_args.push_back(i);
+            } else {
+                stack_args.push_back(i);
+            }
+        }
+    }
 
     // adjust stack alignment
     int stack_padding = 0;
-    if (stack_args_size % 2 != 0) {
+    if (stack_args.size() % 2 != 0) {
         stack_padding = 8;
     }
 
@@ -354,31 +478,42 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_function_
             std::make_unique<ImmediateValue>(stack_padding), std::make_unique<Register>(RegisterName::SP)));
     }
 
-    if (reg_args_size > 0) {
-        add_comment_instruction("function_call register arguments", instructions);
+    if (int_reg_args.size() > 0) {
+        add_comment_instruction("function_call int register arguments", instructions);
     }
 
-    for (size_t i = 0; i < reg_args_size; ++i) {
-        RegisterName reg_name = FUN_REGISTERS[i];
+    for (size_t i : int_reg_args) {
+        RegisterName reg_name = INT_FUNCTION_REGISTERS[i];
         auto [arg_type, _] = get_operand_type(*tacky_arguments[i].get());
         std::unique_ptr<Operand> assembly_arg = transform_operand(*tacky_arguments[i].get());
 
         instructions.emplace_back(std::make_unique<MovInstruction>(arg_type, std::move(assembly_arg), std::make_unique<Register>(reg_name)));
     }
 
-    if (stack_args_size > 0) {
+    if (double_reg_args.size() > 0) {
+        add_comment_instruction("function_call double register arguments", instructions);
+    }
+
+    for (size_t i : double_reg_args) {
+        RegisterName reg_name = DOUBLE_FUNCTION_REGISTERS[i];
+        auto [arg_type, _] = get_operand_type(*tacky_arguments[i].get());
+        std::unique_ptr<Operand> assembly_arg = transform_operand(*tacky_arguments[i].get());
+
+        instructions.emplace_back(std::make_unique<MovInstruction>(arg_type, std::move(assembly_arg), std::make_unique<Register>(reg_name)));
+    }
+
+    if (stack_args.size() > 0) {
         add_comment_instruction("function_call stack arguments", instructions);
     }
 
-    for (size_t i = 0; i < stack_args_size; ++i) {
-        int j = tacky_arguments.size() - 1 - i; // reverse
-        auto [arg_type, _] = get_operand_type(*tacky_arguments[j].get());
-        std::unique_ptr<Operand> assembly_arg = transform_operand(*tacky_arguments[j].get());
-        if (dynamic_cast<Register*>(assembly_arg.get()) || dynamic_cast<ImmediateValue*>(assembly_arg.get()) || arg_type == AssemblyType::QUAD_WORD) {
+    for (size_t i : std::views::reverse(stack_args)) {
+        auto [arg_type, _] = get_operand_type(*tacky_arguments[i].get());
+        std::unique_ptr<Operand> assembly_arg = transform_operand(*tacky_arguments[i].get());
+        if (dynamic_cast<Register*>(assembly_arg.get()) || dynamic_cast<ImmediateValue*>(assembly_arg.get()) || arg_type == AssemblyType::QUAD_WORD || arg_type == AssemblyType::DOUBLE) {
             instructions.emplace_back(std::make_unique<PushInstruction>(std::move(assembly_arg)));
         } else {
             // Because we can run into trouble if we push a 4-byte operand from memory into the stack we first move it into AX
-            instructions.emplace_back(std::make_unique<MovInstruction>(AssemblyType::LONG_WORD, std::move(assembly_arg), std::make_unique<Register>(RegisterName::AX)));
+            instructions.emplace_back(std::make_unique<MovInstruction>(arg_type, std::move(assembly_arg), std::make_unique<Register>(RegisterName::AX)));
             instructions.emplace_back(std::make_unique<PushInstruction>(std::make_unique<Register>(RegisterName::AX)));
         }
     }
@@ -387,7 +522,7 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_function_
     instructions.emplace_back(std::make_unique<CallInstruction>(function_call_instruction.name.name));
 
     // adjust stack pointer
-    int bytes_to_remove = 8 * stack_args_size + stack_padding;
+    int bytes_to_remove = 8 * stack_args.size() + stack_padding;
     if (bytes_to_remove != 0) {
         add_comment_instruction("function_call adjust stack pointer", instructions);
         instructions.emplace_back(std::make_unique<BinaryInstruction>(BinaryOperator::ADD, AssemblyType::QUAD_WORD,
@@ -397,8 +532,9 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_function_
     // retrieve return value
     std::unique_ptr<Operand> dst = transform_operand(*function_call_instruction.destination);
     auto [dst_type, _] = get_operand_type(*function_call_instruction.destination);
+    bool is_dst_double = (dst_type == AssemblyType::DOUBLE);
     add_comment_instruction("function_call mov return value", instructions);
-    instructions.emplace_back(std::make_unique<MovInstruction>(dst_type, std::make_unique<Register>(RegisterName::AX), std::move(dst)));
+    instructions.emplace_back(std::make_unique<MovInstruction>(dst_type, std::make_unique<Register>(is_dst_double ? RegisterName::XMM0 : RegisterName::AX), std::move(dst)));
     return instructions;
 }
 
@@ -414,34 +550,64 @@ std::unique_ptr<FunctionDefinition> AssemblyGenerator::transform_function(tacky:
     const auto& symbol = m_symbol_table->symbol_at(function_definition.name.name);
     auto function_type = dynamic_cast<const FunctionType*>(symbol.type.get());
     assert(function_type && "Invalid Function type at AssemblyGenerator::transform_function");
-    const auto& arg_types = function_type->parameters_type;
+    const auto& param_types = function_type->parameters_type;
 
-    const size_t max_reg_args_size = FUN_REGISTERS.size();
-    const size_t reg_args_size = std::min(max_reg_args_size, tacky_parameters.size());
+    // classify parameters
+    std::vector<size_t> int_reg_params;
+    std::vector<size_t> double_reg_params;
+    std::vector<size_t> stack_params;
+    for (size_t i = 0; i < tacky_parameters.size(); ++i) {
+        auto [param_type, _] = convert_type(*param_types.at(i));
+        if (param_type == AssemblyType::DOUBLE) {
+            if (double_reg_params.size() < DOUBLE_FUNCTION_REGISTERS.size()) {
+                double_reg_params.push_back(i);
+            } else {
+                stack_params.push_back(i);
+            }
+        } else {
+            if (int_reg_params.size() < INT_FUNCTION_REGISTERS.size()) {
+                int_reg_params.push_back(i);
+            } else {
+                stack_params.push_back(i);
+            }
+        }
+    }
 
     // move register parameters from registers to pseudo registers
-    if (reg_args_size > 0) {
-        add_comment_instruction("function_definition register parameters", instructions);
+    if (int_reg_params.size() > 0) {
+        add_comment_instruction("function_definition int register parameters", instructions);
     }
+    for (size_t i : int_reg_params) {
+        auto [param_type, _] = convert_type(*param_types.at(i));
 
-    for (size_t i = 0; i < reg_args_size; ++i) {
-        auto [arg_type, _] = convert_type(*arg_types.at(i));
-
-        std::unique_ptr<Register> reg = std::make_unique<Register>(FUN_REGISTERS[i]);
+        std::unique_ptr<Register> reg = std::make_unique<Register>(INT_FUNCTION_REGISTERS[i]);
         std::unique_ptr<PseudoRegister> pseudo_reg = std::make_unique<PseudoRegister>(tacky_parameters[i]);
-        instructions.emplace_back(std::make_unique<MovInstruction>(arg_type, std::move(reg), std::move(pseudo_reg)));
+        instructions.emplace_back(std::make_unique<MovInstruction>(param_type, std::move(reg), std::move(pseudo_reg)));
     }
 
-    if ((tacky_parameters.size() - reg_args_size) > 0) {
+    // move register parameters from registers to pseudo registers
+    if (double_reg_params.size() > 0) {
+        add_comment_instruction("function_definition double register parameters", instructions);
+    }
+    for (size_t i : double_reg_params) {
+        auto [param_type, _] = convert_type(*param_types.at(i));
+
+        std::unique_ptr<Register> reg = std::make_unique<Register>(DOUBLE_FUNCTION_REGISTERS[i]);
+        std::unique_ptr<PseudoRegister> pseudo_reg = std::make_unique<PseudoRegister>(tacky_parameters[i]);
+        instructions.emplace_back(std::make_unique<MovInstruction>(param_type, std::move(reg), std::move(pseudo_reg)));
+    }
+
+    if (stack_params.size() > 0) {
         add_comment_instruction("function_definition stack parameters", instructions);
     }
 
     int stack_offset = 16;
-    for (size_t i = reg_args_size; i < tacky_parameters.size(); ++i, stack_offset += 8) {
-        auto [arg_type, _] = convert_type(*arg_types.at(i));
+    for (size_t i : stack_params) {
+        auto [param_type, _] = convert_type(*param_types.at(i));
         std::unique_ptr<StackAddress> stack_addr = std::make_unique<StackAddress>(stack_offset);
         std::unique_ptr<PseudoRegister> pseudo_reg = std::make_unique<PseudoRegister>(tacky_parameters[i]);
-        instructions.emplace_back(std::make_unique<MovInstruction>(arg_type, std::move(stack_addr), std::move(pseudo_reg)));
+        instructions.emplace_back(std::make_unique<MovInstruction>(param_type, std::move(stack_addr), std::move(pseudo_reg)));
+        stack_offset += 8;
     }
 
     add_comment_instruction("function_definition body", instructions);
@@ -474,8 +640,8 @@ std::unique_ptr<Program> AssemblyGenerator::transform_program(tacky::Program& pr
         definitions.emplace_back(transform_top_level(*def));
     }
 
-    //Add constants to the list of top level constructs
-    for(auto& p : m_static_constants_map){
+    // Add constants to the list of top level constructs
+    for (auto& p : m_static_constants_map) {
         definitions.emplace_back(std::move(p.second));
     }
 
@@ -570,15 +736,15 @@ void AssemblyGenerator::add_comment_instruction(const std::string& message, std:
 std::string AssemblyGenerator::add_static_constant(double val, size_t alignment)
 {
     std::string label = get_constant_label(val, alignment);
-    if(!m_static_constants_map.contains(label)){
+    if (!m_static_constants_map.contains(label)) {
         m_static_constants_map[label] = std::make_unique<StaticConstant>(label, alignment, val);
-        m_backend_symbol_table->insert_symbol(label, ObjectEntry{AssemblyType::DOUBLE, true, true});
+        m_backend_symbol_table->insert_symbol(label, ObjectEntry { AssemblyType::DOUBLE, true, true });
     }
     return label;
 }
 
 std::string AssemblyGenerator::get_constant_label(double val, size_t alignment)
 {
-    //This prevent duplicate constants
+    // This prevent duplicate constants
     return "const.label_" + std::to_string(val) + "_" + std::to_string(alignment);
 }

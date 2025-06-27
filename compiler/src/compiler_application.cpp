@@ -219,7 +219,7 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
 
     std::shared_ptr<backend::AssemblyAST> assembly_ast;
     try {
-        backend::AssemblyGenerator assembly_generator(tacky_ast, symbol_table, backend_symbol_table, compile_options);
+        backend::AssemblyGenerator assembly_generator(tacky_ast, symbol_table, backend_symbol_table, compile_options, name_generator);
         assembly_ast = assembly_generator.generate();
         if (logging::LogManager::logger()->is_enabled(LOG_CONTEXT, logging::LogLevel::DEBUG)) {
             std::string debug_str = "Parsed Program\n";

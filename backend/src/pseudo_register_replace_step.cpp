@@ -38,6 +38,18 @@ void PseudoRegisterReplaceStep::visit(MovZeroExtendInstruction& node)
     check_and_replace(node.destination);
 }
 
+void PseudoRegisterReplaceStep::visit(Cvttsd2siInstruction& node)
+{
+    check_and_replace(node.source);
+    check_and_replace(node.destination);
+}
+
+void PseudoRegisterReplaceStep::visit(Cvtsi2sdInstruction& node)
+{
+    check_and_replace(node.source);
+    check_and_replace(node.destination);
+}
+
 void PseudoRegisterReplaceStep::visit(UnaryInstruction& node)
 {
     check_and_replace(node.operand);
@@ -120,7 +132,7 @@ size_t PseudoRegisterReplaceStep::get_offset(AssemblyType type, const std::strin
     if (!m_stack_offsets.contains(name)) {
         if (type == AssemblyType::LONG_WORD) {
             m_curr_offset += 4;
-        } else if (type == AssemblyType::QUAD_WORD) {
+        } else if (type == AssemblyType::QUAD_WORD || type == AssemblyType::DOUBLE) {
             m_curr_offset = round_up_8(m_curr_offset + 8);
         }
         m_stack_offsets[name] = m_curr_offset;

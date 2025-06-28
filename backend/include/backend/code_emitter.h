@@ -33,8 +33,8 @@ private:
     void visit(MovInstruction& node) override;
     void visit(MovsxInstruction& node) override;
     void visit(MovZeroExtendInstruction& node) override { throw CodeEmitterError("Found MovZeroExtendInstruction node during CodeEmission"); }
-    void visit(Cvttsd2siInstruction& node) override { } // TODO: IMPLEMENT IF NEEDED
-    void visit(Cvtsi2sdInstruction& node) override { }  // TODO: IMPLEMENT IF NEEDED
+    void visit(Cvttsd2siInstruction& node) override;
+    void visit(Cvtsi2sdInstruction& node) override;
     void visit(UnaryInstruction& node) override;
     void visit(BinaryInstruction& node) override;
     void visit(CmpInstruction& node) override;
@@ -49,7 +49,7 @@ private:
     void visit(CallInstruction& node) override;
     void visit(FunctionDefinition& node) override;
     void visit(StaticVariable& node) override;
-    void visit(StaticConstant& node) override { } // TODO: IMPLEMENT IF NEEDED
+    void visit(StaticConstant& node) override;
     void visit(Program& node) override;
 
     std::string operator_instruction(UnaryOperator op);

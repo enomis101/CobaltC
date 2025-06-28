@@ -1,6 +1,7 @@
 #pragma once
 #include "common/data/symbol_table.h"
 #include "common/data/type.h"
+#include <cassert>
 #include <memory>
 #include <string>
 #include <vector>
@@ -91,7 +92,8 @@ enum class RegisterName {
     XMM6,
     XMM7,
     XMM14,
-    XMM15
+    XMM15,
+    MAX_REG
 };
 
 enum class AssemblyType {
@@ -193,6 +195,7 @@ public:
         : name { name }
         , type { type }
     {
+        if(name > RegisterName::MAX_REG) assert(false);
     }
 
     void accept(AssemblyVisitor& visitor) override
@@ -323,6 +326,14 @@ public:
         , source(std::move(src))
         , destination(std::move(dst))
     {
+        switch (type) {
+        case AssemblyType::LONG_WORD:
+        case AssemblyType::QUAD_WORD:
+        case AssemblyType::DOUBLE:
+            break;
+        default:
+            assert(false);
+        }
         check_and_replace_register_type(type, this->source.get());
         check_and_replace_register_type(type, this->destination.get());
     }

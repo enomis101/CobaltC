@@ -480,27 +480,33 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_function_
 
     if (int_reg_args.size() > 0) {
         add_comment_instruction("function_call int register arguments", instructions);
+        size_t reg_offset = 0;
+        for (size_t i : int_reg_args) {
+            RegisterName reg_name = INT_FUNCTION_REGISTERS[reg_offset];
+            auto [arg_type, _] = get_operand_type(*tacky_arguments[i].get());
+            std::unique_ptr<Operand> assembly_arg = transform_operand(*tacky_arguments[i].get());
+
+            instructions.emplace_back(std::make_unique<MovInstruction>(arg_type, std::move(assembly_arg), std::make_unique<Register>(reg_name)));
+            ++reg_offset;
+        }
     }
 
-    for (size_t i : int_reg_args) {
-        RegisterName reg_name = INT_FUNCTION_REGISTERS[i];
-        auto [arg_type, _] = get_operand_type(*tacky_arguments[i].get());
-        std::unique_ptr<Operand> assembly_arg = transform_operand(*tacky_arguments[i].get());
 
-        instructions.emplace_back(std::make_unique<MovInstruction>(arg_type, std::move(assembly_arg), std::make_unique<Register>(reg_name)));
-    }
 
     if (double_reg_args.size() > 0) {
         add_comment_instruction("function_call double register arguments", instructions);
+        size_t reg_offset = 0;
+        for (size_t i : double_reg_args) {
+            RegisterName reg_name = DOUBLE_FUNCTION_REGISTERS[reg_offset];
+            auto [arg_type, _] = get_operand_type(*tacky_arguments[i].get());
+            std::unique_ptr<Operand> assembly_arg = transform_operand(*tacky_arguments[i].get());
+
+            instructions.emplace_back(std::make_unique<MovInstruction>(arg_type, std::move(assembly_arg), std::make_unique<Register>(reg_name)));
+            ++reg_offset;
+        }
     }
 
-    for (size_t i : double_reg_args) {
-        RegisterName reg_name = DOUBLE_FUNCTION_REGISTERS[i];
-        auto [arg_type, _] = get_operand_type(*tacky_arguments[i].get());
-        std::unique_ptr<Operand> assembly_arg = transform_operand(*tacky_arguments[i].get());
 
-        instructions.emplace_back(std::make_unique<MovInstruction>(arg_type, std::move(assembly_arg), std::make_unique<Register>(reg_name)));
-    }
 
     if (stack_args.size() > 0) {
         add_comment_instruction("function_call stack arguments", instructions);
@@ -576,25 +582,31 @@ std::unique_ptr<FunctionDefinition> AssemblyGenerator::transform_function(tacky:
     // move register parameters from registers to pseudo registers
     if (int_reg_params.size() > 0) {
         add_comment_instruction("function_definition int register parameters", instructions);
-    }
-    for (size_t i : int_reg_params) {
-        auto [param_type, _] = convert_type(*param_types.at(i));
+        size_t reg_offset = 0;
+        for (size_t i : int_reg_params) {
+            auto [param_type, _] = convert_type(*param_types.at(i));
 
-        std::unique_ptr<Register> reg = std::make_unique<Register>(INT_FUNCTION_REGISTERS[i]);
-        std::unique_ptr<PseudoRegister> pseudo_reg = std::make_unique<PseudoRegister>(tacky_parameters[i]);
-        instructions.emplace_back(std::make_unique<MovInstruction>(param_type, std::move(reg), std::move(pseudo_reg)));
+            std::unique_ptr<Register> reg = std::make_unique<Register>(INT_FUNCTION_REGISTERS[reg_offset]);
+            std::unique_ptr<PseudoRegister> pseudo_reg = std::make_unique<PseudoRegister>(tacky_parameters[i]);
+            instructions.emplace_back(std::make_unique<MovInstruction>(param_type, std::move(reg), std::move(pseudo_reg)));
+            ++reg_offset;
+        }
     }
+
 
     // move register parameters from registers to pseudo registers
     if (double_reg_params.size() > 0) {
         add_comment_instruction("function_definition double register parameters", instructions);
-    }
-    for (size_t i : double_reg_params) {
-        auto [param_type, _] = convert_type(*param_types.at(i));
+        size_t reg_offset = 0;
+        for (size_t i : double_reg_params) {
+            auto [param_type, _] = convert_type(*param_types.at(i));
 
-        std::unique_ptr<Register> reg = std::make_unique<Register>(DOUBLE_FUNCTION_REGISTERS[i]);
-        std::unique_ptr<PseudoRegister> pseudo_reg = std::make_unique<PseudoRegister>(tacky_parameters[i]);
-        instructions.emplace_back(std::make_unique<MovInstruction>(param_type, std::move(reg), std::move(pseudo_reg)));
+            std::unique_ptr<Register> reg = std::make_unique<Register>(DOUBLE_FUNCTION_REGISTERS[reg_offset]);
+            std::unique_ptr<PseudoRegister> pseudo_reg = std::make_unique<PseudoRegister>(tacky_parameters[i]);
+            instructions.emplace_back(std::make_unique<MovInstruction>(param_type, std::move(reg), std::move(pseudo_reg)));
+            ++reg_offset;
+        }
+
     }
 
     if (stack_params.size() > 0) {
@@ -642,7 +654,7 @@ std::unique_ptr<Program> AssemblyGenerator::transform_program(tacky::Program& pr
 
     // Add constants to the list of top level constructs
     for (auto& p : m_static_constants_map) {
-        definitions.emplace_back(std::move(p.second));
+        definitions.emplace_back(std::move(p.second.second));
     }
 
     return std::make_unique<Program>(std::move(definitions));
@@ -701,6 +713,9 @@ std::pair<AssemblyType, bool> AssemblyGenerator::get_operand_type(tacky::Value& 
         } else if (std::holds_alternative<unsigned long>(tacky_constant->value)) {
             type = AssemblyType::QUAD_WORD;
             is_signed = false;
+        } else if (std::holds_alternative<double>(tacky_constant->value)) {
+            type = AssemblyType::DOUBLE;
+            is_signed = false;
         }
     } else if (tacky::TemporaryVariable* tacky_var = dynamic_cast<tacky::TemporaryVariable*>(&operand)) {
         const auto& symbol = m_symbol_table->symbol_at(tacky_var->identifier.name);
@@ -722,6 +737,8 @@ std::pair<AssemblyType, bool> AssemblyGenerator::convert_type(const Type& type)
         assembly_type = AssemblyType::LONG_WORD;
     } else if (dynamic_cast<const UnsignedLongType*>(&type)) {
         assembly_type = AssemblyType::QUAD_WORD;
+    } else if (dynamic_cast<const DoubleType*>(&type)) {
+        assembly_type = AssemblyType::DOUBLE;
     }
     return { assembly_type, is_signed };
 }
@@ -737,14 +754,16 @@ std::string AssemblyGenerator::add_static_constant(double val, size_t alignment)
 {
     std::string label = get_constant_label(val, alignment);
     if (!m_static_constants_map.contains(label)) {
-        m_static_constants_map[label] = std::make_unique<StaticConstant>(label, alignment, val);
-        m_backend_symbol_table->insert_symbol(label, ObjectEntry { AssemblyType::DOUBLE, true, true });
+        std::string compact_label = "const_label_" + std::to_string(m_static_constants_map.size());
+        m_static_constants_map[label].first = compact_label;
+        m_static_constants_map[label].second = std::make_unique<StaticConstant>(compact_label, alignment, val);
+        m_backend_symbol_table->insert_symbol(compact_label, ObjectEntry { AssemblyType::DOUBLE, true, true });
     }
-    return label;
+    return m_static_constants_map[label].first;
 }
 
 std::string AssemblyGenerator::get_constant_label(double val, size_t alignment)
 {
     // This prevent duplicate constants
-    return "const.label_" + std::to_string(val) + "_" + std::to_string(alignment);
+    return std::format("{}_{}", val, alignment);
 }

@@ -2,6 +2,7 @@
 #include "backend/assembly_ast.h"
 #include "backend/backend_symbol_table.h"
 #include "common/data/symbol_table.h"
+#include "common/data/type.h"
 #include <cassert>
 #include <filesystem>
 #include <format>
@@ -218,6 +219,36 @@ void CodeEmitter::visit(Register& node)
         *m_file_stream << "%rsp";
         break;
     }
+    case RegisterName::XMM0:
+        *m_file_stream << "%xmm0";
+        break;
+    case RegisterName::XMM1:
+        *m_file_stream << "%xmm1";
+        break;
+    case RegisterName::XMM2:
+        *m_file_stream << "%xmm2";
+        break;
+    case RegisterName::XMM3:
+        *m_file_stream << "%xmm3";
+        break;
+    case RegisterName::XMM4:
+        *m_file_stream << "%xmm4";
+        break;
+    case RegisterName::XMM5:
+        *m_file_stream << "%xmm5";
+        break;
+    case RegisterName::XMM6:
+        *m_file_stream << "%xmm6";
+        break;
+    case RegisterName::XMM7:
+        *m_file_stream << "%xmm7";
+        break;
+    case RegisterName::XMM14:
+        *m_file_stream << "%xmm14";
+        break;
+    case RegisterName::XMM15:
+        *m_file_stream << "%xmm15";
+        break;
     default:
         assert(false && "CodeEmitter: Unsupported RegisterName");
     }
@@ -230,7 +261,16 @@ void CodeEmitter::visit(StackAddress& node)
 
 void CodeEmitter::visit(DataOperand& node)
 {
-    *m_file_stream << std::format("{}(%rip)", node.identifier.name);
+    const std::string& data_name = node.identifier.name;
+    std::string label_name = data_name;
+    if (m_symbol_table->contains_symbol(data_name) && std::holds_alternative<ObjectEntry>(m_symbol_table->symbol_at(data_name))) {
+        auto& obj_entry = std::get<ObjectEntry>(m_symbol_table->symbol_at(data_name));
+        if (obj_entry.is_constant) {
+            label_name = ".L" + data_name;
+        }
+    }
+
+    *m_file_stream << std::format("{}(%rip)", label_name);
 }
 
 void CodeEmitter::visit(CommentInstruction& node)
@@ -263,6 +303,24 @@ void CodeEmitter::visit(MovsxInstruction& node)
     *m_file_stream << "\n";
 }
 
+void CodeEmitter::visit(Cvttsd2siInstruction& node)
+{
+    *m_file_stream << std::format("\tcvttsd2si{} ", to_instruction_suffix(node.type));
+    node.source->accept(*this);
+    *m_file_stream << ", ";
+    node.destination->accept(*this);
+    *m_file_stream << "\n";
+}
+
+void CodeEmitter::visit(Cvtsi2sdInstruction& node)
+{
+    *m_file_stream << std::format("\tcvtsi2sd{} ", to_instruction_suffix(node.type));
+    node.source->accept(*this);
+    *m_file_stream << ", ";
+    node.destination->accept(*this);
+    *m_file_stream << "\n";
+}
+
 void CodeEmitter::visit(UnaryInstruction& node)
 {
     *m_file_stream << std::format("\t{}{}\t", operator_instruction(node.unary_operator), to_instruction_suffix(node.type));
@@ -272,7 +330,13 @@ void CodeEmitter::visit(UnaryInstruction& node)
 
 void CodeEmitter::visit(BinaryInstruction& node)
 {
-    *m_file_stream << std::format("\t{}{}\t", operator_instruction(node.binary_operator), to_instruction_suffix(node.type));
+    if (node.binary_operator == BinaryOperator::XOR && node.type == AssemblyType::DOUBLE) {
+        *m_file_stream << std::format("\txorpd\t");
+    } else if (node.binary_operator == BinaryOperator::MULT && node.type == AssemblyType::DOUBLE) {
+        *m_file_stream << std::format("\tmulsd\t");
+    } else {
+        *m_file_stream << std::format("\t{}{}\t", operator_instruction(node.binary_operator), to_instruction_suffix(node.type));
+    }
     node.source->accept(*this);
     *m_file_stream << ",\t";
     node.destination->accept(*this);
@@ -281,7 +345,11 @@ void CodeEmitter::visit(BinaryInstruction& node)
 
 void CodeEmitter::visit(CmpInstruction& node)
 {
-    *m_file_stream << std::format("\tcmp{}\t", to_instruction_suffix(node.type));
+    if (node.type == AssemblyType::DOUBLE) {
+        *m_file_stream << std::format("\tcomisd\t");
+    } else {
+        *m_file_stream << std::format("\tcmp{}\t", to_instruction_suffix(node.type));
+    }
     node.source->accept(*this);
     *m_file_stream << ",\t";
     node.destination->accept(*this);
@@ -394,6 +462,32 @@ void CodeEmitter::visit(StaticVariable& node)
         *m_file_stream << std::format("\t.balign {}\n", node.alignment);
         *m_file_stream << std::format("{}:\n", node.name.name);
         *m_file_stream << std::format("\t{} {}\n", (init_to_zero ? ".zero" : ".quad"), (init_to_zero ? 8 : init_value));
+    } else if (std::holds_alternative<double>(node.static_init)) {
+        auto init_value = std::get<double>(node.static_init);
+        *m_file_stream << std::format("\t{}\n", (".data"));
+        *m_file_stream << std::format("\t.balign {}\n", node.alignment);
+        *m_file_stream << std::format("{}:\n", node.name.name);
+        *m_file_stream << std::format("\t{} {}\n", (".double"), (init_value));
+    }
+}
+
+void CodeEmitter::visit(StaticConstant& node)
+{
+    const auto& obj_attr = std::get<ObjectEntry>(m_symbol_table->symbol_at(node.name.name));
+
+    *m_file_stream << std::format("\t.section .rodata\n");
+    *m_file_stream << std::format("\t.balign {}\n", node.alignment);
+    if (obj_attr.is_constant) {
+        *m_file_stream << std::format(".L{}:\n", node.name.name);
+    } else {
+        *m_file_stream << std::format("{}:\n", node.name.name);
+    }
+
+    if (std::holds_alternative<double>(node.static_init)) {
+        auto init_value = std::get<double>(node.static_init);
+        *m_file_stream << std::format("\t{} {}\n", (".double"), (init_value));
+    } else {
+        throw CodeEmitterError("CodeEmitter: Unsupported StaticConstant type");
     }
 }
 
@@ -412,6 +506,8 @@ std::string CodeEmitter::operator_instruction(UnaryOperator op)
         return "neg";
     case UnaryOperator::NOT:
         return "not";
+    case UnaryOperator::SHR:
+        return "shr";
     default:
         throw CodeEmitterError("CodeEmitter: Unsupported UnaryOperator");
     }
@@ -426,6 +522,12 @@ std::string CodeEmitter::operator_instruction(BinaryOperator op)
         return "sub";
     case BinaryOperator::MULT:
         return "imul";
+    case BinaryOperator::DIV_DOUBLE:
+        return "div";
+    case BinaryOperator::AND:
+        return "and";
+    case BinaryOperator::OR:
+        return "or";
     default:
         throw CodeEmitterError("CodeEmitter: Unsupported BinaryOperator");
     }
@@ -466,6 +568,8 @@ std::string CodeEmitter::to_instruction_suffix(AssemblyType type)
         return "l";
     case AssemblyType::QUAD_WORD:
         return "q";
+    case AssemblyType::DOUBLE:
+        return "sd";
     default:
         break;
     }

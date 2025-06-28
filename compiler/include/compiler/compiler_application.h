@@ -2,6 +2,7 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <optional>
 
 class CompilerError : public std::runtime_error {
 public:
@@ -29,7 +30,7 @@ public:
 private:
     // Function to get the base name of a file (without directory and extension)
     int preprocess_file(const std::string& input_file, const std::string& output_file);
-    int assemble_and_link(const std::string& input_file, const std::string& output_file, bool skip_linking);
+    int assemble_and_link(const std::string& input_file, const std::string& output_file, bool skip_linking, const std::string& lib_operation);
     bool create_stub_assembly_file(const std::string& filename);
     static constexpr const char* LOG_CONTEXT = "compiler";
 };

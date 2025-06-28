@@ -277,7 +277,7 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
 
     LOG_INFO(LOG_CONTEXT, std::format("Assembling and linking '{}' to '{}'", assembly_file, output_file));
 
-    int assemble_and_link_result = assemble_and_link(assembly_file, output_file, skip_linking);
+    int assemble_and_link_result = assemble_and_link(assembly_file, output_file, skip_linking, is_lib_operation ? operation : "");
     if (assemble_and_link_result) {
         throw CompilerError(std::format(
             "Failed to assemble and link file '{}' to '{}' with error code {}\n"
@@ -331,14 +331,16 @@ int CompilerApplication::preprocess_file(const std::string& input_file, const st
     return result;
 }
 
-int CompilerApplication::assemble_and_link(const std::string& assembly_file, const std::string& output_file, bool skip_linking)
+int CompilerApplication::assemble_and_link(const std::string& assembly_file, const std::string& output_file, bool skip_linking, const std::string& lib_operation)
 {
     // Build the command string
     std::string command = "gcc";
     std::string flags = skip_linking ? " -c " : " ";
     std::string file_extension = output_file.substr(output_file.length() - 2);
     command += flags + assembly_file + " -o " + output_file;
-
+    if(lib_operation != ""){
+        command += " " + lib_operation;
+    }
     if (skip_linking && file_extension != ".o") {
         throw CompilerError(std::format("Output file must have .o extension"));
     }

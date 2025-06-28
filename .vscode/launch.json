@@ -6,7 +6,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/compiler/cobaltc-compiler",
-            "args": ["/home/simone/compiler/writing-a-c-compiler-tests/tests/chapter_13/valid/libraries/double_and_int_params_recursive.c", "-S"],
+            "args": ["/home/simone/compiler/writing-a-c-compiler-tests/tests/chapter_13/valid/explicit_casts/unsigned_to_double.c", "-S"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/",
             "environment": [],

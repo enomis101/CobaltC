@@ -244,19 +244,19 @@ bool Lexer::is_constant(TokenType type)
 
 double Lexer::parse_double(const std::string& lexeme)
 {
-    double result;
-    std::string_view sv(lexeme);
-
-    // https://en.cppreference.com/w/cpp/utility/from_chars.html
-    auto [ptr, ec] = std::from_chars(sv.data(), sv.data() + sv.size(), result);
-
-    if (ec == std::errc {}) {
-        return result; // Successfully parsed (including inf/-inf if supported)
-    } else if (ec == std::errc::result_out_of_range) {
-        // Handle overflow - assign appropriate infinity
-        return (lexeme[0] == '-') ? -std::numeric_limits<double>::infinity()
-                                  : std::numeric_limits<double>::infinity();
-    } else {
+    char* end;
+    errno = 0; // Clear errno before calling strtod
+    double result = std::strtod(lexeme.c_str(), &end);
+    
+    // Check if the entire string was consumed
+    if (end != lexeme.c_str() + lexeme.size()) {
         throw std::invalid_argument("Invalid number format");
     }
+    
+    // strtod handles overflow/underflow according to IEEE 754:
+    // - Overflow: returns ±HUGE_VAL (±infinity) and sets errno to ERANGE
+    // - Underflow: returns 0.0 and sets errno to ERANGE
+    // - Normal: returns the value and errno remains 0
+    
+    return result;
 }

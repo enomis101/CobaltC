@@ -226,7 +226,7 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_double_to
     std::unique_ptr<Operand> src = transform_operand(*double_to_int_instruction.source);
     std::unique_ptr<Operand> dst = transform_operand(*double_to_int_instruction.destination);
 
-    instructions.emplace_back(std::make_unique<Cvtsi2sdInstruction>(dst_type, std::move(src), std::move(dst)));
+    instructions.emplace_back(std::make_unique<Cvttsd2siInstruction>(dst_type, std::move(src), std::move(dst)));
     return instructions;
 }
 
@@ -242,8 +242,8 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_uint_to_d
     RegisterName reg2_name = RegisterName::DX;
     auto reg2 = std::make_unique<Register>(reg2_name);
     if (src_type == AssemblyType::LONG_WORD) {
-        instructions.emplace_back(std::make_unique<MovZeroExtendInstruction>(std::move(src), reg1->clone()));
-        instructions.emplace_back(std::make_unique<Cvtsi2sdInstruction>(AssemblyType::QUAD_WORD, std::move(src), std::move(dst)));
+        instructions.emplace_back(std::make_unique<MovZeroExtendInstruction>(src->clone(), reg1->clone()));
+        instructions.emplace_back(std::make_unique<Cvtsi2sdInstruction>(AssemblyType::QUAD_WORD, reg1->clone(), dst->clone()));
     } else {
         std::string label1 = m_name_generator->make_label("uint_to_double");
         std::string label2 = m_name_generator->make_label("uint_to_double");
@@ -276,8 +276,8 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_double_to
     RegisterName regx_name = RegisterName::XMM0;
     auto regx = std::make_unique<Register>(regx_name);
     if (src_type == AssemblyType::LONG_WORD) {
-        instructions.emplace_back(std::make_unique<Cvttsd2siInstruction>(AssemblyType::QUAD_WORD, std::move(src), regr->clone()));
-        instructions.emplace_back(std::make_unique<MovInstruction>(AssemblyType::LONG_WORD, regr->clone(), std::move(dst)));
+        instructions.emplace_back(std::make_unique<Cvttsd2siInstruction>(AssemblyType::QUAD_WORD, src->clone(), regr->clone()));
+        instructions.emplace_back(std::make_unique<MovInstruction>(AssemblyType::LONG_WORD, regr->clone(), dst->clone()));
     } else {
         std::string label1 = m_name_generator->make_label("uint_to_double");
         std::string label2 = m_name_generator->make_label("uint_to_double");
@@ -431,8 +431,8 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_jump_inst
             instructions.emplace_back(std::make_unique<CmpInstruction>(condition_type, std::make_unique<Register>(RegisterName::XMM0), std::move(cond)));
         } else {
             instructions.emplace_back(std::make_unique<CmpInstruction>(condition_type, std::make_unique<ImmediateValue>(0), std::move(cond)));
-            instructions.emplace_back(std::make_unique<JmpCCInstruction>(ConditionCode::NE, jump_if_not_zero_instruction->identifier.name));
         }
+        instructions.emplace_back(std::make_unique<JmpCCInstruction>(ConditionCode::NE, jump_if_not_zero_instruction->identifier.name));
     } else {
         assert(false && "AssemblyGenerator::transform_jump_instruction Invalid or Unsupported tacky::Instruction");
     }

@@ -415,7 +415,7 @@ void FixUpInstructionsStep::fixup_cvttsd2si_instruction(std::unique_ptr<Instruct
     std::unique_ptr<MovInstruction> mov_instruction = nullptr;
     if (!dynamic_cast<Register*>(cvttsd2si_instruction->destination.get())) {
         mov_instruction = std::make_unique<MovInstruction>(cvttsd2si_instruction->type, std::make_unique<Register>(RegisterName::R11), std::move(cvttsd2si_instruction->destination));
-        cvttsd2si_instruction->destination = std::make_unique<Register>(RegisterName::R11);
+        cvttsd2si_instruction->destination = std::make_unique<Register>(RegisterName::R11, cvttsd2si_instruction->type);
     }
     instructions.emplace_back(std::move(instruction));
     if (mov_instruction) {
@@ -430,11 +430,11 @@ void FixUpInstructionsStep::fixup_cvtsi2sd_instruction(std::unique_ptr<Instructi
     std::unique_ptr<MovInstruction> mov_instruction2 = nullptr;
     if (dynamic_cast<ImmediateValue*>(cvtsi2sd_instruction->source.get())) {
         mov_instruction1 = std::make_unique<MovInstruction>(cvtsi2sd_instruction->type, std::move(cvtsi2sd_instruction->source), std::make_unique<Register>(RegisterName::R10));
-        cvtsi2sd_instruction->source = std::make_unique<Register>(RegisterName::R10);
+        cvtsi2sd_instruction->source = std::make_unique<Register>(RegisterName::R10, cvtsi2sd_instruction->type);
     }
     if (!dynamic_cast<Register*>(cvtsi2sd_instruction->destination.get())) {
         mov_instruction2 = std::make_unique<MovInstruction>(AssemblyType::DOUBLE, std::make_unique<Register>(RegisterName::XMM15), std::move(cvtsi2sd_instruction->destination));
-        cvtsi2sd_instruction->destination = std::make_unique<Register>(RegisterName::XMM15);
+        cvtsi2sd_instruction->destination = std::make_unique<Register>(RegisterName::XMM15, AssemblyType::DOUBLE);
     }
     if (mov_instruction1) {
         instructions.emplace_back(std::move(mov_instruction1));

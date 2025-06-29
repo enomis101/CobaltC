@@ -61,7 +61,7 @@ std::unique_ptr<BlockItem> Parser::parse_block_item()
 void Parser::parse_parameter_list(std::vector<Identifier>& out_param_names, std::vector<std::unique_ptr<Type>>& out_param_types)
 {
     ENTER_CONTEXT("parse_parameter_list");
-
+    expect(TokenType::OPEN_PAREN);
     const Token* next_token = &peek();
     if (next_token->type() == TokenType::VOID_KW) {
         expect(TokenType::VOID_KW);
@@ -78,6 +78,8 @@ void Parser::parse_parameter_list(std::vector<Identifier>& out_param_names, std:
         }
         expect(TokenType::COMMA);
     }
+
+    expect(TokenType::CLOSE_PAREN);
 }
 
 std::unique_ptr<Declaration> Parser::parse_declaration()
@@ -91,11 +93,11 @@ std::unique_ptr<Declaration> Parser::parse_declaration()
     const Token* next_token = &peek();
 
     if (next_token->type() == TokenType::OPEN_PAREN) {
-        expect(TokenType::OPEN_PAREN);
+
         std::vector<Identifier> param_names;
         std::vector<std::unique_ptr<Type>> param_types;
         parse_parameter_list(param_names, param_types);
-        expect(TokenType::CLOSE_PAREN);
+
 
         next_token = &peek();
         std::unique_ptr<Block> body = nullptr;
@@ -118,6 +120,34 @@ std::unique_ptr<Declaration> Parser::parse_declaration()
         std::unique_ptr<Expression> init_expr = parse_expression();
         expect(TokenType::SEMICOLON);
         return std::make_unique<VariableDeclaration>(loc, identifier_token.lexeme(), std::move(init_expr), std::move(type), storage_class, current_declaration_scope);
+    }
+}
+
+std::unique_ptr<Declarator> Parser::parse_declarator()
+{
+
+}
+
+std::unique_ptr<Declarator> Parser::parse_direct_declarator()
+{
+    
+}
+std::unique_ptr<Declarator> Parser::parse_simple_declarator()
+{
+    ENTER_CONTEXT("parse_simple_declarator");
+
+    const Token& next_token = peek();
+    SourceLocationIndex loc = m_source_manager->get_index(next_token);
+    if(next_token.type() == TokenType::IDENTIFIER){
+        const Token& identifier_token = expect(TokenType::IDENTIFIER);
+        return std::make_unique<IdentifierDeclarator>(identifier_token.lexeme());
+    } else if(next_token.type() == TokenType::OPEN_PAREN){
+        expect(TokenType::OPEN_PAREN);
+        auto decl = parse_declarator();
+        expect(TokenType::CLOSE_PAREN);
+        return decl;
+    } else{
+        throw ParserError(*this, std::format("Error in parse_simple_declarator at\n{}", m_source_manager->get_source_line(loc)));
     }
 }
 
@@ -696,3 +726,32 @@ std::string Parser::context_stack_to_string() const
     }
     return context_string;
 }
+
+
+std::tuple<std::string, std::unique_ptr<Type>, std::vector<std::string>> Parser::process_declarator(const Declarator& declarator, const Type& type)
+{
+    if(auto id_decl = dynamic_cast<const IdentifierDeclarator*>(&declarator)){
+        return {id_decl->identfier, type.clone(), std::vector<std::string>()};
+    } else if(auto ptr_decl = dynamic_cast<const PointerDeclarator*>(&declarator)){
+        std::unique_ptr<Type> derived_type = std::make_unique<PointerType>(type.clone());
+        return process_declarator(*ptr_decl->inner_declarator,*derived_type);
+    }else if(auto fun_decl = dynamic_cast<const FunctionDeclarator*>(&declarator)){
+        if(auto fun_id_decl = dynamic_cast<const IdentifierDeclarator*>(fun_decl->declarator.get())){
+            std::vector<std::string> param_names;
+            std::vector<std::unique_ptr<Type>> param_types;
+            for(auto& param : fun_decl->parameters){
+                auto [param_name, param_type, _] = process_declarator(*param.parameter_declarator, *param.parameter_type);
+                if(is_type<FunctionType>(*param_type)){
+                    throw DeclaratorError("Function pointers in parametrs arent supported");
+                }
+                param_names.push_back(std::move(param_name));
+                param_types.emplace_back((std::move(param_type)));
+            }
+            std::unique_ptr<Type> derived_type = std::make_unique<FunctionType>(type.clone(), std::move(param_types));
+            return {fun_id_decl->identfier, std::move(derived_type), param_names};
+        } else{
+            throw DeclaratorError("Can't apply additional type derivations to a function type");
+        }
+    }
+}
+

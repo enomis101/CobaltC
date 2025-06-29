@@ -5,6 +5,7 @@
 #include <typeinfo>
 #include <variant>
 #include <vector>
+#include <format>
 
 using ConstantType = std::variant<std::monostate, int, long, unsigned int, unsigned long, double>;
 
@@ -201,6 +202,42 @@ public:
 
     std::unique_ptr<Type> return_type;
     std::vector<std::unique_ptr<Type>> parameters_type;
+};
+
+class PointerType : public Type {
+public:
+    PointerType(std::unique_ptr<Type> referenced_type)
+        : referenced_type { std::move(referenced_type) }
+    {
+    }
+
+    std::unique_ptr<Type> clone() const override
+    {
+        // Clone the return type
+        auto cloned_referenced_type = referenced_type->clone();
+
+        // Create and return new PointerType with cloned components
+        return std::make_unique<PointerType>(
+            referenced_type->clone());
+    }
+
+    std::string to_string() const override
+    {
+        return std::format("{}*", referenced_type->to_string());
+    }
+
+    bool equals(const Type& other) const override
+    {
+        // First check if other is also a PointerType
+        const auto* other_pointer = dynamic_cast<const PointerType*>(&other);
+        if (!other_pointer) {
+            return false;
+        }
+
+        return referenced_type->equals(*other_pointer->referenced_type);
+    }
+
+    std::unique_ptr<Type> referenced_type;
 };
 
 template<typename T>

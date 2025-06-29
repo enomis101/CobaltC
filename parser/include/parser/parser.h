@@ -10,6 +10,47 @@
 
 namespace parser {
 
+class DeclaratorError : public std::runtime_error {
+public:
+    explicit DeclaratorError(const std::string& message)
+        : std::runtime_error(message)
+    {
+    }
+};
+
+class Declarator{
+public:
+    virtual ~Declarator() = default;
+};
+
+class ParameterDeclaratorInfo{
+public:
+    std::unique_ptr<Type> parameter_type;
+    std::unique_ptr<Declarator> parameter_declarator;
+};
+
+class IdentifierDeclarator : public Declarator{
+public:
+    IdentifierDeclarator(const std::string& identfier)
+    : identfier(identfier){}
+
+    std::string identfier;
+};
+
+class PointerDeclarator : public Declarator{
+public:
+    PointerDeclarator(std::unique_ptr<Declarator> inner_declarator)
+    : inner_declarator(std::move(inner_declarator)){}
+    std::unique_ptr<Declarator> inner_declarator;
+};
+    
+class FunctionDeclarator : public Declarator{
+public:
+    std::vector<ParameterDeclaratorInfo> parameters;
+    std::unique_ptr<Declarator> declarator;
+};
+
+
 class Parser {
 public:
     class ParserError : public std::runtime_error {
@@ -34,6 +75,10 @@ private:
     std::shared_ptr<SourceManager> m_source_manager;
 
     std::unique_ptr<Declaration> parse_declaration();
+    std::unique_ptr<Declarator> parse_declarator();
+    std::unique_ptr<Declarator> parse_direct_declarator();
+    std::unique_ptr<Declarator> parse_simple_declarator();
+
     std::unique_ptr<Block> parse_block();
     std::unique_ptr<BlockItem> parse_block_item();
     std::unique_ptr<ForInit> parse_for_init();
@@ -52,6 +97,8 @@ private:
     std::unique_ptr<Expression> parse_contant();
 
     StorageClass to_storage_class(TokenType tt);
+
+    std::tuple<std::string, std::unique_ptr<Type>, std::vector<std::string>> process_declarator(const Declarator& declarator, const Type& type);
 
     // Utility methods to check token types
     bool is_binary_operator(TokenType type);

@@ -49,6 +49,8 @@ class ForStatement;
 class ForInitDeclaration;
 class ForInitExpression;
 class CastExpression;
+class DereferenceExpression;
+class AddressOfExpression;
 
 // ParserVisitor interface
 class ParserVisitor {
@@ -65,6 +67,8 @@ public:
     virtual void visit(AssignmentExpression& node) = 0;
     virtual void visit(ConditionalExpression& node) = 0;
     virtual void visit(FunctionCallExpression& node) = 0;
+    virtual void visit(DereferenceExpression& node) = 0;
+    virtual void visit(AddressOfExpression& node) = 0;
     virtual void visit(ExpressionStatement& node) = 0;
     virtual void visit(IfStatement& node) = 0;
     virtual void visit(NullStatement& node) = 0;
@@ -284,6 +288,38 @@ public:
 
     Identifier name;
     std::vector<std::unique_ptr<Expression>> arguments;
+};
+
+class DereferenceExpression : public Expression {
+public:
+    DereferenceExpression(SourceLocationIndex loc, std::unique_ptr<Expression> expr)
+        : Expression(loc)
+        , expression(std::move(expr))
+    {
+    }
+
+    void accept(ParserVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    std::unique_ptr<Expression> expression;
+};
+
+class AddressOfExpression : public Expression {
+public:
+    AddressOfExpression(SourceLocationIndex loc, std::unique_ptr<Expression> expr)
+        : Expression(loc)
+        , expression(std::move(expr))
+    {
+    }
+
+    void accept(ParserVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    std::unique_ptr<Expression> expression;
 };
 
 class BlockItem : public ParserAST {

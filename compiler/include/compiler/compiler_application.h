@@ -1,8 +1,8 @@
 #pragma once
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <vector>
-#include <optional>
 
 class CompilerError : public std::runtime_error {
 public:

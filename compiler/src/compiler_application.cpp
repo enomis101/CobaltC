@@ -338,7 +338,7 @@ int CompilerApplication::assemble_and_link(const std::string& assembly_file, con
     std::string flags = skip_linking ? " -c " : " ";
     std::string file_extension = output_file.substr(output_file.length() - 2);
     command += flags + assembly_file + " -o " + output_file;
-    if(lib_operation != ""){
+    if (lib_operation != "") {
         command += " " + lib_operation;
     }
     if (skip_linking && file_extension != ".o") {

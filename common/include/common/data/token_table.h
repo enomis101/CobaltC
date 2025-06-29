@@ -38,9 +38,11 @@ enum class TokenType {
     DECREMENT,
     COMPLEMENT,
     EXCLAMATION_POINT, // !
+    // MIX
+    AMPERSAND,
+    ASTERISK,
     // BINARY_OPERATORS
     PLUS,
-    ASTERISK,
     FORWARD_SLASH,
     PERCENT,
     // LOGICAL_OPERATORS

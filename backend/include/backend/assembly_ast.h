@@ -195,7 +195,8 @@ public:
         : name { name }
         , type { type }
     {
-        if(name > RegisterName::MAX_REG) assert(false);
+        if (name > RegisterName::MAX_REG)
+            assert(false);
     }
 
     void accept(AssemblyVisitor& visitor) override

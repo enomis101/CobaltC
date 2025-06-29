@@ -491,8 +491,6 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_function_
         }
     }
 
-
-
     if (double_reg_args.size() > 0) {
         add_comment_instruction("function_call double register arguments", instructions);
         size_t reg_offset = 0;
@@ -505,8 +503,6 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_function_
             ++reg_offset;
         }
     }
-
-
 
     if (stack_args.size() > 0) {
         add_comment_instruction("function_call stack arguments", instructions);
@@ -593,7 +589,6 @@ std::unique_ptr<FunctionDefinition> AssemblyGenerator::transform_function(tacky:
         }
     }
 
-
     // move register parameters from registers to pseudo registers
     if (double_reg_params.size() > 0) {
         add_comment_instruction("function_definition double register parameters", instructions);
@@ -606,7 +601,6 @@ std::unique_ptr<FunctionDefinition> AssemblyGenerator::transform_function(tacky:
             instructions.emplace_back(std::make_unique<MovInstruction>(param_type, std::move(reg), std::move(pseudo_reg)));
             ++reg_offset;
         }
-
     }
 
     if (stack_params.size() > 0) {

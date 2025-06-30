@@ -25,6 +25,9 @@ public:
 
 class ParameterDeclaratorInfo{
 public:
+    ParameterDeclaratorInfo(std::unique_ptr<Type> parameter_type, std::unique_ptr<Declarator> parameter_declarator)
+        : parameter_type(std::move(parameter_type))
+        , parameter_declarator(std::move(parameter_declarator)){}
     std::unique_ptr<Type> parameter_type;
     std::unique_ptr<Declarator> parameter_declarator;
 };
@@ -46,6 +49,9 @@ public:
     
 class FunctionDeclarator : public Declarator{
 public:
+    FunctionDeclarator(std::vector<ParameterDeclaratorInfo>&& parameters, std::unique_ptr<Declarator> declarator)
+        : parameters(std::move(parameters))
+        , declarator(std::move(declarator)){}
     std::vector<ParameterDeclaratorInfo> parameters;
     std::unique_ptr<Declarator> declarator;
 };
@@ -88,7 +94,7 @@ private:
     std::unique_ptr<Expression> parse_factor();
     std::unique_ptr<Type> parse_type();
     std::unique_ptr<Type> parse_type_specifier_list(const std::vector<TokenType>& type_specifiers);
-    void parse_parameter_list(std::vector<Identifier>& out_param_names, std::vector<std::unique_ptr<Type>>& out_param_types);
+    void parse_parameter_list(std::vector<ParameterDeclaratorInfo>& out_params);
 
     std::pair<std::unique_ptr<Type>, StorageClass> parse_type_and_storage_class();
 
@@ -98,7 +104,7 @@ private:
 
     StorageClass to_storage_class(TokenType tt);
 
-    std::tuple<std::string, std::unique_ptr<Type>, std::vector<std::string>> process_declarator(const Declarator& declarator, const Type& type);
+    std::tuple<std::string, std::unique_ptr<Type>, std::vector<Identifier>> process_declarator(const Declarator& declarator, const Type& type);
 
     // Utility methods to check token types
     bool is_binary_operator(TokenType type);

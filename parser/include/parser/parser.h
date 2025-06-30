@@ -18,6 +18,23 @@ public:
     }
 };
 
+class AbstractDeclarator{
+public:
+    virtual ~AbstractDeclarator() = default;
+};
+
+class BaseAbstractDeclarator : public AbstractDeclarator{
+public:
+};
+
+class PointerAbstractDeclarator : public AbstractDeclarator{
+public:
+    PointerAbstractDeclarator(std::unique_ptr<AbstractDeclarator> declarator)
+    : declarator(std::move(declarator)){}
+    std::unique_ptr<AbstractDeclarator> declarator;
+};
+    
+
 class Declarator{
 public:
     virtual ~Declarator() = default;
@@ -85,6 +102,9 @@ private:
     std::unique_ptr<Declarator> parse_direct_declarator();
     std::unique_ptr<Declarator> parse_simple_declarator();
 
+    std::unique_ptr<AbstractDeclarator> parse_abstract_declarator();
+    std::unique_ptr<AbstractDeclarator> parse_direct_abstract_declarator();
+
     std::unique_ptr<Block> parse_block();
     std::unique_ptr<BlockItem> parse_block_item();
     std::unique_ptr<ForInit> parse_for_init();
@@ -105,6 +125,7 @@ private:
     StorageClass to_storage_class(TokenType tt);
 
     std::tuple<std::string, std::unique_ptr<Type>, std::vector<Identifier>> process_declarator(const Declarator& declarator, const Type& type);
+    std::unique_ptr<Type> process_abstract_declarator(const AbstractDeclarator& declarator, const Type& base_type);
 
     // Utility methods to check token types
     bool is_binary_operator(TokenType type);

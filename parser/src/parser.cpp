@@ -145,7 +145,7 @@ std::unique_ptr<Declarator> Parser::parse_direct_declarator()
         parse_parameter_list(params);
         return std::make_unique<FunctionDeclarator>(std::move(params), std::move(simple_declarator));
     } else {
-      return simple_declarator;
+        return simple_declarator;
     }
 }
 
@@ -166,6 +166,36 @@ std::unique_ptr<Declarator> Parser::parse_simple_declarator()
     } else{
         throw ParserError(*this, std::format("Error in parse_simple_declarator at\n{}", m_source_manager->get_source_line(loc)));
     }
+}
+
+std::unique_ptr<AbstractDeclarator> Parser::parse_abstract_declarator()
+{
+    ENTER_CONTEXT("parse_abstract_declarator");
+
+    const Token& next_token = peek();
+    if(next_token.type() == TokenType::ASTERISK){
+        expect(TokenType::ASTERISK);
+        const Token& new_next_token = peek();
+        if(new_next_token.type() != TokenType::CLOSE_PAREN){
+            auto decl = parse_abstract_declarator();
+            return std::make_unique<PointerAbstractDeclarator>(std::move(decl));
+        } else{
+            return std::make_unique<BaseAbstractDeclarator>();
+        }
+    } else if(next_token.type() == TokenType::OPEN_PAREN){
+        return parse_direct_abstract_declarator();
+    } else {
+
+    }
+}
+
+std::unique_ptr<AbstractDeclarator> Parser::parse_direct_abstract_declarator()
+{
+    ENTER_CONTEXT("parse_direct_abstract_declarator");
+    expect(TokenType::OPEN_PAREN);
+    auto decl = parse_abstract_declarator();
+    expect(TokenType::CLOSE_PAREN);
+    return decl;
 }
 
 std::unique_ptr<ForInit> Parser::parse_for_init()
@@ -772,3 +802,14 @@ std::tuple<std::string, std::unique_ptr<Type>, std::vector<Identifier>> Parser::
     }
 }
 
+std::unique_ptr<Type> Parser::process_abstract_declarator(const AbstractDeclarator& declarator, const Type& base_type)
+{
+    if(auto id_decl = dynamic_cast<const BaseAbstractDeclarator*>(&declarator)){
+        return base_type.clone();
+    } else if(auto ptr_decl = dynamic_cast<const PointerAbstractDeclarator*>(&declarator)){
+        std::unique_ptr<Type> derived_type = std::make_unique<PointerType>(base_type.clone());
+        return process_abstract_declarator(*ptr_decl->declarator,*derived_type);
+    } else{
+        throw DeclaratorError("Unsupported abstract declarator");
+    }
+}

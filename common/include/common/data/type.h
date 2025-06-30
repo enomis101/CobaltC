@@ -1,11 +1,11 @@
 #pragma once
+#include <format>
 #include <memory>
 #include <sstream>
 #include <string>
 #include <typeinfo>
 #include <variant>
 #include <vector>
-#include <format>
 
 using ConstantType = std::variant<std::monostate, int, long, unsigned int, unsigned long, double>;
 

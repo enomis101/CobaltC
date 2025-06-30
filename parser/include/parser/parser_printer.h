@@ -27,6 +27,8 @@ public:
     void visit(AssignmentExpression& node) override;
     void visit(ConditionalExpression& node) override;
     void visit(FunctionCallExpression& node) override;
+    void visit(DereferenceExpression& node) override { } // TODO: IMPLEMENT
+    void visit(AddressOfExpression& node) override { }   // TODO: IMPLEMENT
     void visit(ExpressionStatement& node) override;
     void visit(IfStatement& node) override;
     void visit(NullStatement& node) override;

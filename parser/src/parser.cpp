@@ -67,18 +67,17 @@ void Parser::parse_parameter_list(std::vector<ParameterDeclaratorInfo>& out_para
     const Token* next_token = &peek();
     if (next_token->type() == TokenType::VOID_KW) {
         expect(TokenType::VOID_KW);
-        return;
-    }
-
-    while (true) {
-        auto type = parse_type();
-        auto declarator = parse_declarator();
-        out_params.emplace_back(std::move(type), std::move(declarator));
-        next_token = &peek();
-        if (next_token->type() == TokenType::CLOSE_PAREN) {
-            break;
+    } else {
+        while (true) {
+            auto type = parse_type();
+            auto declarator = parse_declarator();
+            out_params.emplace_back(std::move(type), std::move(declarator));
+            next_token = &peek();
+            if (next_token->type() == TokenType::CLOSE_PAREN) {
+                break;
+            }
+            expect(TokenType::COMMA);
         }
-        expect(TokenType::COMMA);
     }
 
     expect(TokenType::CLOSE_PAREN);
@@ -125,11 +124,11 @@ std::unique_ptr<Declarator> Parser::parse_declarator()
     ENTER_CONTEXT("parse_declarator");
 
     const Token& next_token = peek();
-    if(next_token.type() == TokenType::ASTERISK){
+    if (next_token.type() == TokenType::ASTERISK) {
         expect(TokenType::ASTERISK);
         auto decl = parse_declarator();
         return std::make_unique<PointerDeclarator>(std::move(decl));
-    } else{
+    } else {
         return parse_direct_declarator();
     }
 }
@@ -140,7 +139,7 @@ std::unique_ptr<Declarator> Parser::parse_direct_declarator()
 
     auto simple_declarator = parse_simple_declarator();
     const Token& next_token = peek();
-    if(next_token.type() == TokenType::OPEN_PAREN){
+    if (next_token.type() == TokenType::OPEN_PAREN) {
         std::vector<ParameterDeclaratorInfo> params;
         parse_parameter_list(params);
         return std::make_unique<FunctionDeclarator>(std::move(params), std::move(simple_declarator));
@@ -155,15 +154,15 @@ std::unique_ptr<Declarator> Parser::parse_simple_declarator()
 
     const Token& next_token = peek();
     SourceLocationIndex loc = m_source_manager->get_index(next_token);
-    if(next_token.type() == TokenType::IDENTIFIER){
+    if (next_token.type() == TokenType::IDENTIFIER) {
         const Token& identifier_token = expect(TokenType::IDENTIFIER);
         return std::make_unique<IdentifierDeclarator>(identifier_token.lexeme());
-    } else if(next_token.type() == TokenType::OPEN_PAREN){
+    } else if (next_token.type() == TokenType::OPEN_PAREN) {
         expect(TokenType::OPEN_PAREN);
         auto decl = parse_declarator();
         expect(TokenType::CLOSE_PAREN);
         return decl;
-    } else{
+    } else {
         throw ParserError(*this, std::format("Error in parse_simple_declarator at\n{}", m_source_manager->get_source_line(loc)));
     }
 }
@@ -173,20 +172,19 @@ std::unique_ptr<AbstractDeclarator> Parser::parse_abstract_declarator()
     ENTER_CONTEXT("parse_abstract_declarator");
 
     const Token& next_token = peek();
-    if(next_token.type() == TokenType::ASTERISK){
+    if (next_token.type() == TokenType::ASTERISK) {
         expect(TokenType::ASTERISK);
         const Token& new_next_token = peek();
-        if(new_next_token.type() != TokenType::CLOSE_PAREN){
+        if (new_next_token.type() != TokenType::CLOSE_PAREN) {
             auto decl = parse_abstract_declarator();
             return std::make_unique<PointerAbstractDeclarator>(std::move(decl));
-        } else{
+        } else {
             return std::make_unique<BaseAbstractDeclarator>();
         }
-    } else if(next_token.type() == TokenType::OPEN_PAREN){
+    } else if (next_token.type() == TokenType::OPEN_PAREN) {
         return parse_direct_abstract_declarator();
-    } else {
-
     }
+    return std::make_unique<BaseAbstractDeclarator>();
 }
 
 std::unique_ptr<AbstractDeclarator> Parser::parse_direct_abstract_declarator()
@@ -373,14 +371,25 @@ std::unique_ptr<Expression> Parser::parse_factor()
         UnaryOperator op = parse_unary_operator();
         std::unique_ptr<Expression> expr = parse_factor();
         return std::make_unique<UnaryExpression>(loc, op, std::move(expr));
+    } else if (next_token.type() == TokenType::ASTERISK) {
+        expect(TokenType::ASTERISK);
+        std::unique_ptr<Expression> expr = parse_factor();
+        return std::make_unique<DereferenceExpression>(loc, std::move(expr));
+    } else if (next_token.type() == TokenType::AMPERSAND) {
+        expect(TokenType::AMPERSAND);
+        std::unique_ptr<Expression> expr = parse_factor();
+        return std::make_unique<AddressOfExpression>(loc, std::move(expr));
     } else if (next_token.type() == TokenType::OPEN_PAREN) {
         expect(TokenType::OPEN_PAREN);
         const Token* new_next_token = &peek();
         if (is_type_specificer(new_next_token->type())) { // CAST
-            std::unique_ptr<Type> type = parse_type();
+            std::unique_ptr<Type> base_type = parse_type();
+            auto decl = parse_abstract_declarator();
+            auto derived_type = process_abstract_declarator(*decl, *base_type);
+
             expect(TokenType::CLOSE_PAREN);
             std::unique_ptr<Expression> factor = parse_factor();
-            return std::make_unique<CastExpression>(loc, std::move(type), std::move(factor));
+            return std::make_unique<CastExpression>(loc, std::move(derived_type), std::move(factor));
         } else {
             std::unique_ptr<Expression> res = parse_expression();
             expect(TokenType::CLOSE_PAREN);
@@ -717,7 +726,7 @@ std::pair<std::unique_ptr<Type>, StorageClass> Parser::parse_type_and_storage_cl
     std::vector<TokenType> type_specifiers;
     std::vector<TokenType> storage_classes;
     const Token* next_token = &peek();
-    while (next_token->type() != TokenType::IDENTIFIER) {
+    while (is_specificer(next_token->type())) {
 
         TokenType token_type = next_token->type();
         if (is_type_specificer(token_type)) {
@@ -774,42 +783,43 @@ std::string Parser::context_stack_to_string() const
     return context_string;
 }
 
-
 std::tuple<std::string, std::unique_ptr<Type>, std::vector<Identifier>> Parser::process_declarator(const Declarator& declarator, const Type& type)
 {
-    if(auto id_decl = dynamic_cast<const IdentifierDeclarator*>(&declarator)){
-        return {id_decl->identfier, type.clone(), std::vector<Identifier>()};
-    } else if(auto ptr_decl = dynamic_cast<const PointerDeclarator*>(&declarator)){
+    if (auto id_decl = dynamic_cast<const IdentifierDeclarator*>(&declarator)) {
+        return { id_decl->identifier, type.clone(), std::vector<Identifier>() };
+    } else if (auto ptr_decl = dynamic_cast<const PointerDeclarator*>(&declarator)) {
         std::unique_ptr<Type> derived_type = std::make_unique<PointerType>(type.clone());
-        return process_declarator(*ptr_decl->inner_declarator,*derived_type);
-    }else if(auto fun_decl = dynamic_cast<const FunctionDeclarator*>(&declarator)){
-        if(auto fun_id_decl = dynamic_cast<const IdentifierDeclarator*>(fun_decl->declarator.get())){
+        return process_declarator(*ptr_decl->inner_declarator, *derived_type);
+    } else if (auto fun_decl = dynamic_cast<const FunctionDeclarator*>(&declarator)) {
+        if (auto fun_id_decl = dynamic_cast<const IdentifierDeclarator*>(fun_decl->declarator.get())) {
             std::vector<Identifier> param_names;
             std::vector<std::unique_ptr<Type>> param_types;
-            for(auto& param : fun_decl->parameters){
+            for (auto& param : fun_decl->parameters) {
                 auto [param_name, param_type, _] = process_declarator(*param.parameter_declarator, *param.parameter_type);
-                if(is_type<FunctionType>(*param_type)){
+                if (is_type<FunctionType>(*param_type)) {
                     throw DeclaratorError("Function pointers in parametrs arent supported");
                 }
                 param_names.push_back(std::move(param_name));
                 param_types.emplace_back((std::move(param_type)));
             }
             std::unique_ptr<Type> derived_type = std::make_unique<FunctionType>(type.clone(), std::move(param_types));
-            return {fun_id_decl->identfier, std::move(derived_type), param_names};
-        } else{
+            return { fun_id_decl->identifier, std::move(derived_type), param_names };
+        } else {
             throw DeclaratorError("Can't apply additional type derivations to a function type");
         }
+    } else {
+        throw DeclaratorError("Unsuypported declarator type");
     }
 }
 
 std::unique_ptr<Type> Parser::process_abstract_declarator(const AbstractDeclarator& declarator, const Type& base_type)
 {
-    if(auto id_decl = dynamic_cast<const BaseAbstractDeclarator*>(&declarator)){
+    if (dynamic_cast<const BaseAbstractDeclarator*>(&declarator)) {
         return base_type.clone();
-    } else if(auto ptr_decl = dynamic_cast<const PointerAbstractDeclarator*>(&declarator)){
+    } else if (auto ptr_decl = dynamic_cast<const PointerAbstractDeclarator*>(&declarator)) {
         std::unique_ptr<Type> derived_type = std::make_unique<PointerType>(base_type.clone());
-        return process_abstract_declarator(*ptr_decl->declarator,*derived_type);
-    } else{
+        return process_abstract_declarator(*ptr_decl->declarator, *derived_type);
+    } else {
         throw DeclaratorError("Unsupported abstract declarator");
     }
 }

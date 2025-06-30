@@ -18,61 +18,69 @@ public:
     }
 };
 
-class AbstractDeclarator{
+class AbstractDeclarator {
 public:
     virtual ~AbstractDeclarator() = default;
 };
 
-class BaseAbstractDeclarator : public AbstractDeclarator{
+class BaseAbstractDeclarator : public AbstractDeclarator {
 public:
 };
 
-class PointerAbstractDeclarator : public AbstractDeclarator{
+class PointerAbstractDeclarator : public AbstractDeclarator {
 public:
     PointerAbstractDeclarator(std::unique_ptr<AbstractDeclarator> declarator)
-    : declarator(std::move(declarator)){}
+        : declarator(std::move(declarator))
+    {
+    }
     std::unique_ptr<AbstractDeclarator> declarator;
 };
-    
 
-class Declarator{
+class Declarator {
 public:
     virtual ~Declarator() = default;
 };
 
-class ParameterDeclaratorInfo{
+class ParameterDeclaratorInfo {
 public:
     ParameterDeclaratorInfo(std::unique_ptr<Type> parameter_type, std::unique_ptr<Declarator> parameter_declarator)
         : parameter_type(std::move(parameter_type))
-        , parameter_declarator(std::move(parameter_declarator)){}
+        , parameter_declarator(std::move(parameter_declarator))
+    {
+    }
     std::unique_ptr<Type> parameter_type;
     std::unique_ptr<Declarator> parameter_declarator;
 };
 
-class IdentifierDeclarator : public Declarator{
+class IdentifierDeclarator : public Declarator {
 public:
-    IdentifierDeclarator(const std::string& identfier)
-    : identfier(identfier){}
+    IdentifierDeclarator(const std::string& identifier)
+        : identifier(identifier)
+    {
+    }
 
-    std::string identfier;
+    std::string identifier;
 };
 
-class PointerDeclarator : public Declarator{
+class PointerDeclarator : public Declarator {
 public:
     PointerDeclarator(std::unique_ptr<Declarator> inner_declarator)
-    : inner_declarator(std::move(inner_declarator)){}
+        : inner_declarator(std::move(inner_declarator))
+    {
+    }
     std::unique_ptr<Declarator> inner_declarator;
 };
-    
-class FunctionDeclarator : public Declarator{
+
+class FunctionDeclarator : public Declarator {
 public:
     FunctionDeclarator(std::vector<ParameterDeclaratorInfo>&& parameters, std::unique_ptr<Declarator> declarator)
         : parameters(std::move(parameters))
-        , declarator(std::move(declarator)){}
+        , declarator(std::move(declarator))
+    {
+    }
     std::vector<ParameterDeclaratorInfo> parameters;
     std::unique_ptr<Declarator> declarator;
 };
-
 
 class Parser {
 public:

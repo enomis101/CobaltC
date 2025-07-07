@@ -549,21 +549,7 @@ std::optional<std::unique_ptr<Type>> TypeCheckPass::get_common_pointer_type(cons
 bool TypeCheckPass::is_null_pointer_constant_expression(const Expression& expr)
 {
     if (auto constant = dynamic_cast<const ConstantExpression*>(&expr)) {
-        return is_null_pointer_constant(constant->value);
-    }
-    return false;
-}
-
-bool TypeCheckPass::is_null_pointer_constant(const ConstantType& constant)
-{
-    if (std::holds_alternative<int>(constant)) {
-        return std::get<int>(constant) == 0;
-    } else if (std::holds_alternative<unsigned int>(constant)) {
-        return std::get<unsigned int>(constant) == 0;
-    } else if (std::holds_alternative<long>(constant)) {
-        return std::get<long>(constant) == 0;
-    } else if (std::holds_alternative<unsigned long>(constant)) {
-        return std::get<unsigned long>(constant) == 0;
+        return SymbolTable::is_null_pointer_constant(constant->value);
     }
     return false;
 }
@@ -599,14 +585,7 @@ void TypeCheckPass::convert_expression_to(std::unique_ptr<Expression>& expr, con
 
 std::expected<StaticInitialValueType, std::string> TypeCheckPass::convert_constant_type_by_assignment(const ConstantType& value, const Type& target_type, std::function<void(const std::string&)> warning_callback)
 {
-    if (is_type<PointerType>(target_type)) {
-        if (is_null_pointer_constant(value)) {
-            return StaticInitialValueType(0ul); // use unsigned long 0 as pointer are 64-bit unsigned integers
-        }
-        return std::unexpected("Cannot convert non-zero constant to pointer type");
-    } else {
-        return SymbolTable::convert_constant_type(value, target_type, warning_callback);
-    }
+    return SymbolTable::convert_constant_type(value, target_type, warning_callback);
 }
 
 bool TypeCheckPass::is_lvalue(const Expression& expr)

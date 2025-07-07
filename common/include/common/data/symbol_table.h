@@ -87,6 +87,8 @@ public:
 
     static std::expected<StaticInitialValueType, std::string> convert_constant_type(const ConstantType& value, const Type& target_type, std::function<void(const std::string&)> warning_callback = nullptr);
 
+    static bool is_null_pointer_constant(const ConstantType& constant);
+
 private:
     std::unordered_map<std::string, SymbolEntry> m_symbols;
 };

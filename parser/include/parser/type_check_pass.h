@@ -67,7 +67,6 @@ private:
     std::unique_ptr<Type> get_common_type(const Type& t1, const Type& t2);
     std::optional<std::unique_ptr<Type>> get_common_pointer_type(const Expression& expr1, const Expression& expr2);
     bool is_null_pointer_constant_expression(const Expression& expr);
-    bool is_null_pointer_constant(const ConstantType& constant_type);
 
     bool convert_expression_by_assignment(std::unique_ptr<Expression>& expr, const Type& target_type);
     void convert_expression_to(std::unique_ptr<Expression>& expr, const Type& target_type);

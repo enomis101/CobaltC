@@ -131,6 +131,18 @@ public:
     std::string name;
 };
 
+class ForInit : public ParserAST {
+public:
+    virtual ~ForInit() = default;
+
+protected:
+    // Protected constructor for derived classes
+    explicit ForInit(SourceLocationIndex loc)
+        : ParserAST(loc)
+    {
+    }
+};
+
 // Abstract class for all expressions
 class Expression : public ParserAST {
 public:
@@ -602,18 +614,6 @@ public:
     std::unique_ptr<Type> type;
     StorageClass storage_class;
     DeclarationScope scope;
-};
-
-class ForInit : public ParserAST {
-public:
-    virtual ~ForInit() = default;
-
-protected:
-    // Protected constructor for derived classes
-    explicit ForInit(SourceLocationIndex loc)
-        : ParserAST(loc)
-    {
-    }
 };
 
 class ForInitDeclaration : public ForInit {

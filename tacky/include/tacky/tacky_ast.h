@@ -36,6 +36,9 @@ class DoubleToIntIntruction;
 class DoubleToUIntIntruction;
 class IntToDoubleIntruction;
 class UIntToDoubleIntruction;
+class GetAddressInstruction;
+class LoadInstruction;
+class StoreInstruction;
 
 // TackyVisitor interface
 class TackyVisitor {
@@ -54,6 +57,9 @@ public:
     virtual void visit(UnaryInstruction& node) = 0;
     virtual void visit(BinaryInstruction& node) = 0;
     virtual void visit(CopyInstruction& node) = 0;
+    virtual void visit(GetAddressInstruction& node) = 0;
+    virtual void visit(LoadInstruction& node) = 0;
+    virtual void visit(StoreInstruction& node) = 0;
     virtual void visit(JumpInstruction& node) = 0;
     virtual void visit(JumpIfZeroInstruction& node) = 0;
     virtual void visit(JumpIfNotZeroInstruction& node) = 0;
@@ -103,6 +109,7 @@ enum class BinaryOperator {
 class Value : public TackyAST {
 public:
     virtual ~Value() = default;
+    virtual std::unique_ptr<Value> clone() = 0;
 };
 
 class Constant : public Value {
@@ -116,6 +123,8 @@ public:
     {
         visitor.visit(*this);
     }
+
+    std::unique_ptr<Value> clone() override { return std::make_unique<Constant>(value); }
 
     ConstantType value;
 };
@@ -131,6 +140,8 @@ public:
     {
         visitor.visit(*this);
     }
+
+    std::unique_ptr<Value> clone() override { return std::make_unique<TemporaryVariable>(identifier.name); }
 
     Identifier identifier;
 };
@@ -329,6 +340,57 @@ public:
 
     std::unique_ptr<Value> source;
     std::unique_ptr<Value> destination;
+};
+
+class GetAddressInstruction : public Instruction {
+public:
+    GetAddressInstruction(std::unique_ptr<Value> source, std::unique_ptr<Value> destination)
+        : source(std::move(source))
+        , destination(std::move(destination))
+    {
+    }
+
+    void accept(TackyVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    std::unique_ptr<Value> source;
+    std::unique_ptr<Value> destination;
+};
+
+class LoadInstruction : public Instruction {
+public:
+    LoadInstruction(std::unique_ptr<Value> source_pointer, std::unique_ptr<Value> destination)
+        : source_pointer(std::move(source_pointer))
+        , destination(std::move(destination))
+    {
+    }
+
+    void accept(TackyVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    std::unique_ptr<Value> source_pointer;
+    std::unique_ptr<Value> destination;
+};
+
+class StoreInstruction : public Instruction {
+public:
+    StoreInstruction(std::unique_ptr<Value> source, std::unique_ptr<Value> destination_pointer)
+        : source(std::move(source))
+        , destination_pointer(std::move(destination_pointer))
+    {
+    }
+
+    void accept(TackyVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    std::unique_ptr<Value> source;
+    std::unique_ptr<Value> destination_pointer;
 };
 
 class JumpInstruction : public Instruction {

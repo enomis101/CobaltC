@@ -10,6 +10,13 @@ std::expected<StaticInitialValueType, std::string> SymbolTable::convert_constant
         return std::unexpected("constant holds invalid value");
     }
 
+    if (is_type<PointerType>(target_type)) {
+        if (is_null_pointer_constant(value)) {
+            return StaticInitialValueType(0ul); // use unsigned long 0 as pointer are 64-bit unsigned integers
+        }
+        return std::unexpected("Cannot convert non-zero constant to pointer type");
+    }
+
     // Helper to get type name from value
     auto get_source_type_name = [](const ConstantType& val) -> std::string {
         if (std::holds_alternative<int>(val))
@@ -142,4 +149,18 @@ std::expected<StaticInitialValueType, std::string> SymbolTable::convert_constant
     }
 
     return std::unexpected("Unsupported target type");
+}
+
+bool SymbolTable::is_null_pointer_constant(const ConstantType& constant)
+{
+    if (std::holds_alternative<int>(constant)) {
+        return std::get<int>(constant) == 0;
+    } else if (std::holds_alternative<unsigned int>(constant)) {
+        return std::get<unsigned int>(constant) == 0;
+    } else if (std::holds_alternative<long>(constant)) {
+        return std::get<long>(constant) == 0;
+    } else if (std::holds_alternative<unsigned long>(constant)) {
+        return std::get<unsigned long>(constant) == 0;
+    }
+    return false;
 }

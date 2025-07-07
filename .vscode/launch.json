@@ -6,7 +6,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/compiler/cobaltc-compiler",
-            "args": ["/home/simone/compiler/writing-a-c-compiler-tests/tests/chapter_14/valid/declarators/abstract_declarators.c", "--validate"],
+            "args": ["/home/simone/compiler/writing-a-c-compiler-tests/tests/chapter_14/valid/libraries/static_pointer.c", "--tacky"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/",
             "environment": [],

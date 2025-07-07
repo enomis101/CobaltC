@@ -319,6 +319,24 @@ std::unique_ptr<ExpressionResult> TackyGenerator::transform_cast_expression(pars
         } else {
             throw InternalCompilerError("Unsupported type");
         }
+    } else if (is_type<PointerType>(*expr_type)) {
+        if (is_type<IntType>(*target_type) || is_type<UnsignedIntType>(*target_type)) {
+            instructions.emplace_back(std::make_unique<TruncateInstruction>(std::move(expr_res), std::move(dst)));
+        } else if (is_type<LongType>(*target_type) || is_type<UnsignedLongType>(*target_type) || is_type<PointerType>(*expr_type)) {
+            instructions.emplace_back(std::make_unique<CopyInstruction>(std::move(expr_res), std::move(dst)));
+        } else {
+            throw InternalCompilerError("Unsupported type");
+        }
+    } else if (is_type<PointerType>(*target_type)) {
+        if (is_type<IntType>(*expr_type)) {
+            instructions.emplace_back(std::make_unique<SignExtendInstruction>(std::move(expr_res), std::move(dst)));
+        } else if (is_type<UnsignedIntType>(*expr_type)) {
+            instructions.emplace_back(std::make_unique<ZeroExtendInstruction>(std::move(expr_res), std::move(dst)));
+        } else if (is_type<LongType>(*expr_type) || is_type<UnsignedLongType>(*expr_type) || is_type<PointerType>(*expr_type)) {
+            instructions.emplace_back(std::make_unique<CopyInstruction>(std::move(expr_res), std::move(dst)));
+        } else {
+            throw InternalCompilerError("Unsupported cast to pointer type");
+        }
     } else {
         if (target_type->size() == expr_type->size()) {
             instructions.emplace_back(std::make_unique<CopyInstruction>(std::move(expr_res), std::move(dst)));

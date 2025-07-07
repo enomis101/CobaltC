@@ -3,6 +3,7 @@
 #include "backend/backend_symbol_table.h"
 #include "common/data/symbol_table.h"
 #include "common/data/type.h"
+#include "common/error/internal_compiler_error.h"
 #include <cassert>
 #include <filesystem>
 #include <format>
@@ -211,12 +212,19 @@ void CodeEmitter::visit(Register& node)
             *m_file_stream << "%r11b";
             break;
         default:
-            throw CodeEmitterError("CodeEmitter: Unsupported RegisterType for R11");
+            throw InternalCompilerError("CodeEmitter: Unsupported RegisterType for R11");
         }
         break;
     }
     case RegisterName::SP: {
         *m_file_stream << "%rsp";
+        break;
+    }
+    case RegisterName::BP: {
+        if (node.type != AssemblyType::QUAD_WORD) {
+            throw InternalCompilerError("Memory addresses are 8 byte");
+        }
+        *m_file_stream << "%rbp";
         break;
     }
     case RegisterName::XMM0:
@@ -256,7 +264,9 @@ void CodeEmitter::visit(Register& node)
 
 void CodeEmitter::visit(MemoryAddress& node)
 {
-    *m_file_stream << std::format("{}(%rbp)", node.offset);
+    *m_file_stream << std::format("{}(", node.offset);
+    node.base_register->accept(*this);
+    *m_file_stream << ")";
 }
 
 void CodeEmitter::visit(DataOperand& node)
@@ -297,6 +307,15 @@ void CodeEmitter::visit(MovInstruction& node)
 void CodeEmitter::visit(MovsxInstruction& node)
 {
     *m_file_stream << std::format("\tmovslq ");
+    node.source->accept(*this);
+    *m_file_stream << ", ";
+    node.destination->accept(*this);
+    *m_file_stream << "\n";
+}
+
+void CodeEmitter::visit(LeaInstruction& node)
+{
+    *m_file_stream << std::format("\tleaq ");
     node.source->accept(*this);
     *m_file_stream << ", ";
     node.destination->accept(*this);

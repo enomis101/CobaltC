@@ -238,16 +238,17 @@ public:
 
 class MemoryAddress : public Operand {
 public:
-    MemoryAddress(Register base_register_name, size_t offset)
-        : base_register(std::make_unique<Register>(base_register_name))
+    MemoryAddress(RegisterName base_register_name, int offset)
+        : base_register(std::make_unique<Register>(base_register_name, AssemblyType::QUAD_WORD))
         , offset(offset)
     {
     }
 
-    MemoryAddress(std::unique_ptr<Register> base_register, size_t offset)
+    MemoryAddress(std::unique_ptr<Register> base_register, int offset)
         : base_register(std::move(base_register))
         , offset(offset)
     {
+        this->base_register->type = AssemblyType::QUAD_WORD;
     }
 
     void accept(AssemblyVisitor& visitor) override
@@ -262,7 +263,7 @@ public:
     }
 
     std::unique_ptr<Register> base_register;
-    size_t offset;
+    int offset;
 };
 
 class DataOperand : public Operand {
@@ -295,9 +296,6 @@ protected:
     {
         if (auto reg = dynamic_cast<Register*>(operand)) {
             reg->type = type;
-        }
-        if (auto mem = dynamic_cast<MemoryAddress*>(operand)) {
-            mem->base_register->type = type;
         }
     }
 };

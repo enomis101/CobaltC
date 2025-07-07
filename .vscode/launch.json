@@ -6,7 +6,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/compiler/cobaltc-compiler",
-            "args": ["/home/simone/compiler/writing-a-c-compiler-tests/tests/chapter_14/valid/libraries/static_pointer_client.c", "--codegen"],
+            "args": ["/home/simone/compiler/writing-a-c-compiler-tests/tests/chapter_14/valid/casts/cast_between_pointer_types.c", "-S"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/",
             "environment": [],

@@ -33,7 +33,7 @@ private:
     void visit(MovInstruction& node) override;
     void visit(MovsxInstruction& node) override;
     void visit(MovZeroExtendInstruction& node) override { throw CodeEmitterError("Found MovZeroExtendInstruction node during CodeEmission"); }
-    void visit(LeaInstruction& node) override { } // TODO: IMPLEMENT IF NEEDED
+    void visit(LeaInstruction& node) override;
     void visit(Cvttsd2siInstruction& node) override;
     void visit(Cvtsi2sdInstruction& node) override;
     void visit(UnaryInstruction& node) override;

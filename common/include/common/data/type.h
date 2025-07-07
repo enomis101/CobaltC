@@ -23,6 +23,7 @@ public:
     virtual size_t alignment() const { return 0; }
     virtual size_t size() const { return 0; }
     virtual bool is_signed() const { return false; }
+    virtual bool is_arithmetic() const { return false; }
 
     // Default equality comparison
     virtual bool equals(const Type& other) const
@@ -50,6 +51,7 @@ public:
     }
 
     bool is_signed() const override { return true; }
+    bool is_arithmetic() const override { return true; }
     size_t alignment() const override { return 4; }
     size_t size() const override { return 4; }
 };
@@ -69,6 +71,7 @@ public:
     }
 
     bool is_signed() const override { return true; }
+    bool is_arithmetic() const override { return true; }
     size_t alignment() const override { return 8; }
     size_t size() const override { return 8; }
 };
@@ -86,7 +89,7 @@ public:
     {
         return "unsigned int";
     }
-
+    bool is_arithmetic() const override { return true; }
     size_t alignment() const override { return 4; }
     size_t size() const override { return 4; }
 };
@@ -104,7 +107,7 @@ public:
     {
         return "unsigned long";
     }
-
+    bool is_arithmetic() const override { return true; }
     size_t alignment() const override { return 8; }
     size_t size() const override { return 8; }
 };
@@ -122,7 +125,7 @@ public:
     {
         return "double";
     }
-
+    bool is_arithmetic() const override { return true; }
     size_t alignment() const override { return 8; }
     size_t size() const override { return 8; }
 };

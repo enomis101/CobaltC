@@ -1,6 +1,5 @@
 #pragma once
 #include "common/data/name_generator.h"
-#include "common/data/symbol_table.h"
 #include "parser/parser_ast.h"
 #include "parser/semantic_analyzer_error.h"
 #include <string>
@@ -39,8 +38,8 @@ private:
     void visit(AssignmentExpression& node) override;
     void visit(ConditionalExpression& node) override;
     void visit(FunctionCallExpression& node) override;
-    void visit(DereferenceExpression& node) override { } // TODO: IMPLEMENT
-    void visit(AddressOfExpression& node) override { }   // TODO: IMPLEMENT
+    void visit(DereferenceExpression& node) override;
+    void visit(AddressOfExpression& node) override;
     void visit(ExpressionStatement& node) override;
     void visit(IfStatement& node) override;
     void visit(NullStatement& node) override;

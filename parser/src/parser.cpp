@@ -179,7 +179,7 @@ std::unique_ptr<AbstractDeclarator> Parser::parse_abstract_declarator()
             auto decl = parse_abstract_declarator();
             return std::make_unique<PointerAbstractDeclarator>(std::move(decl));
         } else {
-            return std::make_unique<BaseAbstractDeclarator>();
+            return std::make_unique<PointerAbstractDeclarator>(std::make_unique<BaseAbstractDeclarator>());
         }
     } else if (next_token.type() == TokenType::OPEN_PAREN) {
         return parse_direct_abstract_declarator();

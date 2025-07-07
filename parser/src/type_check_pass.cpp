@@ -2,8 +2,9 @@
 #include "common/data/symbol_table.h"
 #include "common/data/type.h"
 #include "common/data/warning_manager.h"
+#include "common/error/internal_compiler_error.h"
 #include "parser/parser_ast.h"
-#include <cassert>
+#include <expected>
 #include <format>
 #include <memory>
 #include <optional>
@@ -34,6 +35,14 @@ void TypeCheckPass::visit(UnaryExpression& node)
     if (node.unary_operator == UnaryOperator::COMPLEMENT && is_type<DoubleType>(*node.expression->type)) {
         throw TypeCheckPassError(std::format("Bitwise complement operator does not accept double operands at:\n{}", m_source_manager->get_source_line(node.source_location)));
     }
+
+    if (node.unary_operator == UnaryOperator::NEGATE && is_type<PointerType>(*node.expression->type)) {
+        throw TypeCheckPassError(std::format("Cannot apply negate operator to pointers at:\n{}", m_source_manager->get_source_line(node.source_location)));
+    }
+
+    if (node.unary_operator == UnaryOperator::COMPLEMENT && is_type<PointerType>(*node.expression->type)) {
+        throw TypeCheckPassError(std::format("Cannot apply complement operator to pointers at:\n{}", m_source_manager->get_source_line(node.source_location)));
+    }
 }
 
 void TypeCheckPass::visit(BinaryExpression& node)
@@ -48,7 +57,35 @@ void TypeCheckPass::visit(BinaryExpression& node)
     }
     auto left_type = node.left_expression->type->clone();
     auto right_type = node.right_expression->type->clone();
-    auto common_type = get_common_type(*left_type, *right_type);
+    std::unique_ptr<Type> common_type = nullptr;
+    if (is_type<PointerType>(*left_type) || is_type<PointerType>(*right_type)) {
+        switch (node.binary_operator) {
+        case BinaryOperator::ADD:
+        case BinaryOperator::SUBTRACT:
+        case BinaryOperator::GREATER_THAN:
+        case BinaryOperator::GREATER_OR_EQUAL:
+        case BinaryOperator::LESS_THAN:
+        case BinaryOperator::LESS_OR_EQUAL:
+            throw InternalCompilerError("These operations on pointers not yet implemented");
+        case BinaryOperator::MULTIPLY:
+            throw TypeCheckPassError(std::format("Multiply operator does not accept pointer operands at:\n{}", m_source_manager->get_source_line(node.source_location)));
+        case BinaryOperator::DIVIDE:
+            throw TypeCheckPassError(std::format("Divide operator does not accept pointer operands at:\n{}", m_source_manager->get_source_line(node.source_location)));
+        case BinaryOperator::REMAINDER:
+            throw TypeCheckPassError(std::format("Remainder operator does not accept pointer operands at:\n{}", m_source_manager->get_source_line(node.source_location)));
+        default:
+            break;
+        }
+        auto res = get_common_pointer_type(*node.left_expression, *node.right_expression);
+        if (res.has_value()) {
+            common_type = std::move(res.value());
+        } else {
+            throw InternalCompilerError("If they are pointer type get_common_pointer_type should always return a value");
+        }
+    } else {
+        common_type = get_common_type(*left_type, *right_type);
+    }
+
     convert_expression_to(node.left_expression, *common_type);
     convert_expression_to(node.right_expression, *common_type);
 
@@ -89,13 +126,18 @@ void TypeCheckPass::visit(ConstantExpression& node)
 void TypeCheckPass::visit(ReturnStatement& node)
 {
     node.expression->accept(*this);
-    assert(m_current_function_declaration);
+    if (!m_current_function_declaration) {
+        throw InternalCompilerError("m_current_function_declaration must be valid!");
+    }
+
     const auto& function_name = m_current_function_declaration->name.name;
     auto& type = m_symbol_table->symbol_at(function_name).type;
     if (FunctionType* fun_type = dynamic_cast<FunctionType*>(type.get())) {
-        convert_expression_to(node.expression, *fun_type->return_type);
+        if (!convert_expression_by_assignment(node.expression, *fun_type->return_type)) {
+            throw TypeCheckPassError(std::format("In AssignmentExpression cannot convert type for assignment at:\n{}", m_source_manager->get_source_line(node.source_location)));
+        }
     } else {
-        assert(false && "Invalid m_current_function_declaration pointer");
+        throw InternalCompilerError("m_current_function_declaration is not a function pointer");
     }
 }
 
@@ -128,7 +170,9 @@ void TypeCheckPass::visit(FunctionDeclaration& function_declaration)
     bool defined = (already_defined || has_body);
     m_symbol_table->insert_or_assign_symbol(function_name, function_type->clone(), FunctionAttribute(defined, global));
 
-    assert(function_declaration.params.size() == function_type->parameters_type.size());
+    if (function_declaration.params.size() != function_type->parameters_type.size()) {
+        throw InternalCompilerError("function_declaration.params.size() must be equal to function_type->parameters_type.size()");
+    }
 
     for (size_t i = 0; i < function_declaration.params.size(); ++i) {
         const auto& param = function_declaration.params[i];
@@ -165,26 +209,37 @@ void TypeCheckPass::visit(VariableExpression& node)
     if (dynamic_cast<FunctionType*>(type.get())) {
         throw TypeCheckPassError(std::format("Function name {} used as variable at:\n{}", variable_name, m_source_manager->get_source_line(node.source_location)));
     }
-    assert(!node.type);
+
     node.type = type->clone();
 }
 
 void TypeCheckPass::visit(CastExpression& node)
 {
     node.expression->accept(*this);
+
     node.type = node.target_type->clone();
+
+    if (is_type<PointerType>(*node.target_type) && is_type<DoubleType>(*node.expression->type)) {
+        throw TypeCheckPassError(std::format("Cannot convert double to pointer at:\n{}", m_source_manager->get_source_line(node.source_location)));
+    }
+
+    if (is_type<DoubleType>(*node.target_type) && is_type<PointerType>(*node.expression->type)) {
+        throw TypeCheckPassError(std::format("Cannot convert pointer to double at:\n{}", m_source_manager->get_source_line(node.source_location)));
+    }
 }
 
 void TypeCheckPass::visit(AssignmentExpression& node)
 {
-    if (!dynamic_cast<VariableExpression*>(node.left_expression.get())) {
-        throw TypeCheckPassError(std::format("Invalid lvalue in AssignmentExpression at:\n{}", m_source_manager->get_source_line(node.source_location)));
+    if (!is_lvalue(*node.left_expression)) {
+        throw TypeCheckPassError(std::format("In AssignmentExpression left expression is not an lvalue at:\n{}", m_source_manager->get_source_line(node.source_location)));
     }
 
     node.left_expression->accept(*this);
     node.right_expression->accept(*this);
     auto left_type = node.left_expression->type->clone();
-    convert_expression_to(node.right_expression, *left_type);
+    if (!convert_expression_by_assignment(node.right_expression, *left_type)) {
+        throw TypeCheckPassError(std::format("In AssignmentExpression cannot convert type for assignment at:\n{}", m_source_manager->get_source_line(node.source_location)));
+    }
     node.type = std::move(left_type);
 }
 
@@ -199,7 +254,18 @@ void TypeCheckPass::visit(ConditionalExpression& node)
     auto true_type = node.true_expression->type->clone();
     auto false_type = node.false_expression->type->clone();
     // Find common type between two branches
-    auto common_type = get_common_type(*true_type, *false_type);
+    std::unique_ptr<Type> common_type = nullptr;
+    if (is_type<PointerType>(*true_type) || is_type<PointerType>(*false_type)) {
+        auto res = get_common_pointer_type(*node.true_expression, *node.false_expression);
+        if (res.has_value()) {
+            common_type = std::move(res.value());
+        } else {
+            throw InternalCompilerError("If they are pointer type get_common_pointer_type should always return a value");
+        }
+    } else {
+        common_type = get_common_type(*true_type, *false_type);
+    }
+
     // Convert both branches to the common type
     convert_expression_to(node.true_expression, *common_type);
     convert_expression_to(node.false_expression, *common_type);
@@ -216,7 +282,7 @@ void TypeCheckPass::visit(FunctionCallExpression& node)
 
     FunctionType* fun_type = dynamic_cast<FunctionType*>(type.get());
     if (fun_type->parameters_type.size() != node.arguments.size()) {
-        throw TypeCheckPassError(std::format("Function {} called with the wrong number of arguments {} expected {} at:\n", function_name, node.arguments.size(), fun_type->parameters_type.size(), m_source_manager->get_source_line(node.source_location)));
+        throw TypeCheckPassError(std::format("Function {} called with the wrong number of arguments {} expected {} at:\n{}", function_name, node.arguments.size(), fun_type->parameters_type.size(), m_source_manager->get_source_line(node.source_location)));
     }
 
     // Visit arguments
@@ -224,9 +290,31 @@ void TypeCheckPass::visit(FunctionCallExpression& node)
         auto& arg = node.arguments[i];
         auto& arg_type = fun_type->parameters_type[i];
         arg->accept(*this);
-        convert_expression_to(arg, *arg_type);
+        if (!convert_expression_by_assignment(arg, *arg_type)) {
+            throw TypeCheckPassError(std::format("In AssignmentExpression cannot convert type for assignment at:\n{}", m_source_manager->get_source_line(node.source_location)));
+        }
     }
     node.type = fun_type->return_type->clone();
+}
+
+void TypeCheckPass::visit(DereferenceExpression& node)
+{
+    node.expression->accept(*this);
+    if (auto ptr_type = dynamic_cast<PointerType*>(node.expression->type.get())) {
+        node.type = ptr_type->referenced_type->clone();
+    } else {
+        throw TypeCheckPassError(std::format("Cannot deference non-pointer type at:\n{}", m_source_manager->get_source_line(node.source_location)));
+    }
+}
+
+void TypeCheckPass::visit(AddressOfExpression& node)
+{
+    if (is_lvalue(*node.expression)) {
+        node.expression->accept(*this);
+        node.type = std::make_unique<PointerType>(node.expression->type->clone());
+    } else {
+        throw TypeCheckPassError(std::format("Can't take the address of a non-lvalue at:\n{}", m_source_manager->get_source_line(node.source_location)));
+    }
 }
 
 void TypeCheckPass::visit(ExpressionStatement& node)
@@ -322,7 +410,7 @@ void TypeCheckPass::typecheck_file_scope_variable_declaration(VariableDeclaratio
         // conversion is performed at compile time
         std::function<void(const std::string&)> warning_callback = [&](const std::string& message) { m_warning_manager->raise_warning(ParserWarningType::CAST, std::format("typecheck_file_scope_variable_declaration {} at:\n", message, m_source_manager->get_source_line(variable_declaration.source_location))); };
 
-        auto con_res = SymbolTable::convert_constant_type(expr->value, *variable_declaration.type);
+        auto con_res = convert_constant_type_by_assignment(expr->value, *variable_declaration.type);
         if (!con_res) {
             throw TypeCheckPassError(std::format("Failed convert_constant_type {} at:\n{}",
                 con_res.error(), m_source_manager->get_source_line(variable_declaration.source_location)));
@@ -394,7 +482,7 @@ void TypeCheckPass::typecheck_local_variable_declaration(VariableDeclaration& va
         if (!variable_declaration.expression.has_value()) {
             // conversion is performed at compile time
 
-            auto con_res = SymbolTable::convert_constant_type(ConstantType(0), *variable_declaration.type, warning_callback);
+            auto con_res = convert_constant_type_by_assignment(ConstantType(0), *variable_declaration.type, warning_callback);
 
             if (!con_res) {
                 throw TypeCheckPassError(std::format("Failed convert_constant_type {}  at:\n{}",
@@ -403,7 +491,7 @@ void TypeCheckPass::typecheck_local_variable_declaration(VariableDeclaration& va
             initial_value = StaticInitialValue { con_res.value() };
         } else if (ConstantExpression* expr = dynamic_cast<ConstantExpression*>(variable_declaration.expression.value().get())) {
             // conversion is performed at compile time
-            auto con_res = SymbolTable::convert_constant_type(expr->value, *variable_declaration.type, warning_callback);
+            auto con_res = convert_constant_type_by_assignment(expr->value, *variable_declaration.type, warning_callback);
             if (!con_res) {
                 throw TypeCheckPassError(std::format("Failed convert_constant_type {}  at:\n{}",
                     con_res.error(), m_source_manager->get_source_line(variable_declaration.source_location)));
@@ -417,7 +505,9 @@ void TypeCheckPass::typecheck_local_variable_declaration(VariableDeclaration& va
         m_symbol_table->insert_symbol(variable_name, variable_declaration.type->clone(), LocalAttribute {});
         if (variable_declaration.expression.has_value()) {
             variable_declaration.expression.value()->accept(*this);
-            convert_expression_to(variable_declaration.expression.value(), *variable_declaration.type);
+            if (!convert_expression_by_assignment(variable_declaration.expression.value(), *variable_declaration.type)) {
+                throw TypeCheckPassError(std::format("In VariableDeclaration cannot convert type for assignment at:\n{}", m_source_manager->get_source_line(variable_declaration.source_location)));
+            }
         }
     }
 }
@@ -441,6 +531,61 @@ std::unique_ptr<Type> TypeCheckPass::get_common_type(const Type& t1, const Type&
     }
 }
 
+std::optional<std::unique_ptr<Type>> TypeCheckPass::get_common_pointer_type(const Expression& expr1, const Expression& expr2)
+{
+    const Type& t1 = *expr1.type;
+    const Type& t2 = *expr2.type;
+    if (t1.equals(t2)) {
+        return t1.clone();
+    } else if (is_null_pointer_constant_expression(expr1)) {
+        return t2.clone();
+    } else if (is_null_pointer_constant_expression(expr2)) {
+        return t1.clone();
+    }
+
+    return std::nullopt;
+}
+
+bool TypeCheckPass::is_null_pointer_constant_expression(const Expression& expr)
+{
+    if (auto constant = dynamic_cast<const ConstantExpression*>(&expr)) {
+        return is_null_pointer_constant(constant->value);
+    }
+    return false;
+}
+
+bool TypeCheckPass::is_null_pointer_constant(const ConstantType& constant)
+{
+    if (std::holds_alternative<int>(constant)) {
+        return std::get<int>(constant) == 0;
+    } else if (std::holds_alternative<unsigned int>(constant)) {
+        return std::get<unsigned int>(constant) == 0;
+    } else if (std::holds_alternative<long>(constant)) {
+        return std::get<long>(constant) == 0;
+    } else if (std::holds_alternative<unsigned long>(constant)) {
+        return std::get<unsigned long>(constant) == 0;
+    }
+    return false;
+}
+
+bool TypeCheckPass::convert_expression_by_assignment(std::unique_ptr<Expression>& expr, const Type& target_type)
+{
+    const Type& expr_type = *expr->type;
+    if (expr_type.equals(target_type)) {
+        return true;
+    }
+
+    if (expr_type.is_arithmetic() && target_type.is_arithmetic()) {
+        convert_expression_to(expr, target_type);
+        return true;
+    } else if (is_null_pointer_constant_expression(*expr) && is_type<PointerType>(target_type)) {
+        convert_expression_to(expr, target_type);
+        return true;
+    }
+
+    return false;
+}
+
 void TypeCheckPass::convert_expression_to(std::unique_ptr<Expression>& expr, const Type& target_type)
 {
     if (expr->type->equals(target_type)) {
@@ -450,4 +595,21 @@ void TypeCheckPass::convert_expression_to(std::unique_ptr<Expression>& expr, con
     // Wrap original expr into a CastExpr
     expr = std::make_unique<CastExpression>(tmp->source_location, target_type.clone(), std::move(tmp));
     expr->type = target_type.clone();
+}
+
+std::expected<StaticInitialValueType, std::string> TypeCheckPass::convert_constant_type_by_assignment(const ConstantType& value, const Type& target_type, std::function<void(const std::string&)> warning_callback)
+{
+    if (is_type<PointerType>(target_type)) {
+        if (is_null_pointer_constant(value)) {
+            return StaticInitialValueType(0ul); // use unsigned long 0 as pointer are 64-bit unsigned integers
+        }
+        return std::unexpected("Cannot convert non-zero constant to pointer type");
+    } else {
+        return SymbolTable::convert_constant_type(value, target_type, warning_callback);
+    }
+}
+
+bool TypeCheckPass::is_lvalue(const Expression& expr)
+{
+    return dynamic_cast<const VariableExpression*>(&expr) || dynamic_cast<const DereferenceExpression*>(&expr);
 }

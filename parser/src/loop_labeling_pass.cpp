@@ -58,9 +58,6 @@ void LoopLabelingPass::visit(CastExpression& node)
 
 void LoopLabelingPass::visit(AssignmentExpression& node)
 {
-    if (!dynamic_cast<VariableExpression*>(node.left_expression.get())) {
-        throw LoopLabelingPassError("In AssignmentExpression: Invalid lvalue!");
-    }
     node.left_expression->accept(*this);
 
     node.right_expression->accept(*this);

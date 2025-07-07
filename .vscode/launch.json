@@ -6,7 +6,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/compiler/cobaltc-compiler",
-            "args": ["/home/simone/compiler/writing-a-c-compiler-tests/tests/chapter_14/valid/libraries/global_pointer_client.c", "--parse"],
+            "args": ["/home/simone/compiler/writing-a-c-compiler-tests/tests/chapter_14/valid/declarators/abstract_declarators.c", "--validate"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/",
             "environment": [],

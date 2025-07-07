@@ -87,10 +87,6 @@ void IdentifierResolutionPass::visit(CastExpression& node)
 
 void IdentifierResolutionPass::visit(AssignmentExpression& node)
 {
-    if (!dynamic_cast<VariableExpression*>(node.left_expression.get())) {
-        throw IdentifierResolutionPassError("Invalid lvalue!");
-    }
-
     node.left_expression->accept(*this);
     node.right_expression->accept(*this);
 }
@@ -117,6 +113,16 @@ void IdentifierResolutionPass::visit(FunctionCallExpression& node)
     for (auto& arg : node.arguments) {
         arg->accept(*this);
     }
+}
+
+void IdentifierResolutionPass::visit(DereferenceExpression& node)
+{
+    node.expression->accept(*this);
+}
+
+void IdentifierResolutionPass::visit(AddressOfExpression& node)
+{
+    node.expression->accept(*this);
 }
 
 void IdentifierResolutionPass::visit(ExpressionStatement& node)

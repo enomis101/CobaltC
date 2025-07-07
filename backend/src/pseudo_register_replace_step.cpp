@@ -38,6 +38,12 @@ void PseudoRegisterReplaceStep::visit(MovZeroExtendInstruction& node)
     check_and_replace(node.destination);
 }
 
+void PseudoRegisterReplaceStep::visit(LeaInstruction& node)
+{
+    check_and_replace(node.source);
+    check_and_replace(node.destination);
+}
+
 void PseudoRegisterReplaceStep::visit(Cvttsd2siInstruction& node)
 {
     check_and_replace(node.source);
@@ -121,7 +127,7 @@ void PseudoRegisterReplaceStep::check_and_replace(std::unique_ptr<Operand>& op)
             assert(m_symbol_table->contains_symbol(pseudo_reg_name) && std::holds_alternative<ObjectEntry>(m_symbol_table->symbol_at(pseudo_reg_name)) && "PseudoRegister not contained in the symbol table");
             AssemblyType type = std::get<ObjectEntry>(m_symbol_table->symbol_at(pseudo_reg_name)).type;
             size_t offset = get_offset(type, pseudo_reg_name);
-            new_op = std::make_unique<StackAddress>(-offset);
+            new_op = std::make_unique<MemoryAddress>(RegisterName::BP, -offset);
         }
         op = std::move(new_op);
     }

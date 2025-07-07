@@ -27,13 +27,14 @@ private:
     void visit(ImmediateValue& node) override { }
     void visit(Register& node) override { }
     void visit(PseudoRegister& node) override { }
-    void visit(StackAddress& node) override { }
+    void visit(MemoryAddress& node) override { }
     void visit(DataOperand& node) override { }
     void visit(CommentInstruction& node) override { } // NOT NEEDED
     void visit(ReturnInstruction& node) override { }
     void visit(MovInstruction& node) override { }
     void visit(MovsxInstruction& node) override { }
     void visit(MovZeroExtendInstruction& node) override { }
+    void visit(LeaInstruction& node) override { }
     void visit(Cvttsd2siInstruction& node) override { }
     void visit(Cvtsi2sdInstruction& node) override { }
     void visit(UnaryInstruction& node) override { }
@@ -62,9 +63,12 @@ private:
     void fixup_div_instruction(std::unique_ptr<Instruction>& instruction, std::vector<std::unique_ptr<Instruction>>& instructions);
     void fixup_movsx_instruction(std::unique_ptr<Instruction>& instruction, std::vector<std::unique_ptr<Instruction>>& instructions);
     void fixup_mov_zero_extend_instruction(std::unique_ptr<Instruction>& instruction, std::vector<std::unique_ptr<Instruction>>& instructions);
+    void fixup_lea_instruction(std::unique_ptr<Instruction>& instruction, std::vector<std::unique_ptr<Instruction>>& instructions);
     void fixup_push_instruction(std::unique_ptr<Instruction>& instruction, std::vector<std::unique_ptr<Instruction>>& instructions);
     void fixup_cvttsd2si_instruction(std::unique_ptr<Instruction>& instruction, std::vector<std::unique_ptr<Instruction>>& instructions);
     void fixup_cvtsi2sd_instruction(std::unique_ptr<Instruction>& instruction, std::vector<std::unique_ptr<Instruction>>& instructions);
+
+    bool is_xmm_register(RegisterName reg);
 
     std::shared_ptr<AssemblyAST> m_ast;
     std::shared_ptr<BackendSymbolTable> m_symbol_table;

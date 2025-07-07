@@ -254,7 +254,7 @@ void CodeEmitter::visit(Register& node)
     }
 }
 
-void CodeEmitter::visit(StackAddress& node)
+void CodeEmitter::visit(MemoryAddress& node)
 {
     *m_file_stream << std::format("{}(%rbp)", node.offset);
 }

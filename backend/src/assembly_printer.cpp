@@ -153,10 +153,10 @@ void PrinterVisitor::visit(PseudoRegister& node)
                   << " [label=\"identifier\"];\n";
 }
 
-void PrinterVisitor::visit(StackAddress& node)
+void PrinterVisitor::visit(MemoryAddress& node)
 {
     int id = get_node_id(&node);
-    m_dot_content << "  node" << id << " [label=\"StackAddress\\noffset: " << node.offset << "\"];\n";
+    m_dot_content << "  node" << id << " [label=\"MemoryAddress\\noffset: " << node.offset << "\"];\n";
 }
 
 void PrinterVisitor::visit(DataOperand& node)

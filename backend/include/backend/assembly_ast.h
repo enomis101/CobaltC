@@ -12,7 +12,7 @@ class Identifier;
 class ImmediateValue;
 class Register;
 class PseudoRegister;
-class StackAddress;
+class MemoryAddress;
 class ReturnInstruction;
 class MovInstruction;
 class UnaryInstruction;
@@ -37,6 +37,7 @@ class DivInstruction;
 class StaticConstant;
 class Cvttsd2siInstruction;
 class Cvtsi2sdInstruction;
+class LeaInstruction;
 
 class AssemblyVisitor {
 public:
@@ -44,13 +45,14 @@ public:
     virtual void visit(ImmediateValue& node) = 0;
     virtual void visit(Register& node) = 0;
     virtual void visit(PseudoRegister& node) = 0;
-    virtual void visit(StackAddress& node) = 0;
+    virtual void visit(MemoryAddress& node) = 0;
     virtual void visit(DataOperand& node) = 0;
     virtual void visit(CommentInstruction& node) = 0;
     virtual void visit(ReturnInstruction& node) = 0;
     virtual void visit(MovInstruction& node) = 0;
     virtual void visit(MovsxInstruction& node) = 0;
     virtual void visit(MovZeroExtendInstruction& node) = 0;
+    virtual void visit(LeaInstruction& node) = 0;
     virtual void visit(Cvttsd2siInstruction& node) = 0;
     virtual void visit(Cvtsi2sdInstruction& node) = 0;
     virtual void visit(UnaryInstruction& node) = 0;
@@ -83,6 +85,7 @@ enum class RegisterName {
     R10,
     R11,
     SP,
+    BP,
     XMM0,
     XMM1,
     XMM2,
@@ -233,10 +236,17 @@ public:
     Identifier identifier;
 };
 
-class StackAddress : public Operand {
+class MemoryAddress : public Operand {
 public:
-    StackAddress(int off)
-        : offset(off)
+    MemoryAddress(Register base_register_name, size_t offset)
+        : base_register(std::make_unique<Register>(base_register_name))
+        , offset(offset)
+    {
+    }
+
+    MemoryAddress(std::unique_ptr<Register> base_register, size_t offset)
+        : base_register(std::move(base_register))
+        , offset(offset)
     {
     }
 
@@ -247,10 +257,12 @@ public:
 
     std::unique_ptr<Operand> clone() const override
     {
-        return std::make_unique<StackAddress>(offset);
+        auto reg = base_register->clone();
+        return std::make_unique<MemoryAddress>(std::unique_ptr<Register>(dynamic_cast<Register*>(reg.release())), offset);
     }
 
-    int offset;
+    std::unique_ptr<Register> base_register;
+    size_t offset;
 };
 
 class DataOperand : public Operand {
@@ -281,8 +293,11 @@ public:
 protected:
     void check_and_replace_register_type(AssemblyType type, Operand* operand)
     {
-        if (Register* reg = dynamic_cast<Register*>(operand)) {
+        if (auto reg = dynamic_cast<Register*>(operand)) {
             reg->type = type;
+        }
+        if (auto mem = dynamic_cast<MemoryAddress*>(operand)) {
+            mem->base_register->type = type;
         }
     }
 };
@@ -396,6 +411,30 @@ public:
     std::unique_ptr<Instruction> clone() const override
     {
         return std::make_unique<MovZeroExtendInstruction>(
+            source->clone(),
+            destination->clone());
+    }
+
+    std::unique_ptr<Operand> source;
+    std::unique_ptr<Operand> destination;
+};
+
+class LeaInstruction : public Instruction {
+public:
+    LeaInstruction(std::unique_ptr<Operand> src, std::unique_ptr<Operand> dst)
+        : source(std::move(src))
+        , destination(std::move(dst))
+    {
+    }
+
+    void accept(AssemblyVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    std::unique_ptr<Instruction> clone() const override
+    {
+        return std::make_unique<LeaInstruction>(
             source->clone(),
             destination->clone());
     }

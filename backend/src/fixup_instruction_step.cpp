@@ -67,6 +67,8 @@ void FixUpInstructionsStep::fixup_instructions(std::vector<std::unique_ptr<Instr
             fixup_cvttsd2si_instruction(instruction, new_instructions);
         } else if (dynamic_cast<Cvtsi2sdInstruction*>(instruction.get())) {
             fixup_cvtsi2sd_instruction(instruction, new_instructions);
+        } else if (dynamic_cast<LeaInstruction*>(instruction.get())) {
+            fixup_lea_instruction(instruction, new_instructions);
         } else {
             // No fixup needed for other instruction types
             new_instructions.emplace_back(std::move(instruction));
@@ -81,8 +83,8 @@ void FixUpInstructionsStep::fixup_mov_instruction(std::unique_ptr<Instruction>& 
 
     if (mov_instruction->type == AssemblyType::DOUBLE) {
         // Only need to check memory-to-memory constraint
-        bool source_is_memory = dynamic_cast<StackAddress*>(mov_instruction->source.get()) || dynamic_cast<DataOperand*>(mov_instruction->source.get());
-        bool dest_is_memory = dynamic_cast<StackAddress*>(mov_instruction->destination.get()) || dynamic_cast<DataOperand*>(mov_instruction->destination.get());
+        bool source_is_memory = dynamic_cast<MemoryAddress*>(mov_instruction->source.get()) || dynamic_cast<DataOperand*>(mov_instruction->source.get());
+        bool dest_is_memory = dynamic_cast<MemoryAddress*>(mov_instruction->destination.get()) || dynamic_cast<DataOperand*>(mov_instruction->destination.get());
 
         if (source_is_memory && dest_is_memory) {
             // Use XMM register instead of R10
@@ -106,7 +108,7 @@ void FixUpInstructionsStep::fixup_mov_instruction(std::unique_ptr<Instruction>& 
                     // For movl instructions, truncate 8-byte immediates to avoid assembler warnings
                     // The assembler would do this automatically, but we do it explicitly
                     imm_val->value = static_cast<int>(value);
-                } else if (dynamic_cast<StackAddress*>(mov_instruction->destination.get()) || dynamic_cast<DataOperand*>(mov_instruction->destination.get())) {
+                } else if (dynamic_cast<MemoryAddress*>(mov_instruction->destination.get()) || dynamic_cast<DataOperand*>(mov_instruction->destination.get())) {
                     // movq can move large immediates to registers but not directly to memory
                     // Use two-step process: immediate -> R10 -> memory
                     instructions.emplace_back(std::make_unique<MovInstruction>(
@@ -123,7 +125,7 @@ void FixUpInstructionsStep::fixup_mov_instruction(std::unique_ptr<Instruction>& 
                     // For movl instructions, truncate 8-byte immediates to avoid assembler warnings
                     // The assembler would do this automatically, but we do it explicitly
                     imm_val->value = static_cast<int>(value);
-                } else if (dynamic_cast<StackAddress*>(mov_instruction->destination.get()) || dynamic_cast<DataOperand*>(mov_instruction->destination.get())) {
+                } else if (dynamic_cast<MemoryAddress*>(mov_instruction->destination.get()) || dynamic_cast<DataOperand*>(mov_instruction->destination.get())) {
                     // movq can move large immediates to registers but not directly to memory
                     // Use two-step process: immediate -> R10 -> memory
                     instructions.emplace_back(std::make_unique<MovInstruction>(
@@ -139,7 +141,7 @@ void FixUpInstructionsStep::fixup_mov_instruction(std::unique_ptr<Instruction>& 
                 if (original_type == AssemblyType::LONG_WORD) {
                     // For movl instructions, truncate to avoid assembler warnings
                     imm_val->value = static_cast<int>(value);
-                } else if (dynamic_cast<StackAddress*>(mov_instruction->destination.get()) || dynamic_cast<DataOperand*>(mov_instruction->destination.get())) {
+                } else if (dynamic_cast<MemoryAddress*>(mov_instruction->destination.get()) || dynamic_cast<DataOperand*>(mov_instruction->destination.get())) {
                     // movq can move large immediates to registers but not directly to memory
                     // Use two-step process: immediate -> R10 -> memory
                     instructions.emplace_back(std::make_unique<MovInstruction>(
@@ -153,8 +155,8 @@ void FixUpInstructionsStep::fixup_mov_instruction(std::unique_ptr<Instruction>& 
     }
 
     // Handle memory-to-memory moves (not allowed in single x86-64 instruction)
-    bool source_is_memory = dynamic_cast<StackAddress*>(mov_instruction->source.get()) || dynamic_cast<DataOperand*>(mov_instruction->source.get());
-    bool dest_is_memory = dynamic_cast<StackAddress*>(mov_instruction->destination.get()) || dynamic_cast<DataOperand*>(mov_instruction->destination.get());
+    bool source_is_memory = dynamic_cast<MemoryAddress*>(mov_instruction->source.get()) || dynamic_cast<DataOperand*>(mov_instruction->source.get());
+    bool dest_is_memory = dynamic_cast<MemoryAddress*>(mov_instruction->destination.get()) || dynamic_cast<DataOperand*>(mov_instruction->destination.get());
 
     if (source_is_memory && dest_is_memory) {
         // Use two-step process: memory -> R10 -> memory
@@ -223,8 +225,8 @@ void FixUpInstructionsStep::fixup_cmp_instruction(std::unique_ptr<Instruction>& 
             cmp_instruction->destination = std::make_unique<Register>(RegisterName::R11, original_type);
         } else {
             // Handle memory-to-memory comparison (not allowed in single instruction)
-            bool source_is_memory = dynamic_cast<StackAddress*>(cmp_instruction->source.get()) || dynamic_cast<DataOperand*>(cmp_instruction->source.get());
-            bool dest_is_memory = dynamic_cast<StackAddress*>(cmp_instruction->destination.get()) || dynamic_cast<DataOperand*>(cmp_instruction->destination.get());
+            bool source_is_memory = dynamic_cast<MemoryAddress*>(cmp_instruction->source.get()) || dynamic_cast<DataOperand*>(cmp_instruction->source.get());
+            bool dest_is_memory = dynamic_cast<MemoryAddress*>(cmp_instruction->destination.get()) || dynamic_cast<DataOperand*>(cmp_instruction->destination.get());
 
             if (source_is_memory && dest_is_memory) {
                 instructions.emplace_back(std::make_unique<MovInstruction>(
@@ -304,8 +306,8 @@ void FixUpInstructionsStep::fixup_binary_instruction(std::unique_ptr<Instruction
     if (binary_instruction->binary_operator == BinaryOperator::ADD || binary_instruction->binary_operator == BinaryOperator::SUB || binary_instruction->binary_operator == BinaryOperator::AND || binary_instruction->binary_operator == BinaryOperator::OR) {
 
         // ADD and SUB cannot have both operands as memory addresses
-        bool source_is_memory = dynamic_cast<StackAddress*>(binary_instruction->source.get()) || dynamic_cast<DataOperand*>(binary_instruction->source.get());
-        bool dest_is_memory = dynamic_cast<StackAddress*>(binary_instruction->destination.get()) || dynamic_cast<DataOperand*>(binary_instruction->destination.get());
+        bool source_is_memory = dynamic_cast<MemoryAddress*>(binary_instruction->source.get()) || dynamic_cast<DataOperand*>(binary_instruction->source.get());
+        bool dest_is_memory = dynamic_cast<MemoryAddress*>(binary_instruction->destination.get()) || dynamic_cast<DataOperand*>(binary_instruction->destination.get());
 
         if (source_is_memory && dest_is_memory) {
             instructions.emplace_back(std::make_unique<MovInstruction>(
@@ -376,7 +378,7 @@ void FixUpInstructionsStep::fixup_push_instruction(std::unique_ptr<Instruction>&
     auto push_instruction = dynamic_cast<PushInstruction*>(instruction.get());
     constexpr auto type = AssemblyType::QUAD_WORD;
     // pushq cannot handle immediate values outside signed 32-bit range
-    if (auto* imm_val = dynamic_cast<ImmediateValue*>(push_instruction->destination.get())) {
+    if (auto imm_val = dynamic_cast<ImmediateValue*>(push_instruction->destination.get())) {
         if (std::holds_alternative<long>(imm_val->value)) {
             long value = std::get<long>(imm_val->value);
             if (value < INT32_MIN || value > INT32_MAX) {
@@ -404,6 +406,19 @@ void FixUpInstructionsStep::fixup_push_instruction(std::unique_ptr<Instruction>&
                     std::make_unique<Register>(RegisterName::R10)));
                 push_instruction->destination = std::make_unique<Register>(RegisterName::R10, type);
             }
+        }
+    }
+    if (auto reg = dynamic_cast<Register*>(push_instruction->destination.get())) {
+        if (is_xmm_register(reg->name)) {
+            auto offset = std::make_unique<ImmediateValue>(8);
+            auto dst = std::make_unique<Register>(RegisterName::SP);
+            instructions.emplace_back(std::make_unique<BinaryInstruction>(BinaryOperator::SUB,
+                AssemblyType::QUAD_WORD, std::move(offset), dst->clone()));
+            // This should use MemoryAddress(SP, 0), not Register(SP)!
+            instructions.emplace_back(std::make_unique<MovInstruction>(AssemblyType::DOUBLE,
+                std::move(push_instruction->destination),
+                std::make_unique<MemoryAddress>(RegisterName::SP, 0)));
+            return;
         }
     }
     instructions.emplace_back(std::move(instruction));
@@ -460,7 +475,7 @@ void FixUpInstructionsStep::fixup_movsx_instruction(std::unique_ptr<Instruction>
 
     // Handle memory address as destination (not allowed)
     std::unique_ptr<Instruction> additional_instruction = nullptr;
-    bool dest_is_memory = dynamic_cast<StackAddress*>(movsx_instruction->destination.get()) || dynamic_cast<DataOperand*>(movsx_instruction->destination.get());
+    bool dest_is_memory = dynamic_cast<MemoryAddress*>(movsx_instruction->destination.get()) || dynamic_cast<DataOperand*>(movsx_instruction->destination.get());
 
     if (dest_is_memory) {
         // Store original destination for final move (result is 8 bytes, so use QUAD_WORD)
@@ -484,7 +499,7 @@ void FixUpInstructionsStep::fixup_mov_zero_extend_instruction(std::unique_ptr<In
 {
 
     auto mov_zero_extend_instruction = dynamic_cast<MovZeroExtendInstruction*>(instruction.get());
-    bool dest_is_memory = dynamic_cast<StackAddress*>(mov_zero_extend_instruction->destination.get()) || dynamic_cast<DataOperand*>(mov_zero_extend_instruction->destination.get());
+    bool dest_is_memory = dynamic_cast<MemoryAddress*>(mov_zero_extend_instruction->destination.get()) || dynamic_cast<DataOperand*>(mov_zero_extend_instruction->destination.get());
 
     if (dest_is_memory) {
         auto mov_instr1 = std::make_unique<MovInstruction>(AssemblyType::LONG_WORD, std::move(mov_zero_extend_instruction->source), std::make_unique<Register>(RegisterName::R11));
@@ -498,10 +513,29 @@ void FixUpInstructionsStep::fixup_mov_zero_extend_instruction(std::unique_ptr<In
     }
 }
 
+void FixUpInstructionsStep::fixup_lea_instruction(std::unique_ptr<Instruction>& instruction, std::vector<std::unique_ptr<Instruction>>& instructions)
+{
+    auto lea_instruction = dynamic_cast<LeaInstruction*>(instruction.get());
+    bool dest_is_register = dynamic_cast<Register*>(lea_instruction->destination.get());
+    if (!dest_is_register) {
+        auto mov_instr = std::make_unique<MovInstruction>(AssemblyType::QUAD_WORD, std::make_unique<Register>(RegisterName::R11), std::move(lea_instruction->destination));
+        lea_instruction->destination = std::make_unique<Register>(RegisterName::R11, AssemblyType::QUAD_WORD);
+        instructions.emplace_back(std::move(instruction));
+        instructions.emplace_back(std::move(mov_instr));
+    } else {
+        instructions.emplace_back(std::move(instruction));
+    }
+}
+
 void FixUpInstructionsStep::visit(Program& node)
 {
     // Process all function definitions in the program
     for (auto& def : node.definitions) {
         def->accept(*this);
     }
+}
+
+bool FixUpInstructionsStep::is_xmm_register(RegisterName reg)
+{
+    return reg >= RegisterName::XMM0 && reg <= RegisterName::XMM15;
 }

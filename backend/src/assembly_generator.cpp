@@ -6,6 +6,7 @@
 #include "backend/pseudo_register_replace_step.h"
 #include "common/data/symbol_table.h"
 #include "common/data/type.h"
+#include "common/error/internal_compiler_error.h"
 #include "tacky/tacky_ast.h"
 #include <cassert>
 #include <format>
@@ -137,9 +138,14 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_instructi
         return transform_uint_to_double_instruction(*uint_to_double_instruction);
     } else if (tacky::DoubleToUIntIntruction* double_to_uint_instruction = dynamic_cast<tacky::DoubleToUIntIntruction*>(&instruction)) {
         return transform_double_to_uint_instruction(*double_to_uint_instruction);
+    } else if (auto load_intruction = dynamic_cast<tacky::LoadInstruction*>(&instruction)) {
+        return transform_load_instruction(*load_intruction);
+    } else if (auto store_instruction = dynamic_cast<tacky::StoreInstruction*>(&instruction)) {
+        return transform_store_instruction(*store_instruction);
+    } else if (auto get_address_instruction = dynamic_cast<tacky::GetAddressInstruction*>(&instruction)) {
+        return transform_get_address_instruction(*get_address_instruction);
     } else {
-        assert(false && "AssemblyGenerator: Invalid or Unsupported tacky::Instruction");
-        return {};
+        throw InternalCompilerError("AssemblyGenerator: Invalid or Unsupported tacky::Instruction");
     }
 }
 
@@ -162,8 +168,46 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_copy_inst
     auto [type, _] = get_operand_type(*copy_instruction.source);
     std::unique_ptr<Operand> src = transform_operand(*copy_instruction.source);
     std::unique_ptr<Operand> dst = transform_operand(*copy_instruction.destination);
-    // no comment is needed
+    add_comment_instruction("copy_instruction", instructions);
     instructions.emplace_back(std::make_unique<MovInstruction>(type, std::move(src), std::move(dst)));
+    return instructions;
+}
+
+std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_load_instruction(tacky::LoadInstruction& load_instruction)
+{
+    std::vector<std::unique_ptr<Instruction>> instructions;
+    auto [dst_type, _] = get_operand_type(*load_instruction.destination);
+    std::unique_ptr<Operand> src_ptr = transform_operand(*load_instruction.source_pointer);
+    std::unique_ptr<Operand> dst = transform_operand(*load_instruction.destination);
+    add_comment_instruction("load_instruction", instructions);
+    // use QUAD_WORD as we are copying a pointer into a register
+    auto reg = std::make_unique<Register>(RegisterName::AX);
+    instructions.emplace_back(std::make_unique<MovInstruction>(AssemblyType::QUAD_WORD, src_ptr->clone(), reg->clone()));
+    instructions.emplace_back(std::make_unique<MovInstruction>(dst_type, std::make_unique<MemoryAddress>(reg->name, 0), dst->clone()));
+    return instructions;
+}
+
+std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_store_instruction(tacky::StoreInstruction& store_instruction)
+{
+    std::vector<std::unique_ptr<Instruction>> instructions;
+    auto [src_type, _] = get_operand_type(*store_instruction.source);
+    std::unique_ptr<Operand> src = transform_operand(*store_instruction.source);
+    std::unique_ptr<Operand> dst_ptr = transform_operand(*store_instruction.destination_pointer);
+    add_comment_instruction("store_instruction", instructions);
+    // use QUAD_WORD as we are copying a pointer into a register
+    auto reg = std::make_unique<Register>(RegisterName::AX);
+    instructions.emplace_back(std::make_unique<MovInstruction>(AssemblyType::QUAD_WORD, dst_ptr->clone(), reg->clone()));
+    instructions.emplace_back(std::make_unique<MovInstruction>(src_type, src->clone(), std::make_unique<MemoryAddress>(reg->name, 0)));
+    return instructions;
+}
+
+std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_get_address_instruction(tacky::GetAddressInstruction& get_address_instruction)
+{
+    std::vector<std::unique_ptr<Instruction>> instructions;
+    std::unique_ptr<Operand> src = transform_operand(*get_address_instruction.source);
+    std::unique_ptr<Operand> dst = transform_operand(*get_address_instruction.destination);
+    add_comment_instruction("get_address_instruction", instructions);
+    instructions.emplace_back(std::make_unique<LeaInstruction>(std::move(src), std::move(dst)));
     return instructions;
 }
 
@@ -610,7 +654,7 @@ std::unique_ptr<FunctionDefinition> AssemblyGenerator::transform_function(tacky:
     int stack_offset = 16;
     for (size_t i : stack_params) {
         auto [param_type, _] = convert_type(*param_types.at(i));
-        std::unique_ptr<StackAddress> stack_addr = std::make_unique<StackAddress>(stack_offset);
+        auto stack_addr = std::make_unique<MemoryAddress>(RegisterName::BP, stack_offset);
         std::unique_ptr<PseudoRegister> pseudo_reg = std::make_unique<PseudoRegister>(tacky_parameters[i]);
         instructions.emplace_back(std::make_unique<MovInstruction>(param_type, std::move(stack_addr), std::move(pseudo_reg)));
         stack_offset += 8;
@@ -733,6 +777,8 @@ std::pair<AssemblyType, bool> AssemblyGenerator::convert_type(const Type& type)
         assembly_type = AssemblyType::QUAD_WORD;
     } else if (dynamic_cast<const DoubleType*>(&type)) {
         assembly_type = AssemblyType::DOUBLE;
+    } else if (dynamic_cast<const PointerType*>(&type)) {
+        assembly_type = AssemblyType::QUAD_WORD;
     }
     return { assembly_type, is_signed };
 }

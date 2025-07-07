@@ -27,13 +27,14 @@ private:
     void visit(ImmediateValue& node) override { }
     void visit(Register& node) override { }
     void visit(PseudoRegister& node) override { }
-    void visit(StackAddress& node) override { }
+    void visit(MemoryAddress& node) override { }
     void visit(DataOperand& node) override { }
     void visit(CommentInstruction& node) override { } // NOT NEEDED
     void visit(ReturnInstruction& node) override { }
     void visit(MovInstruction& node) override;
     void visit(MovsxInstruction& node) override;
     void visit(MovZeroExtendInstruction& node) override;
+    void visit(LeaInstruction& node) override;
     void visit(Cvttsd2siInstruction& node) override;
     void visit(Cvtsi2sdInstruction& node) override;
     void visit(UnaryInstruction& node) override;

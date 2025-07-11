@@ -144,9 +144,11 @@ private:
     std::unique_ptr<Expression> parse_factor();
     std::unique_ptr<Type> parse_type();
     std::unique_ptr<Type> parse_type_specifier_list(const std::vector<TokenType>& type_specifiers);
+    std::unique_ptr<Initializer> parse_initializer();
     void parse_parameter_list(std::vector<ParameterDeclaratorInfo>& out_params);
 
     std::pair<std::unique_ptr<Type>, StorageClass> parse_type_and_storage_class();
+
 
     UnaryOperator parse_unary_operator();
     BinaryOperator parse_binary_operator();

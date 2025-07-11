@@ -106,7 +106,7 @@ std::unique_ptr<Declaration> Parser::parse_declaration()
         return std::make_unique<FunctionDeclaration>(start_loc, name, param_names, std::move(body), std::move(derived_type), storage_class, current_declaration_scope);
     } else {
         auto next_token = peek();
-        std::unique_ptr<Expression> init_expr = nullptr;
+        std::unique_ptr<Initializer> init_expr = nullptr;
         if (next_token.type() != TokenType::SEMICOLON) {
             expect(TokenType::ASSIGNMENT);
             init_expr = parse_expression();
@@ -324,6 +324,32 @@ std::unique_ptr<Expression> Parser::parse_conditional_middle()
     return expr;
 }
 
+std::unique_ptr<Initializer> Parser::parse_initializer()
+{
+    ENTER_CONTEXT("parse_initializer");
+    const auto next_token = peek();
+    SourceLocationIndex start_loc = m_source_manager->get_index(next_token);
+    if(next_token.type() == TokenType::OPEN_SQUARE_BRACKET){
+        expect(TokenType::OPEN_SQUARE_BRACKET);
+        const Token* compound_next_token = &peek();
+        while(compound_next_token->type() != TokenType::CLOSE_SQUARE_BRACKET){
+
+            compound_next_token = &peek();
+            if(compound_next_token->type() == TokenType::COMMA){
+                //Note: there can  be a trailing comma after the last element in an initializer list
+                expect(TokenType::COMMA);
+                compound_next_token = &peek();
+            }
+        }
+
+        expect(TokenType::CLOSE_SQUARE_BRACKET);
+
+    } else {
+        auto expr = parse_expression();
+        return std::make_unique<SingleInitializer>(start_loc, std::move(expr));
+    }
+}
+
 // Implement precedence climbing
 std::unique_ptr<Expression> Parser::parse_expression(int min_prec)
 {
@@ -478,6 +504,8 @@ std::unique_ptr<Type> Parser::parse_type_specifier_list(const std::vector<TokenT
         return std::make_unique<IntType>();
     }
 }
+
+
 
 UnaryOperator Parser::parse_unary_operator()
 {

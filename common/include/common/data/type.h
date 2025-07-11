@@ -243,6 +243,44 @@ public:
     std::unique_ptr<Type> referenced_type;
 };
 
+class ArrayType : public Type {
+public:
+    ArrayType(std::unique_ptr<Type> element_type, size_t size)
+        : element_type { std::move(element_type) }
+        , size{size}
+    {
+    }
+
+    std::unique_ptr<Type> clone() const override
+    {
+        // Clone the return type
+        auto cloned_referenced_type = element_type->clone();
+
+        // Create and return new ArrayType with cloned components
+        return std::make_unique<ArrayType>(
+            element_type->clone(), size);
+    }
+
+    std::string to_string() const override
+    {
+        return std::format("{}[{}]", element_type->to_string(), size);
+    }
+
+    bool equals(const Type& other) const override
+    {
+        // First check if other is also an ArrayType
+        const auto* other_array = dynamic_cast<const ArrayType*>(&other);
+        if (!other_array) {
+            return false;
+        }
+
+        return element_type->equals(*other_array->element_type) && size == other_array->size;
+    }
+
+    std::unique_ptr<Type> element_type;
+    size_t size;
+};
+
 template<typename T>
 bool is_type(const Type& type)
 {

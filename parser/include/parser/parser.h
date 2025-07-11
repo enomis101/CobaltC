@@ -36,6 +36,17 @@ public:
     std::unique_ptr<AbstractDeclarator> declarator;
 };
 
+class ArrayAbstractDeclarator : public AbstractDeclarator {
+public:
+    ArrayAbstractDeclarator(std::unique_ptr<AbstractDeclarator> element_declarator, size_t size)
+        : element_declarator(std::move(element_declarator))
+        , size{size}
+    {
+    }
+    std::unique_ptr<AbstractDeclarator> element_declarator;
+    size_t size;
+};
+
 class Declarator {
 public:
     virtual ~Declarator() = default;
@@ -69,6 +80,17 @@ public:
     {
     }
     std::unique_ptr<Declarator> inner_declarator;
+};
+
+class ArrayDeclarator : public Declarator {
+public:
+    ArrayDeclarator(std::unique_ptr<Declarator> element_declarator, size_t size)
+        : element_declarator(std::move(element_declarator))
+        , size{size}
+    {
+    }
+    std::unique_ptr<Declarator> element_declarator;
+    size_t size;
 };
 
 class FunctionDeclarator : public Declarator {

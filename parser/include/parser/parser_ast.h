@@ -51,6 +51,9 @@ class ForInitExpression;
 class CastExpression;
 class DereferenceExpression;
 class AddressOfExpression;
+class SubscriptExpression;
+class SingleInitializer;
+class CompoundInitilizer;
 
 // ParserVisitor interface
 class ParserVisitor {
@@ -69,9 +72,12 @@ public:
     virtual void visit(FunctionCallExpression& node) = 0;
     virtual void visit(DereferenceExpression& node) = 0;
     virtual void visit(AddressOfExpression& node) = 0;
+    virtual void visit(SubscriptExpression& node) = 0;
     virtual void visit(ExpressionStatement& node) = 0;
     virtual void visit(IfStatement& node) = 0;
     virtual void visit(NullStatement& node) = 0;
+    virtual void visit(SingleInitializer& node) = 0;
+    virtual void visit(CompoundInitilizer& node) = 0;
     virtual void visit(VariableDeclaration& node) = 0;
     virtual void visit(FunctionDeclaration& node) = 0;
     virtual void visit(Block& node) = 0;
@@ -334,6 +340,25 @@ public:
     std::unique_ptr<Expression> expression;
 };
 
+class SubscriptExpression : public Expression {
+public:
+    SubscriptExpression(SourceLocationIndex loc, std::unique_ptr<Expression> expression1, std::unique_ptr<Expression> expression2)
+        : Expression(loc)
+        , expression1(std::move(expression1))
+        , expression2(std::move(expression2))
+    {
+    }
+
+    void accept(ParserVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    std::unique_ptr<Expression> expression1;
+    std::unique_ptr<Expression> expression2;
+
+};
+
 class BlockItem : public ParserAST {
 public:
     virtual ~BlockItem() = default;
@@ -548,6 +573,47 @@ public:
     }
 };
 
+
+class Initializer : public ParserAST{
+public:
+    explicit Initializer(SourceLocationIndex loc)
+        : ParserAST(loc)
+    {
+    }
+    virtual ~Initializer() = default;
+
+    std::unique_ptr<Type> type { nullptr }; // this is set during type check phase
+};
+
+class SingleInitializer : public Initializer{
+public:
+    SingleInitializer(SourceLocationIndex loc, std::unique_ptr<Expression> expression)
+        : Initializer(loc)
+        , expression(std::move(expression)) {}
+
+    void accept(ParserVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    std::unique_ptr<Expression> expression;
+};
+
+class CompoundInitilizer : public Initializer{
+public:
+    CompoundInitilizer(SourceLocationIndex loc, std::vector<std::unique_ptr<Initializer>> initializer_list)
+        : Initializer(loc)
+        , initializer_list(std::move(initializer_list)) {}
+
+    void accept(ParserVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    std::vector<std::unique_ptr<Initializer>> initializer_list;
+};
+
+
 enum class DeclarationScope {
     File,
     Block
@@ -565,12 +631,14 @@ protected:
     }
 };
 
+
+
 class VariableDeclaration : public Declaration {
 public:
-    VariableDeclaration(SourceLocationIndex loc, const std::string& identifier, std::unique_ptr<Expression> expression, std::unique_ptr<Type> type, StorageClass storage_class, DeclarationScope scope)
+    VariableDeclaration(SourceLocationIndex loc, const std::string& identifier, std::unique_ptr<Initializer> expression, std::unique_ptr<Type> type, StorageClass storage_class, DeclarationScope scope)
         : Declaration(loc)
         , identifier { identifier }
-        , expression(expression ? std::optional<std::unique_ptr<Expression>>(std::move(expression)) : std::nullopt)
+        , expression(expression ? std::optional<std::unique_ptr<Initializer>>(std::move(expression)) : std::nullopt)
         , type { std::move(type) }
         , storage_class(storage_class)
         , scope { scope }
@@ -583,7 +651,7 @@ public:
     }
 
     Identifier identifier;
-    std::optional<std::unique_ptr<Expression>> expression;
+    std::optional<std::unique_ptr<Initializer>> expression;
     std::unique_ptr<Type> type;
     StorageClass storage_class;
     DeclarationScope scope;

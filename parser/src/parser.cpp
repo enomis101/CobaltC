@@ -790,6 +790,9 @@ std::tuple<std::string, std::unique_ptr<Type>, std::vector<Identifier>> Parser::
     } else if (auto ptr_decl = dynamic_cast<const PointerDeclarator*>(&declarator)) {
         std::unique_ptr<Type> derived_type = std::make_unique<PointerType>(type.clone());
         return process_declarator(*ptr_decl->inner_declarator, *derived_type);
+    } else if (auto arr_decl = dynamic_cast<const ArrayDeclarator*>(&declarator)) {
+        std::unique_ptr<Type> derived_type = std::make_unique<ArrayType>(type.clone(), arr_decl->size);
+        return process_declarator(*arr_decl->element_declarator, *derived_type);
     } else if (auto fun_decl = dynamic_cast<const FunctionDeclarator*>(&declarator)) {
         if (auto fun_id_decl = dynamic_cast<const IdentifierDeclarator*>(fun_decl->declarator.get())) {
             std::vector<Identifier> param_names;

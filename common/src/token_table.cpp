@@ -126,7 +126,9 @@ TokenTable::TokenTable()
         { '?', TokenType::QUESTION_MARK },
         { ':', TokenType::COLON },
         { ',', TokenType::COMMA },
-        { '&', TokenType::AMPERSAND }
+        { '&', TokenType::AMPERSAND },
+        { '[', TokenType::OPEN_SQUARE_BRACKET },
+        { ']', TokenType::CLOSE_SQUARE_BRACKET }
     };
 
     m_double_char_tokens = {

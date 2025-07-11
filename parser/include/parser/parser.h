@@ -130,6 +130,7 @@ private:
     std::unique_ptr<Declaration> parse_declaration();
     std::unique_ptr<Declarator> parse_declarator();
     std::unique_ptr<Declarator> parse_direct_declarator();
+    std::unique_ptr<Declarator> parse_declarator_suffix();
     std::unique_ptr<Declarator> parse_simple_declarator();
 
     std::unique_ptr<AbstractDeclarator> parse_abstract_declarator();
@@ -152,7 +153,7 @@ private:
 
     UnaryOperator parse_unary_operator();
     BinaryOperator parse_binary_operator();
-    std::unique_ptr<Expression> parse_contant();
+    std::unique_ptr<Expression> parse_constant();
 
     StorageClass to_storage_class(TokenType tt);
 

@@ -4,6 +4,7 @@
 #include "common/data/token.h"
 #include "common/data/token_table.h"
 #include "common/data/type.h"
+#include "common/error/internal_compiler_error.h"
 #include "parser/parser_ast.h"
 #include <cassert>
 #include <format>
@@ -109,7 +110,7 @@ std::unique_ptr<Declaration> Parser::parse_declaration()
         std::unique_ptr<Initializer> init_expr = nullptr;
         if (next_token.type() != TokenType::SEMICOLON) {
             expect(TokenType::ASSIGNMENT);
-            init_expr = parse_expression();
+            init_expr = parse_initializer();
             expect(TokenType::SEMICOLON);
         } else {
             expect(TokenType::SEMICOLON);
@@ -139,12 +140,48 @@ std::unique_ptr<Declarator> Parser::parse_direct_declarator()
 
     auto simple_declarator = parse_simple_declarator();
     const Token& next_token = peek();
-    if (next_token.type() == TokenType::OPEN_PAREN) {
-        std::vector<ParameterDeclaratorInfo> params;
-        parse_parameter_list(params);
-        return std::make_unique<FunctionDeclarator>(std::move(params), std::move(simple_declarator));
+    if (next_token.type() == TokenType::OPEN_PAREN || next_token.type() == TokenType::OPEN_SQUARE_BRACKET) {
+        auto decl = parse_declarator_suffix();
+        if(auto arr_decl = dynamic_cast<ArrayDeclarator*>(decl.get())){
+            
+        }
     } else {
         return simple_declarator;
+    }
+}
+
+
+std::unique_ptr<Declarator> Parser::parse_declarator_suffix()
+{
+    ENTER_CONTEXT("parse_declarator_suffix");
+    const Token& next_token = peek();
+    SourceLocationIndex loc = m_source_manager->get_index(next_token);
+    if(next_token.type() == TokenType::OPEN_SQUARE_BRACKET){
+        expect(TokenType::OPEN_SQUARE_BRACKET);
+        const Token& const_next_token = peek();
+        if(!is_constant(const_next_token.type()) || const_next_token.type() == TokenType::DOUBLE_CONSTANT){
+            throw ParserError(*this, std::format("Expected integer constant at\n{}", m_source_manager->get_source_line(loc)));
+        }
+
+        size_t size = 0;
+        if (next_token.type() == TokenType::CONSTANT) {
+            size = next_token.literal<int>();
+        } else if (next_token.type() == TokenType::UNSIGNED_CONSTANT) {
+            size = next_token.literal<unsigned int>();
+        } else if (next_token.type() == TokenType::LONG_CONSTANT) {
+            size = next_token.literal<long>();
+        } else if (next_token.type() == TokenType::UNSIGNED_LONG_CONSTANT) {
+            size = next_token.literal<unsigned long>();
+        } else {
+            throw ParserError(*this, std::format("Expected integer constant at\n{}", m_source_manager->get_source_line(loc)));
+        }
+        take_token();
+        expect(TokenType::CLOSE_SQUARE_BRACKET);
+        return std::make_unique<ArrayDeclarator>(nullptr, size);
+    } else {
+        std::vector<ParameterDeclaratorInfo> params;
+        parse_parameter_list(params);
+        return std::make_unique<FunctionDeclarator>(std::move(params), nullptr);
     }
 }
 
@@ -330,9 +367,13 @@ std::unique_ptr<Initializer> Parser::parse_initializer()
     const auto next_token = peek();
     SourceLocationIndex start_loc = m_source_manager->get_index(next_token);
     if(next_token.type() == TokenType::OPEN_SQUARE_BRACKET){
+        std::vector<std::unique_ptr<Initializer>> inits;
         expect(TokenType::OPEN_SQUARE_BRACKET);
         const Token* compound_next_token = &peek();
         while(compound_next_token->type() != TokenType::CLOSE_SQUARE_BRACKET){
+
+            auto init = parse_initializer();
+            inits.emplace_back(std::move(init));
 
             compound_next_token = &peek();
             if(compound_next_token->type() == TokenType::COMMA){
@@ -343,7 +384,7 @@ std::unique_ptr<Initializer> Parser::parse_initializer()
         }
 
         expect(TokenType::CLOSE_SQUARE_BRACKET);
-
+        return std::make_unique<CompoundInitilizer>(start_loc, std::move(inits));
     } else {
         auto expr = parse_expression();
         return std::make_unique<SingleInitializer>(start_loc, std::move(expr));
@@ -392,7 +433,7 @@ std::unique_ptr<Expression> Parser::parse_factor()
     const Token& next_token = peek();
     SourceLocationIndex loc = m_source_manager->get_index(next_token);
     if (is_constant(next_token.type())) {
-        return parse_contant();
+        return parse_constant();
     } else if (is_unary_operator(next_token.type())) {
         UnaryOperator op = parse_unary_operator();
         std::unique_ptr<Expression> expr = parse_factor();
@@ -558,13 +599,13 @@ BinaryOperator Parser::parse_binary_operator()
     return it->second;
 }
 
-std::unique_ptr<Expression> Parser::parse_contant()
+std::unique_ptr<Expression> Parser::parse_constant()
 {
-    ENTER_CONTEXT("parse_contant");
+    ENTER_CONTEXT("parse_constant");
     const Token& next_token = peek();
     SourceLocationIndex loc = m_source_manager->get_index(next_token);
     if (!is_constant(next_token.type())) {
-        throw ParserError(*this, std::format("parse_contant called with non constant token {}", Token::type_to_string(next_token.type())));
+        throw ParserError(*this, std::format("parse_constant called with non constant token {}", Token::type_to_string(next_token.type())));
     }
     take_token();
     if (next_token.type() == TokenType::CONSTANT) {

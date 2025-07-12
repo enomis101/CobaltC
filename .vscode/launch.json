@@ -6,7 +6,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/compiler/cobaltc-compiler",
-            "args": ["/home/simone/compiler/writing-a-c-compiler-tests/tests/chapter_14/valid/casts/cast_between_pointer_types.c", "-S"],
+            "args": ["/home/simone/compiler/writing-a-c-compiler-tests/tests/chapter_15/invalid_parse/empty_initializer_list.c", "--parse"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/",
             "environment": [],

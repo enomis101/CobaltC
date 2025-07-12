@@ -41,8 +41,11 @@ private:
     void visit(DereferenceExpression& node) override;
     void visit(AddressOfExpression& node) override;
     void visit(ExpressionStatement& node) override;
+    void visit(SubscriptExpression& node) override { } // TODO: IMPLEMENT
     void visit(IfStatement& node) override;
     void visit(NullStatement& node) override;
+    void visit(SingleInitializer& node) override { }   // TODO: IMPLEMENT
+    void visit(CompoundInitializer& node) override { } // TODO: IMPLEMENT
     void visit(VariableDeclaration& node) override;
     void visit(Block& node) override;
     void visit(CompoundStatement& node) override;

@@ -53,7 +53,7 @@ class DereferenceExpression;
 class AddressOfExpression;
 class SubscriptExpression;
 class SingleInitializer;
-class CompoundInitilizer;
+class CompoundInitializer;
 
 // ParserVisitor interface
 class ParserVisitor {
@@ -77,7 +77,7 @@ public:
     virtual void visit(IfStatement& node) = 0;
     virtual void visit(NullStatement& node) = 0;
     virtual void visit(SingleInitializer& node) = 0;
-    virtual void visit(CompoundInitilizer& node) = 0;
+    virtual void visit(CompoundInitializer& node) = 0;
     virtual void visit(VariableDeclaration& node) = 0;
     virtual void visit(FunctionDeclaration& node) = 0;
     virtual void visit(Block& node) = 0;
@@ -356,7 +356,6 @@ public:
 
     std::unique_ptr<Expression> expression1;
     std::unique_ptr<Expression> expression2;
-
 };
 
 class BlockItem : public ParserAST {
@@ -573,8 +572,7 @@ public:
     }
 };
 
-
-class Initializer : public ParserAST{
+class Initializer : public ParserAST {
 public:
     explicit Initializer(SourceLocationIndex loc)
         : ParserAST(loc)
@@ -585,11 +583,13 @@ public:
     std::unique_ptr<Type> type { nullptr }; // this is set during type check phase
 };
 
-class SingleInitializer : public Initializer{
+class SingleInitializer : public Initializer {
 public:
     SingleInitializer(SourceLocationIndex loc, std::unique_ptr<Expression> expression)
         : Initializer(loc)
-        , expression(std::move(expression)) {}
+        , expression(std::move(expression))
+    {
+    }
 
     void accept(ParserVisitor& visitor) override
     {
@@ -599,11 +599,13 @@ public:
     std::unique_ptr<Expression> expression;
 };
 
-class CompoundInitilizer : public Initializer{
+class CompoundInitializer : public Initializer {
 public:
-    CompoundInitilizer(SourceLocationIndex loc, std::vector<std::unique_ptr<Initializer>> initializer_list)
+    CompoundInitializer(SourceLocationIndex loc, std::vector<std::unique_ptr<Initializer>> initializer_list)
         : Initializer(loc)
-        , initializer_list(std::move(initializer_list)) {}
+        , initializer_list(std::move(initializer_list))
+    {
+    }
 
     void accept(ParserVisitor& visitor) override
     {
@@ -612,7 +614,6 @@ public:
 
     std::vector<std::unique_ptr<Initializer>> initializer_list;
 };
-
 
 enum class DeclarationScope {
     File,
@@ -630,8 +631,6 @@ protected:
     {
     }
 };
-
-
 
 class VariableDeclaration : public Declaration {
 public:

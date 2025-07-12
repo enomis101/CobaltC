@@ -29,9 +29,12 @@ public:
     void visit(FunctionCallExpression& node) override;
     void visit(DereferenceExpression& node) override { } // TODO: IMPLEMENT
     void visit(AddressOfExpression& node) override { }   // TODO: IMPLEMENT
+    void visit(SubscriptExpression& node) override { }   // TODO: IMPLEMENT
     void visit(ExpressionStatement& node) override;
     void visit(IfStatement& node) override;
     void visit(NullStatement& node) override;
+    void visit(SingleInitializer& node) override { }   // TODO: IMPLEMENT
+    void visit(CompoundInitializer& node) override { } // TODO: IMPLEMENT
     void visit(VariableDeclaration& node) override;
     void visit(Block& node) override;
     void visit(CompoundStatement& node) override;

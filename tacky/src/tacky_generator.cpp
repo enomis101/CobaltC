@@ -537,8 +537,10 @@ void TackyGenerator::transform_declaration(parser::Declaration& declaration, std
     if (parser::VariableDeclaration* variable_declaration = dynamic_cast<parser::VariableDeclaration*>(&declaration)) {
         // We do not generate any code for local variable declarations with static or external specifiers
         if (variable_declaration->storage_class == parser::StorageClass::NONE && variable_declaration->expression.has_value()) {
+            /* TODO: FIX
             std::unique_ptr<Value> value = emit_tacky_and_convert(*variable_declaration->expression.value(), instructions);
             instructions.emplace_back(std::make_unique<CopyInstruction>(std::move(value), std::make_unique<TemporaryVariable>(variable_declaration->identifier.name)));
+            */
         }
     } else if (dynamic_cast<parser::FunctionDeclaration*>(&declaration)) {
         // DO NOTHING

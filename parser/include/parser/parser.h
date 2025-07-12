@@ -40,7 +40,7 @@ class ArrayAbstractDeclarator : public AbstractDeclarator {
 public:
     ArrayAbstractDeclarator(std::unique_ptr<AbstractDeclarator> element_declarator, size_t size)
         : element_declarator(std::move(element_declarator))
-        , size{size}
+        , size { size }
     {
     }
     std::unique_ptr<AbstractDeclarator> element_declarator;
@@ -86,7 +86,7 @@ class ArrayDeclarator : public Declarator {
 public:
     ArrayDeclarator(std::unique_ptr<Declarator> element_declarator, size_t size)
         : element_declarator(std::move(element_declarator))
-        , size{size}
+        , size { size }
     {
     }
     std::unique_ptr<Declarator> element_declarator;
@@ -130,7 +130,7 @@ private:
     std::unique_ptr<Declaration> parse_declaration();
     std::unique_ptr<Declarator> parse_declarator();
     std::unique_ptr<Declarator> parse_direct_declarator();
-    std::unique_ptr<Declarator> parse_declarator_suffix();
+    std::unique_ptr<Declarator> parse_declarator_suffix(std::unique_ptr<Declarator> base_declarator);
     std::unique_ptr<Declarator> parse_simple_declarator();
 
     std::unique_ptr<AbstractDeclarator> parse_abstract_declarator();
@@ -142,14 +142,18 @@ private:
     std::unique_ptr<Statement> parse_statement();
     std::unique_ptr<Expression> parse_conditional_middle();
     std::unique_ptr<Expression> parse_expression(int min_prec = 0);
-    std::unique_ptr<Expression> parse_factor();
+
+    std::unique_ptr<Expression> parse_unary_expression();
+    std::unique_ptr<Expression> parse_postfix_expression();
+    std::unique_ptr<Expression> parse_primary_expression();
+    std::vector<std::unique_ptr<Expression>> parse_argument_list();
+
     std::unique_ptr<Type> parse_type();
     std::unique_ptr<Type> parse_type_specifier_list(const std::vector<TokenType>& type_specifiers);
     std::unique_ptr<Initializer> parse_initializer();
     void parse_parameter_list(std::vector<ParameterDeclaratorInfo>& out_params);
 
     std::pair<std::unique_ptr<Type>, StorageClass> parse_type_and_storage_class();
-
 
     UnaryOperator parse_unary_operator();
     BinaryOperator parse_binary_operator();
@@ -159,6 +163,7 @@ private:
 
     std::tuple<std::string, std::unique_ptr<Type>, std::vector<Identifier>> process_declarator(const Declarator& declarator, const Type& type);
     std::unique_ptr<Type> process_abstract_declarator(const AbstractDeclarator& declarator, const Type& base_type);
+    size_t parse_array_size();
 
     // Utility methods to check token types
     bool is_binary_operator(TokenType type);
@@ -166,6 +171,10 @@ private:
     bool is_specificer(TokenType type);
     bool is_type_specificer(TokenType type);
     bool is_constant(TokenType type);
+
+    bool is_unary_expression(TokenType type);
+    bool is_postfix_expression(TokenType type);
+    bool is_primary_expression(TokenType type);
     // std::unique_ptr<Identifier> parse_identifier();
 
     const Token& expect(TokenType expected);

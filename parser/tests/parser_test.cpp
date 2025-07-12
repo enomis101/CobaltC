@@ -182,7 +182,9 @@ TEST_F(ParserTest, ParseVariableDeclaration)
     EXPECT_EQ(var_decl->scope, DeclarationScope::File);
     ASSERT_TRUE(var_decl->expression.has_value());
 
-    auto const_expr = dynamic_cast<ConstantExpression*>(var_decl->expression.value().get());
+    auto init = dynamic_cast<SingleInitializer*>(var_decl->expression.value().get());
+    ASSERT_NE(init, nullptr);
+    auto const_expr = dynamic_cast<ConstantExpression*>(init->expression.get());
     ASSERT_NE(const_expr, nullptr);
     EXPECT_EQ(std::get<int>(const_expr->value), 5);
 }

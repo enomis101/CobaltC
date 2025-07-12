@@ -247,7 +247,7 @@ class ArrayType : public Type {
 public:
     ArrayType(std::unique_ptr<Type> element_type, size_t size)
         : element_type { std::move(element_type) }
-        , size{size}
+        , size { size }
     {
     }
 

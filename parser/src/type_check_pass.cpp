@@ -505,9 +505,11 @@ void TypeCheckPass::typecheck_local_variable_declaration(VariableDeclaration& va
         m_symbol_table->insert_symbol(variable_name, variable_declaration.type->clone(), LocalAttribute {});
         if (variable_declaration.expression.has_value()) {
             variable_declaration.expression.value()->accept(*this);
+            /* TODO: FIX
             if (!convert_expression_by_assignment(variable_declaration.expression.value(), *variable_declaration.type)) {
                 throw TypeCheckPassError(std::format("In VariableDeclaration cannot convert type for assignment at:\n{}", m_source_manager->get_source_line(variable_declaration.source_location)));
             }
+            */
         }
     }
 }

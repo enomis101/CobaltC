@@ -215,7 +215,7 @@ std::unique_ptr<AbstractDeclarator> Parser::parse_direct_abstract_declarator()
     ENTER_CONTEXT("parse_direct_abstract_declarator");
     const Token& next_token = peek();
     SourceLocationIndex loc = m_source_manager->get_index(next_token);
-    std::unique_ptr<AbstractDeclarator> decl =  std::make_unique<BaseAbstractDeclarator>();
+    std::unique_ptr<AbstractDeclarator> decl = std::make_unique<BaseAbstractDeclarator>();
 
     if (next_token.type() == TokenType::OPEN_PAREN) {
         expect(TokenType::OPEN_PAREN);
@@ -396,7 +396,7 @@ std::unique_ptr<Initializer> Parser::parse_initializer()
                 compound_next_token = &peek();
             }
         }
-        if(inits.size() == 0){
+        if (inits.size() == 0) {
             throw ParserError(*this, std::format("Initializer list cant be empty at:\n{}", m_source_manager->get_source_line(start_loc)));
         }
         expect(TokenType::CLOSE_BRACE);
@@ -462,7 +462,7 @@ std::unique_ptr<Expression> Parser::parse_unary_expression()
         std::unique_ptr<Expression> expr = parse_unary_expression();
         return std::make_unique<AddressOfExpression>(loc, std::move(expr));
     } else if (next_token.type() == TokenType::OPEN_PAREN) {
-        const Token* new_next_token = &peek(2); //look ahead 2 to skip open paren
+        const Token* new_next_token = &peek(2);           // look ahead 2 to skip open paren
         if (is_type_specificer(new_next_token->type())) { // CAST
             expect(TokenType::OPEN_PAREN);
             std::unique_ptr<Type> base_type = parse_type();

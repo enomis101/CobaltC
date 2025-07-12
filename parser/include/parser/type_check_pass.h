@@ -3,6 +3,7 @@
 #include "common/data/symbol_table.h"
 #include "common/data/type.h"
 #include "common/data/warning_manager.h"
+#include "common/error/internal_compiler_error.h"
 #include "parser/parser_ast.h"
 #include "parser/semantic_analyzer_error.h"
 #include <memory>
@@ -31,21 +32,28 @@ public:
     void run();
 
 private:
+    // Core expression type checking functions
+    void typecheck_expression_and_convert(std::unique_ptr<Expression>& expr);
+    void typecheck_expression(Expression& expr);
+
+    // Individual expression type checking methods
+    void typecheck_constant_expression(ConstantExpression& node);
+    void typecheck_variable_expression(VariableExpression& node);
+    void typecheck_unary_expression(UnaryExpression& node);
+    void typecheck_binary_expression(BinaryExpression& node);
+    void typecheck_assignment_expression(AssignmentExpression& node);
+    void typecheck_conditional_expression(ConditionalExpression& node);
+    void typecheck_function_call_expression(FunctionCallExpression& node);
+    void typecheck_cast_expression(CastExpression& node);
+    void typecheck_dereference_expression(DereferenceExpression& node);
+    void typecheck_address_of_expression(AddressOfExpression& node);
+    void typecheck_subscript_expression(SubscriptExpression& node);
+
+    // Visitor methods for non-expression nodes
     void visit(Identifier& node) override;
-    void visit(UnaryExpression& node) override;
-    void visit(BinaryExpression& node) override;
-    void visit(ConstantExpression& node) override;
     void visit(ReturnStatement& node) override;
     void visit(FunctionDeclaration& node) override;
     void visit(Program& node) override;
-    void visit(VariableExpression& node) override;
-    void visit(CastExpression& node) override;
-    void visit(AssignmentExpression& node) override;
-    void visit(ConditionalExpression& node) override;
-    void visit(FunctionCallExpression& node) override;
-    void visit(DereferenceExpression& node) override;
-    void visit(AddressOfExpression& node) override;
-    void visit(SubscriptExpression& node) override { } // TODO: IMPLEMENT
     void visit(ExpressionStatement& node) override;
     void visit(IfStatement& node) override;
     void visit(NullStatement& node) override;
@@ -62,17 +70,37 @@ private:
     void visit(ForInitDeclaration& node) override;
     void visit(ForInitExpression& node) override;
 
-    void resolve_function_param_declaration(Identifier& identifier);
+    // Expression visitor methods - kept for ParserVisitor interface compatibility but will throw errors
+    void visit(UnaryExpression& node) override { throw InternalCompilerError("visit(Expression&) should not be called - use typecheck_expression_and_convert instead"); }
+    void visit(BinaryExpression& node) override { throw InternalCompilerError("visit(Expression&) should not be called - use typecheck_expression_and_convert instead"); }
+    void visit(ConstantExpression& node) override { throw InternalCompilerError("visit(Expression&) should not be called - use typecheck_expression_and_convert instead"); }
+    void visit(VariableExpression& node) override { throw InternalCompilerError("visit(Expression&) should not be called - use typecheck_expression_and_convert instead"); }
+    void visit(CastExpression& node) override { throw InternalCompilerError("visit(Expression&) should not be called - use typecheck_expression_and_convert instead"); }
+    void visit(AssignmentExpression& node) override { throw InternalCompilerError("visit(Expression&) should not be called - use typecheck_expression_and_convert instead"); }
+    void visit(ConditionalExpression& node) override { throw InternalCompilerError("visit(Expression&) should not be called - use typecheck_expression_and_convert instead"); }
+    void visit(FunctionCallExpression& node) override { throw InternalCompilerError("visit(Expression&) should not be called - use typecheck_expression_and_convert instead"); }
+    void visit(DereferenceExpression& node) override { throw InternalCompilerError("visit(Expression&) should not be called - use typecheck_expression_and_convert instead"); }
+    void visit(AddressOfExpression& node) override { throw InternalCompilerError("visit(Expression&) should not be called - use typecheck_expression_and_convert instead"); }
+    void visit(SubscriptExpression& node) override { throw InternalCompilerError("visit(Expression&) should not be called - use typecheck_expression_and_convert instead"); }
 
     void typecheck_file_scope_variable_declaration(VariableDeclaration& variable_declaration);
     void typecheck_local_variable_declaration(VariableDeclaration& variable_declaration);
 
     std::unique_ptr<Type> get_common_type(const Type& t1, const Type& t2);
-    std::optional<std::unique_ptr<Type>> get_common_pointer_type(const Expression& expr1, const Expression& expr2);
+    std::unique_ptr<Type> get_common_type(const Expression& expr1, const Expression& expr2);
+    std::unique_ptr<Type> get_common_pointer_type(const Expression& expr1, const Expression& expr2);
     bool is_null_pointer_constant_expression(const Expression& expr);
 
     bool convert_expression_by_assignment(std::unique_ptr<Expression>& expr, const Type& target_type);
     void convert_expression_to(std::unique_ptr<Expression>& expr, const Type& target_type);
+
+    template<typename T>
+    void convert_expression_to(std::unique_ptr<Expression>& expr)
+    {
+        auto type = std::make_unique<T>();
+        convert_expression_to(expr, *type);
+    }
+
     std::expected<StaticInitialValueType, std::string> convert_constant_type_by_assignment(const ConstantType& value, const Type& target_type, std::function<void(const std::string&)> warning_callback = nullptr);
 
     bool is_lvalue(const Expression& expr);

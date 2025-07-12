@@ -24,6 +24,7 @@ public:
     virtual size_t size() const { return 0; }
     virtual bool is_signed() const { return false; }
     virtual bool is_arithmetic() const { return false; }
+    virtual bool is_integer() const { return false; }
 
     // Default equality comparison
     virtual bool equals(const Type& other) const
@@ -54,6 +55,7 @@ public:
     bool is_arithmetic() const override { return true; }
     size_t alignment() const override { return 4; }
     size_t size() const override { return 4; }
+    bool is_integer() const override { return true; }
 };
 
 class LongType : public Type {
@@ -74,6 +76,7 @@ public:
     bool is_arithmetic() const override { return true; }
     size_t alignment() const override { return 8; }
     size_t size() const override { return 8; }
+    bool is_integer() const override { return true; }
 };
 
 class UnsignedIntType : public Type {
@@ -92,6 +95,7 @@ public:
     bool is_arithmetic() const override { return true; }
     size_t alignment() const override { return 4; }
     size_t size() const override { return 4; }
+    bool is_integer() const override { return true; }
 };
 
 class UnsignedLongType : public Type {
@@ -110,6 +114,7 @@ public:
     bool is_arithmetic() const override { return true; }
     size_t alignment() const override { return 8; }
     size_t size() const override { return 8; }
+    bool is_integer() const override { return true; }
 };
 
 class DoubleType : public Type {

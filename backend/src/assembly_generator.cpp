@@ -781,6 +781,10 @@ std::pair<AssemblyType, bool> AssemblyGenerator::convert_type(const Type& type)
         assembly_type = AssemblyType::DOUBLE;
     } else if (dynamic_cast<const PointerType*>(&type)) {
         assembly_type = AssemblyType::QUAD_WORD;
+    } else if (auto arr_type = dynamic_cast<const ArrayType*>(&type)) {
+        //for variables less than 16 bytes use same alignement as element
+        size_t alignment = (arr_type->size() >= 16) ? 16 : arr_type->alignment();
+        assembly_type = AssemblyType(AssemblyType::BYTE_ARRAY, arr_type->size(), alignment);
     }
     return { assembly_type, is_signed };
 }

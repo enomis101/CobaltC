@@ -616,10 +616,10 @@ void TackyGenerator::transform_null_statement(parser::NullStatement& null_statem
 
 void TackyGenerator::transform_compound_initializer(const parser::Identifier& identifier, const parser::Initializer& init, size_t& index, std::vector<std::unique_ptr<Instruction>>& instructions)
 {
-    if(!init.type){
+    if (!init.type) {
         throw InternalCompilerError("in transform_compound_initializer type should be set");
     }
-    
+
     // Traverse using DFS and increase index each time we reach a leaf
     if (auto single_init = dynamic_cast<const parser::SingleInitializer*>(&init)) {
         std::unique_ptr<Value> value = emit_tacky_and_convert(*single_init->expression, instructions);

@@ -99,13 +99,96 @@ enum class RegisterName {
     MAX_REG
 };
 
-enum class AssemblyType {
-    BYTE,      // 1-byte
-    WORD,      // 2-byte
-    LONG_WORD, // 4-byte
-    QUAD_WORD, // 8-byte
-    DOUBLE,
-    NONE,
+class AssemblyType {
+public:
+    enum Type {
+        BYTE,
+        WORD,
+        LONG_WORD,
+        QUAD_WORD,
+        DOUBLE,
+        BYTE_ARRAY,
+        NONE
+    };
+
+    AssemblyType()
+        : m_type { Type::NONE }
+        , m_size { 0 }
+        , m_alignment { 0 }
+    {
+    }
+    AssemblyType(Type type)
+        : m_type { type }
+        , m_size { 0 }
+        , m_alignment { 0 }
+    {
+    }
+
+    explicit AssemblyType(Type type, size_t size, size_t alignment)
+        : m_type { type }
+        , m_size { size }
+        , m_alignment { alignment }
+    {
+    }
+
+    operator Type() const { return m_type; }
+
+    Type type() const { return m_type; }
+
+    size_t size() const
+    {
+        switch (m_type) {
+        case BYTE:
+            return 1;
+        case WORD:
+            return 2;
+        case LONG_WORD:
+            return 4;
+        case QUAD_WORD:
+            return 8;
+        case DOUBLE:
+            return 8;
+        case NONE:
+            return 0;
+        case BYTE_ARRAY:
+            return m_size;
+        }
+        return 0;
+    }
+
+    size_t alignment() const
+    {
+        switch (m_type) {
+        case BYTE:
+            return 1;
+        case WORD:
+            return 2;
+        case LONG_WORD:
+            return 4;
+        case QUAD_WORD:
+            return 8;
+        case DOUBLE:
+            return 8;
+        case NONE:
+            return 0;
+        case BYTE_ARRAY:
+            return m_alignment;
+        }
+        return 0;
+    }
+
+    bool is_byte_array() const
+    {
+        return m_type == BYTE_ARRAY;
+    }
+
+    bool operator==(Type other) const { return m_type == other; }
+    bool operator!=(Type other) const { return m_type != other; }
+
+private:
+    Type m_type;
+    size_t m_size;
+    size_t m_alignment;
 };
 
 // Abstract base class for all AssemblyAST nodes

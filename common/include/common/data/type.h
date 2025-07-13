@@ -301,6 +301,7 @@ public:
 
     std::unique_ptr<Type> element_type;
     size_t size() const override { return array_size * element_type->size(); }
+    size_t alignment() const override { return element_type->alignment(); }
     size_t array_size;
 };
 

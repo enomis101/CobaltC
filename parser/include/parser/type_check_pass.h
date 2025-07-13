@@ -49,6 +49,12 @@ private:
     void typecheck_address_of_expression(AddressOfExpression& node);
     void typecheck_subscript_expression(SubscriptExpression& node);
 
+    void typecheck_initializer(const Type& target_type, Initializer& init);
+    std::unique_ptr<Initializer> get_zero_initializer(SourceLocationIndex loc, const Type& type);
+
+    StaticInitialValue convert_static_initializer(const Type& target_type, Initializer& init, std::function<void(const std::string&)> warning_callback);
+    size_t get_static_zero_initializer(const Type& target_type);
+
     // Visitor methods for non-expression nodes
     void visit(Identifier& node) override;
     void visit(ReturnStatement& node) override;
@@ -57,8 +63,8 @@ private:
     void visit(ExpressionStatement& node) override;
     void visit(IfStatement& node) override;
     void visit(NullStatement& node) override;
-    void visit(SingleInitializer& node) override { }   // TODO: IMPLEMENT
-    void visit(CompoundInitializer& node) override { } // TODO: IMPLEMENT
+    void visit(SingleInitializer& node) override { throw InternalCompilerError("visit(Initializer&) should not be called - use typecheck_initializer instead"); }
+    void visit(CompoundInitializer& node) override { throw InternalCompilerError("visit(Initializer&) should not be called - use typecheck_initializer instead"); }
     void visit(VariableDeclaration& node) override;
     void visit(Block& node) override;
     void visit(CompoundStatement& node) override;
@@ -101,7 +107,7 @@ private:
         convert_expression_to(expr, *type);
     }
 
-    std::expected<StaticInitialValueType, std::string> convert_constant_type_by_assignment(const ConstantType& value, const Type& target_type, std::function<void(const std::string&)> warning_callback = nullptr);
+    StaticInitialValue convert_constant_type_by_assignment(const ConstantType& value, const Type& target_type, SourceLocationIndex loc, std::function<void(const std::string&)> warning_callback = nullptr);
 
     bool is_lvalue(const Expression& expr);
 

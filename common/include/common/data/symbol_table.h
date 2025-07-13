@@ -8,12 +8,52 @@
 #include <unordered_map>
 #include <variant>
 
-using StaticInitialValueType = ConstantType; // for now they are the same
+class ZeroInit {
+public:
+    explicit ZeroInit(size_t size)
+        : size(size)
+    {
+    }
+    size_t size;
+};
+
+class StaticInitialValueType {
+public:
+    explicit StaticInitialValueType(ConstantType constant_value);
+
+    explicit StaticInitialValueType(ZeroInit zero_init)
+        : m_value { zero_init }
+    {
+    }
+
+    bool is_zero() const
+    {
+        return std::holds_alternative<ZeroInit>(m_value);
+    }
+
+    ConstantType constant_value() const
+    {
+        return std::get<ConstantType>(m_value);
+    }
+
+    size_t zero_size() const
+    {
+        return std::get<ZeroInit>(m_value).size;
+    }
+
+    void set_zero_size(size_t new_zero_size)
+    {
+        std::get<ZeroInit>(m_value).size = new_zero_size;
+    }
+
+private:
+    std::variant<ConstantType, ZeroInit> m_value;
+};
 
 struct TentativeInit { };
 
 struct StaticInitialValue {
-    StaticInitialValueType value;
+    std::vector<StaticInitialValueType> values;
 };
 
 struct NoInit { };
@@ -85,7 +125,7 @@ public:
         return m_symbols.contains(name);
     }
 
-    static std::expected<StaticInitialValueType, std::string> convert_constant_type(const ConstantType& value, const Type& target_type, std::function<void(const std::string&)> warning_callback = nullptr);
+    static std::expected<ConstantType, std::string> convert_constant_type(const ConstantType& value, const Type& target_type, std::function<void(const std::string&)> warning_callback = nullptr);
 
     static bool is_null_pointer_constant(const ConstantType& constant);
 

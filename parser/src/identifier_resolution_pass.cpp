@@ -130,6 +130,12 @@ void IdentifierResolutionPass::visit(ExpressionStatement& node)
     node.expression->accept(*this);
 }
 
+void IdentifierResolutionPass::visit(SubscriptExpression& node)
+{
+    node.expression1->accept(*this);
+    node.expression2->accept(*this);
+}
+
 void IdentifierResolutionPass::visit(IfStatement& node)
 {
     node.condition->accept(*this);
@@ -144,6 +150,18 @@ void IdentifierResolutionPass::visit(IfStatement& node)
 void IdentifierResolutionPass::visit(NullStatement& node)
 {
     // Empty method
+}
+
+void IdentifierResolutionPass::visit(SingleInitializer& node)
+{
+    node.expression->accept(*this);
+}
+
+void IdentifierResolutionPass::visit(CompoundInitializer& node)
+{
+    for (auto& init : node.initializer_list) {
+        init->accept(*this);
+    }
 }
 
 void IdentifierResolutionPass::visit(VariableDeclaration& node)

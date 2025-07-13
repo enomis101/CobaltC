@@ -374,11 +374,12 @@ void PrinterVisitor::visit(FunctionDefinition& node)
 void PrinterVisitor::visit(StaticVariable& node)
 {
     int id = get_node_id(&node);
+    /*TODO: FIX
     m_dot_content << "  node" << id << " [label=\"StaticVariable\\nglobal: "
                   << (node.global ? "true" : "false")
                   << "\\nalignment: " << node.alignment
                   << "\\ninit: " << escape_string(constant_value_to_string(node.static_init)) << "\"];\n";
-
+    */
     // Visit the contained identifier
     node.name.accept(*this);
     m_dot_content << "  node" << id << " -> node" << get_node_id(&node.name)

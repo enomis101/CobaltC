@@ -796,7 +796,8 @@ std::string AssemblyGenerator::add_static_constant(double val, size_t alignment)
     if (!m_static_constants_map.contains(label)) {
         std::string compact_label = "const_label_" + std::to_string(m_static_constants_map.size());
         m_static_constants_map[label].first = compact_label;
-        m_static_constants_map[label].second = std::make_unique<StaticConstant>(compact_label, alignment, val);
+        // TODO: FIX
+        // m_static_constants_map[label].second = std::make_unique<StaticConstant>(compact_label, alignment, val);
         m_backend_symbol_table->insert_symbol(compact_label, ObjectEntry { AssemblyType::DOUBLE, true, true });
     }
     return m_static_constants_map[label].first;

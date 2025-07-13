@@ -40,17 +40,21 @@ void TackyGenerator::transform_symbols_to_tacky(std::shared_ptr<TackyAST> tacky_
             bool global = static_attr.global;
             const std::string& variable_name = p.first;
             if (std::holds_alternative<StaticInitialValue>(static_attr.init)) {
+                /*TODO: FIX
                 auto initial_value = SymbolTable::convert_constant_type(std::get<StaticInitialValue>(static_attr.init).value, *entry.type); // Tthis shouldnt be neede
                 if (!initial_value.has_value()) {
                     throw InternalCompilerError("initial_value must be valid");
                 }
                 top_levels.emplace_back(std::make_unique<StaticVariable>(variable_name, global, entry.type->clone(), initial_value.value()));
+                */
             } else if (std::holds_alternative<TentativeInit>(static_attr.init)) {
+                /*TODO: FIX
                 auto initial_value = SymbolTable::convert_constant_type(0, *entry.type);
                 if (!initial_value.has_value()) {
                     throw InternalCompilerError("initial_value must be valid");
                 }
                 top_levels.emplace_back(std::make_unique<StaticVariable>(variable_name, global, entry.type->clone(), initial_value.value()));
+                */
             } else if (std::holds_alternative<NoInit>(static_attr.init)) {
                 continue;
             }

@@ -1,9 +1,52 @@
 #include "common/data/symbol_table.h"
+#include "common/data/type.h"
 #include <climits>
 #include <cmath>
 #include <format>
 
-std::expected<StaticInitialValueType, std::string> SymbolTable::convert_constant_type(const ConstantType& value, const Type& target_type, std::function<void(const std::string&)> warning_callback)
+StaticInitialValueType::StaticInitialValueType(ConstantType constant_value)
+{
+    if (std::holds_alternative<std::monostate>(constant_value)) {
+        m_value = ZeroInit { 0 };
+    } else if (std::holds_alternative<int>(constant_value)) {
+        int val = std::get<int>(constant_value);
+        if (val == 0) {
+            m_value = ZeroInit { TypeSizes::INT_SIZE };
+        } else {
+            m_value = constant_value;
+        }
+    } else if (std::holds_alternative<long>(constant_value)) {
+        long val = std::get<long>(constant_value);
+        if (val == 0L) {
+            m_value = ZeroInit { TypeSizes::LONG_SIZE };
+        } else {
+            m_value = constant_value;
+        }
+    } else if (std::holds_alternative<unsigned int>(constant_value)) {
+        unsigned int val = std::get<unsigned int>(constant_value);
+        if (val == 0U) {
+            m_value = ZeroInit { TypeSizes::UNSIGNED_INT_SIZE };
+        } else {
+            m_value = constant_value;
+        }
+    } else if (std::holds_alternative<unsigned long>(constant_value)) {
+        unsigned long val = std::get<unsigned long>(constant_value);
+        if (val == 0UL) {
+            m_value = ZeroInit { TypeSizes::UNSIGNED_LONG_SIZE };
+        } else {
+            m_value = constant_value;
+        }
+    } else if (std::holds_alternative<double>(constant_value)) {
+        double val = std::get<double>(constant_value);
+        if (val == 0.0 && !std::signbit(val)) {
+            m_value = ZeroInit { TypeSizes::DOUBLE_SIZE };
+        } else {
+            m_value = constant_value;
+        }
+    }
+}
+
+std::expected<ConstantType, std::string> SymbolTable::convert_constant_type(const ConstantType& value, const Type& target_type, std::function<void(const std::string&)> warning_callback)
 {
     // Handle std::monostate input
     if (std::holds_alternative<std::monostate>(value)) {
@@ -12,7 +55,7 @@ std::expected<StaticInitialValueType, std::string> SymbolTable::convert_constant
 
     if (is_type<PointerType>(target_type)) {
         if (is_null_pointer_constant(value)) {
-            return StaticInitialValueType(0ul); // use unsigned long 0 as pointer are 64-bit unsigned integers
+            return 0ul; // use unsigned long 0 as pointer are 64-bit unsigned integers
         }
         return std::unexpected("Cannot convert non-zero constant to pointer type");
     }

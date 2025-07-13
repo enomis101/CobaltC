@@ -2,7 +2,9 @@
 #include "common/data/symbol_table.h"
 #include "common/data/type.h"
 #include "common/data/warning_manager.h"
+#include "common/error/internal_compiler_error.h"
 #include "parser/parser_ast.h"
+#include <cmath>
 #include <expected>
 #include <format>
 #include <memory>
@@ -151,7 +153,7 @@ void TypeCheckPass::typecheck_binary_expression(BinaryExpression& node)
         }
         case BinaryOperator::SUBTRACT: {
             if (is_type<PointerType>(*left_type) && right_type->is_integer()) {
-                // you can subtract an integer from a pointer, but you can subtract a pointer from an integer
+                // you can subtract an integer from a pointer, but you can't subtract a pointer from an integer
                 convert_expression_to<LongType>(node.right_expression);
                 node.type = left_type->clone();
             } else if (is_type<PointerType>(*left_type) && left_type->equals(*right_type)) {
@@ -211,7 +213,7 @@ void TypeCheckPass::typecheck_assignment_expression(AssignmentExpression& node)
 {
     // Process the left operand before checking if it's an value, to detect if we are tryin to assign to an array, as typecheck_expression_and_convert will wrap it in an AddressOfExpression
     typecheck_expression_and_convert(node.left_expression);
-    if (is_lvalue(*node.left_expression)) {
+    if (!is_lvalue(*node.left_expression)) {
         throw TypeCheckPassError(std::format("In AssignmentExpression left expression is not an lvalue at:\n{}", m_source_manager->get_source_line(node.left_expression->source_location)));
     }
 
@@ -324,11 +326,119 @@ void TypeCheckPass::typecheck_subscript_expression(SubscriptExpression& node)
     }
 
     auto ptr_type = dynamic_cast<PointerType*>(ptr_type_ref.get());
-    if(!ptr_type){
+    if (!ptr_type) {
         throw InternalCompilerError("ptr_type must be valid");
     }
 
     node.type = ptr_type->referenced_type->clone();
+}
+
+void TypeCheckPass::typecheck_initializer(const Type& target_type, Initializer& init)
+{
+    if (auto single_init = dynamic_cast<SingleInitializer*>(&init)) {
+        typecheck_expression_and_convert(single_init->expression);
+        if (!convert_expression_by_assignment(single_init->expression, target_type)) {
+            throw TypeCheckPassError(std::format("In typecheck_initializer cannot convert type for assignment at:\n{}", m_source_manager->get_source_line(init.source_location)));
+        }
+        single_init->type = target_type.clone();
+    } else if (auto compound_init = dynamic_cast<CompoundInitializer*>(&init)) {
+        if (auto arr_type = dynamic_cast<const ArrayType*>(&target_type)) {
+            if (compound_init->initializer_list.size() > arr_type->size) {
+                throw TypeCheckPassError(std::format("Too many initializers at:\n{}", m_source_manager->get_source_line(init.source_location)));
+            }
+            for (auto& inner_init : compound_init->initializer_list) {
+                typecheck_initializer(*arr_type->element_type, *inner_init);
+            }
+            // pad with zeros
+            for (size_t i = compound_init->initializer_list.size(); i < arr_type->size; ++i) {
+                compound_init->initializer_list.emplace_back(get_zero_initializer(init.source_location, *arr_type->element_type));
+            }
+        } else {
+            throw TypeCheckPassError(std::format("Can't initialize scalar object with a compound initializer at:\n{}", m_source_manager->get_source_line(init.source_location)));
+        }
+    } else {
+        throw InternalCompilerError("Unsupported type in typecheck_initializer");
+    }
+}
+
+std::unique_ptr<Initializer> TypeCheckPass::get_zero_initializer(SourceLocationIndex loc, const Type& type)
+{
+    if (auto arr_type = dynamic_cast<const ArrayType*>(&type)) {
+        std::vector<std::unique_ptr<Initializer>> initializer_list;
+        for (size_t i = 0; i < arr_type->size; ++i) {
+            initializer_list.emplace_back(get_zero_initializer(loc, *arr_type->element_type));
+        }
+        return std::make_unique<CompoundInitializer>(loc, std::move(initializer_list));
+    } else if (type.is_scalar()) {
+        auto res = SymbolTable::convert_constant_type(0, type);
+        if (!res.has_value()) {
+            throw InternalCompilerError("Something went wrong with convert_constant_type in get_zero_initializer");
+        }
+        auto const_expr = std::make_unique<ConstantExpression>(loc, res.value());
+        return std::make_unique<SingleInitializer>(loc, std::move(const_expr));
+    } else {
+        throw InternalCompilerError("Unsupported type in get_zero_initializer");
+    }
+}
+
+StaticInitialValue TypeCheckPass::convert_static_initializer(const Type& target_type, Initializer& init, std::function<void(const std::string&)> warning_callback)
+{
+    if (auto single_init = dynamic_cast<SingleInitializer*>(&init)) {
+        typecheck_expression_and_convert(single_init->expression);
+
+        auto const_expr = dynamic_cast<ConstantExpression*>(single_init->expression.get());
+        if (!const_expr) {
+            throw TypeCheckPassError(std::format("Static variable declaration has non-constant initializer! at:\n{}",
+                m_source_manager->get_source_line(init.source_location)));
+        }
+        single_init->type = target_type.clone();
+        return convert_constant_type_by_assignment(const_expr->value, target_type, init.source_location, warning_callback);
+    } else if (auto compound_init = dynamic_cast<CompoundInitializer*>(&init)) {
+        if (auto arr_type = dynamic_cast<const ArrayType*>(&target_type)) {
+            if (compound_init->initializer_list.size() > arr_type->size) {
+                throw TypeCheckPassError(std::format("Too many initializers at:\n{}", m_source_manager->get_source_line(init.source_location)));
+            }
+            std::vector<StaticInitialValueType> initial_values;
+            for (auto& inner_init : compound_init->initializer_list) {
+                for (auto& elem : convert_static_initializer(*arr_type->element_type, *inner_init, warning_callback).values) {
+                    initial_values.push_back(elem);
+                }
+            }
+
+            size_t size_diff = arr_type->size - compound_init->initializer_list.size();
+            // pad with zeros
+            if (size_diff > 0) {
+                auto zero_init = ZeroInit { get_static_zero_initializer(*arr_type->element_type) * size_diff };
+                initial_values.push_back(StaticInitialValueType(zero_init));
+            }
+
+            // merge adjacents zero inits
+            StaticInitialValue res;
+            for (auto& val : initial_values) {
+                if (val.is_zero() && res.values.size() > 0 && res.values.back().is_zero()) {
+                    res.values.back().set_zero_size(res.values.back().zero_size() + val.zero_size());
+                } else {
+                    res.values.push_back(val);
+                }
+            }
+            return res;
+        } else {
+            throw TypeCheckPassError(std::format("Can't initialize scalar object with a compound initializer at:\n{}", m_source_manager->get_source_line(init.source_location)));
+        }
+    } else {
+        throw InternalCompilerError("Unsupported type in typecheck_initializer");
+    }
+}
+
+size_t TypeCheckPass::get_static_zero_initializer(const Type& type)
+{
+    if (auto arr_type = dynamic_cast<const ArrayType*>(&type)) {
+        return get_static_zero_initializer(*arr_type->element_type) * arr_type->size;
+    } else if (type.is_scalar()) {
+        return type.size();
+    } else {
+        throw InternalCompilerError("Unsupported type in get_static_zero_initializer");
+    }
 }
 
 // ============================================================================
@@ -363,12 +473,12 @@ void TypeCheckPass::visit(FunctionDeclaration& function_declaration)
 {
     const auto& function_type = dynamic_cast<FunctionType*>(function_declaration.type.get());
     const std::string& function_name = function_declaration.name.name;
-    if(is_type<ArrayType>(*function_type->return_type)){
+    if (is_type<ArrayType>(*function_type->return_type)) {
         throw TypeCheckPassError(std::format("Function {} cant return an array at:\n{}", function_name, m_source_manager->get_source_line(function_declaration.source_location)));
     }
 
-    for(auto& param : function_type->parameters_type){
-        if(auto arr_type = dynamic_cast<ArrayType*>(param.get())){
+    for (auto& param : function_type->parameters_type) {
+        if (auto arr_type = dynamic_cast<ArrayType*>(param.get())) {
             auto ptr_type = std::make_unique<PointerType>(arr_type->element_type->clone());
             param = std::move(ptr_type);
         }
@@ -520,19 +630,11 @@ void TypeCheckPass::typecheck_file_scope_variable_declaration(VariableDeclaratio
         } else {
             initial_value = TentativeInit {};
         }
-    } else if (ConstantExpression* expr = dynamic_cast<ConstantExpression*>(variable_declaration.expression.value().get())) {
+    } else {
         // conversion is performed at compile time
         std::function<void(const std::string&)> warning_callback = [&](const std::string& message) { m_warning_manager->raise_warning(ParserWarningType::CAST, std::format("typecheck_file_scope_variable_declaration {} at:\n", message, m_source_manager->get_source_line(variable_declaration.source_location))); };
 
-        auto con_res = convert_constant_type_by_assignment(expr->value, *variable_declaration.type);
-        if (!con_res) {
-            throw TypeCheckPassError(std::format("Failed convert_constant_type {} at:\n{}",
-                con_res.error(), m_source_manager->get_source_line(variable_declaration.source_location)));
-        }
-        initial_value = StaticInitialValue { con_res.value() };
-    } else {
-        throw TypeCheckPassError(std::format("File-scope variable declaration of {} has non-constant initializer! at:\n{}",
-            variable_name, m_source_manager->get_source_line(variable_declaration.source_location)));
+        initial_value = convert_static_initializer(*variable_declaration.type, *variable_declaration.expression.value(), warning_callback);
     }
 
     bool global = variable_declaration.storage_class != StorageClass::STATIC;
@@ -595,35 +697,17 @@ void TypeCheckPass::typecheck_local_variable_declaration(VariableDeclaration& va
         StaticInitializer initial_value;
         if (!variable_declaration.expression.has_value()) {
             // conversion is performed at compile time
-
-            auto con_res = convert_constant_type_by_assignment(ConstantType(0), *variable_declaration.type, warning_callback);
-
-            if (!con_res) {
-                throw TypeCheckPassError(std::format("Failed convert_constant_type {}  at:\n{}",
-                    con_res.error(), m_source_manager->get_source_line(variable_declaration.source_location)));
-            }
-            initial_value = StaticInitialValue { con_res.value() };
-        } else if (ConstantExpression* expr = dynamic_cast<ConstantExpression*>(variable_declaration.expression.value().get())) {
-            // conversion is performed at compile time
-            auto con_res = convert_constant_type_by_assignment(expr->value, *variable_declaration.type, warning_callback);
-            if (!con_res) {
-                throw TypeCheckPassError(std::format("Failed convert_constant_type {}  at:\n{}",
-                    con_res.error(), m_source_manager->get_source_line(variable_declaration.source_location)));
-            }
-            initial_value = StaticInitialValue { con_res.value() };
+            initial_value = convert_constant_type_by_assignment(ConstantType(0), *variable_declaration.type, variable_declaration.source_location, warning_callback);
         } else {
-            throw TypeCheckPassError(std::format("Local variable declaration of {} has non-constant initializer!at:\n{}", variable_name, m_source_manager->get_source_line(variable_declaration.source_location)));
+            // conversion is performed at compile time
+            initial_value = convert_static_initializer(*variable_declaration.type, *variable_declaration.expression.value(), warning_callback);
         }
+
         m_symbol_table->insert_symbol(variable_name, variable_declaration.type->clone(), StaticAttribute { initial_value, false });
     } else { // local variable
         m_symbol_table->insert_symbol(variable_name, variable_declaration.type->clone(), LocalAttribute {});
         if (variable_declaration.expression.has_value()) {
-            typecheck_expression_and_convert(variable_declaration.expression.value());
-            /* TODO: FIX
-            if (!convert_expression_by_assignment(variable_declaration.expression.value(), *variable_declaration.type)) {
-                throw TypeCheckPassError(std::format("In VariableDeclaration cannot convert type for assignment at:\n{}", m_source_manager->get_source_line(variable_declaration.source_location)));
-            }
-            */
+            typecheck_initializer(*variable_declaration.type, *variable_declaration.expression.value());
         }
     }
 }
@@ -708,9 +792,17 @@ void TypeCheckPass::convert_expression_to(std::unique_ptr<Expression>& expr, con
     expr->type = target_type.clone();
 }
 
-std::expected<StaticInitialValueType, std::string> TypeCheckPass::convert_constant_type_by_assignment(const ConstantType& value, const Type& target_type, std::function<void(const std::string&)> warning_callback)
+StaticInitialValue TypeCheckPass::convert_constant_type_by_assignment(const ConstantType& value, const Type& target_type, SourceLocationIndex loc, std::function<void(const std::string&)> warning_callback)
 {
-    return SymbolTable::convert_constant_type(value, target_type, warning_callback);
+    StaticInitialValue static_init;
+    auto res = SymbolTable::convert_constant_type(value, target_type, warning_callback);
+    if (!res) {
+        throw TypeCheckPassError(std::format("Failed convert_constant_type {}  at:\n{}",
+            res.error(), m_source_manager->get_source_line(loc)));
+    }
+
+    static_init.values = { StaticInitialValueType(res.value()) };
+    return static_init;
 }
 
 bool TypeCheckPass::is_lvalue(const Expression& expr)

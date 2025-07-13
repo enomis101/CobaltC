@@ -453,6 +453,7 @@ void CodeEmitter::visit(StaticVariable& node)
         *m_file_stream << std::format("\t.globl {}\n", node.name.name);
     }
 
+    /*TODO: FIX
     if (std::holds_alternative<int>(node.static_init)) {
         int init_value = std::get<int>(node.static_init);
         bool init_to_zero = init_value == 0;
@@ -488,6 +489,7 @@ void CodeEmitter::visit(StaticVariable& node)
         *m_file_stream << std::format("{}:\n", node.name.name);
         *m_file_stream << std::format("\t{} {}\n", (".double"), (init_value));
     }
+    */
 }
 
 void CodeEmitter::visit(StaticConstant& node)
@@ -502,12 +504,14 @@ void CodeEmitter::visit(StaticConstant& node)
         *m_file_stream << std::format("{}:\n", node.name.name);
     }
 
+    /*TODO: FIX
     if (std::holds_alternative<double>(node.static_init)) {
         auto init_value = std::get<double>(node.static_init);
         *m_file_stream << std::format("\t{} {}\n", (".double"), (init_value));
     } else {
         throw CodeEmitterError("CodeEmitter: Unsupported StaticConstant type");
     }
+    */
 }
 
 void CodeEmitter::visit(Program& node)

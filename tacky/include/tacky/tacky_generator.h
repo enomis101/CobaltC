@@ -58,6 +58,7 @@ private:
     std::unique_ptr<ExpressionResult> transform_constant_expression(parser::ConstantExpression& constant_expression, std::vector<std::unique_ptr<Instruction>>& instructions);
     std::unique_ptr<ExpressionResult> transform_unary_expression(parser::UnaryExpression& unary_expression, std::vector<std::unique_ptr<Instruction>>& instructions);
     std::unique_ptr<ExpressionResult> transform_binary_expression(parser::BinaryExpression& binary_expression, std::vector<std::unique_ptr<Instruction>>& instructions);
+    std::unique_ptr<ExpressionResult> transform_pointer_arithmetic_expression(parser::BinaryExpression& binary_expression, std::vector<std::unique_ptr<Instruction>>& instructions);
     std::unique_ptr<ExpressionResult> transform_logical_and(parser::BinaryExpression& binary_expression, std::vector<std::unique_ptr<Instruction>>& instructions);
     std::unique_ptr<ExpressionResult> transform_logical_or(parser::BinaryExpression& binary_expression, std::vector<std::unique_ptr<Instruction>>& instructions);
     std::unique_ptr<ExpressionResult> transform_variable_expression(parser::VariableExpression& variable_expression, std::vector<std::unique_ptr<Instruction>>& instructions);
@@ -67,6 +68,7 @@ private:
     std::unique_ptr<ExpressionResult> transform_cast_expression(parser::CastExpression& cast_expression, std::vector<std::unique_ptr<Instruction>>& instructions);
     std::unique_ptr<ExpressionResult> transform_dereference_expression(parser::DereferenceExpression& dereference_expression, std::vector<std::unique_ptr<Instruction>>& instructions);
     std::unique_ptr<ExpressionResult> transform_address_of_expression(parser::AddressOfExpression& address_of_expression, std::vector<std::unique_ptr<Instruction>>& instructions);
+    std::unique_ptr<ExpressionResult> transform_subscript_expression(parser::SubscriptExpression& subscript_expression, std::vector<std::unique_ptr<Instruction>>& instructions);
 
     std::unique_ptr<Value> emit_tacky_and_convert(parser::Expression& expr, std::vector<std::unique_ptr<Instruction>>& instructions);
 
@@ -84,6 +86,7 @@ private:
     void transform_while_statement(parser::WhileStatement& while_statement, std::vector<std::unique_ptr<Instruction>>& instructions);
     void transform_for_statement(parser::ForStatement& for_statement, std::vector<std::unique_ptr<Instruction>>& instructions);
     void transform_null_statement(parser::NullStatement& null_statement, std::vector<std::unique_ptr<Instruction>>& instructions);
+    void transform_compound_initializer(const parser::Identifier& identifier, const parser::Initializer& init, size_t& index, std::vector<std::unique_ptr<Instruction>>& instructions);
 
     // Other transformations
     void transform_declaration(parser::Declaration& declaration, std::vector<std::unique_ptr<Instruction>>& instructions);
@@ -95,6 +98,7 @@ private:
     std::unique_ptr<Program> transform_program(parser::Program& program);
 
     void transform_symbols_to_tacky(std::shared_ptr<TackyAST> tacky_ast);
+    size_t get_pointer_scale(const Type& type);
 
     // Create a new name for a temporary value and add it to the SymbolTable, we need to keep track of each TemporaryVariable type in the assembly stage
     // to determine operand size and stack space

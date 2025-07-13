@@ -574,8 +574,9 @@ public:
 
 class Initializer : public ParserAST {
 public:
-    explicit Initializer(SourceLocationIndex loc)
+    explicit Initializer(SourceLocationIndex loc, std::unique_ptr<Type> type = nullptr)
         : ParserAST(loc)
+        , type(std::move(type))
     {
     }
     virtual ~Initializer() = default;
@@ -585,8 +586,8 @@ public:
 
 class SingleInitializer : public Initializer {
 public:
-    SingleInitializer(SourceLocationIndex loc, std::unique_ptr<Expression> expression)
-        : Initializer(loc)
+    SingleInitializer(SourceLocationIndex loc, std::unique_ptr<Expression> expression, std::unique_ptr<Type> type = nullptr)
+        : Initializer(loc, std::move(type))
         , expression(std::move(expression))
     {
     }
@@ -601,8 +602,8 @@ public:
 
 class CompoundInitializer : public Initializer {
 public:
-    CompoundInitializer(SourceLocationIndex loc, std::vector<std::unique_ptr<Initializer>> initializer_list)
-        : Initializer(loc)
+    CompoundInitializer(SourceLocationIndex loc, std::vector<std::unique_ptr<Initializer>> initializer_list, std::unique_ptr<Type> type = nullptr)
+        : Initializer(loc, std::move(type))
         , initializer_list(std::move(initializer_list))
     {
     }

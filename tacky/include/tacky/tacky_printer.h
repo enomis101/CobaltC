@@ -27,9 +27,11 @@ public:
     void visit(UnaryInstruction& node) override;
     void visit(BinaryInstruction& node) override;
     void visit(CopyInstruction& node) override;
-    void visit(GetAddressInstruction& node) override { } // TODO: implement
-    void visit(LoadInstruction& node) override { }       // TODO: implement
-    void visit(StoreInstruction& node) override { }      // TODO: implement
+    void visit(GetAddressInstruction& node) override { }   // TODO: implement
+    void visit(LoadInstruction& node) override { }         // TODO: implement
+    void visit(StoreInstruction& node) override { }        // TODO: implement
+    void visit(AddPointerInstruction& node) override { }   // TODO: implement
+    void visit(CopyToOffsetInstruction& node) override { } // TODO: implement
     void visit(JumpInstruction& node) override;
     void visit(JumpIfZeroInstruction& node) override;
     void visit(JumpIfNotZeroInstruction& node) override;

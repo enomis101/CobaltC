@@ -40,25 +40,29 @@ void TackyGenerator::transform_symbols_to_tacky(std::shared_ptr<TackyAST> tacky_
             bool global = static_attr.global;
             const std::string& variable_name = p.first;
             if (std::holds_alternative<StaticInitialValue>(static_attr.init)) {
-                /*TODO: FIX
-                auto initial_value = SymbolTable::convert_constant_type(std::get<StaticInitialValue>(static_attr.init).value, *entry.type); // Tthis shouldnt be neede
-                if (!initial_value.has_value()) {
-                    throw InternalCompilerError("initial_value must be valid");
-                }
-                top_levels.emplace_back(std::make_unique<StaticVariable>(variable_name, global, entry.type->clone(), initial_value.value()));
-                */
+                top_levels.emplace_back(std::make_unique<StaticVariable>(variable_name, global, entry.type->clone(), std::get<StaticInitialValue>(static_attr.init)));
             } else if (std::holds_alternative<TentativeInit>(static_attr.init)) {
-                /*TODO: FIX
-                auto initial_value = SymbolTable::convert_constant_type(0, *entry.type);
-                if (!initial_value.has_value()) {
-                    throw InternalCompilerError("initial_value must be valid");
-                }
-                top_levels.emplace_back(std::make_unique<StaticVariable>(variable_name, global, entry.type->clone(), initial_value.value()));
-                */
+                ZeroInit zero_init { entry.type->size() };
+                StaticInitialValue init;
+                init.values = { StaticInitialValueType(zero_init) };
+                top_levels.emplace_back(std::make_unique<StaticVariable>(variable_name, global, entry.type->clone(), init));
             } else if (std::holds_alternative<NoInit>(static_attr.init)) {
                 continue;
             }
         }
+    }
+}
+
+size_t TackyGenerator::get_pointer_scale(const Type& type)
+{
+    if (auto ptr_type = dynamic_cast<const PointerType*>(&type)) {
+        return get_pointer_scale(*ptr_type->referenced_type);
+    } else if (auto arr_type = dynamic_cast<const ArrayType*>(&type)) {
+        return get_pointer_scale(*arr_type->element_type) * arr_type->array_size;
+    } else if (type.is_scalar()) {
+        return type.size();
+    } else {
+        throw InternalCompilerError(std::format("In get_pointer_scale unsupported type {}", type.to_string()));
     }
 }
 
@@ -124,6 +128,8 @@ std::unique_ptr<ExpressionResult> TackyGenerator::emit_tacky(parser::Expression&
         return transform_dereference_expression(*dereference_expression, instructions);
     } else if (auto addr_of_expr = dynamic_cast<parser::AddressOfExpression*>(&expression)) {
         return transform_address_of_expression(*addr_of_expr, instructions);
+    } else if (auto subscript_expression = dynamic_cast<parser::SubscriptExpression*>(&expression)) {
+        return transform_subscript_expression(*subscript_expression, instructions);
     } else {
         throw TackyGeneratorError("TackyGenerator: Invalid or Unsupported Expression");
     }
@@ -153,6 +159,10 @@ std::unique_ptr<ExpressionResult> TackyGenerator::transform_binary_expression(pa
     } else if (binary_expression.binary_operator == parser::BinaryOperator::OR) {
         return transform_logical_or(binary_expression, instructions);
     } else {
+        if ((is_type<PointerType>(*binary_expression.left_expression->type) || is_type<PointerType>(*binary_expression.right_expression->type))
+            && (binary_expression.binary_operator == parser::BinaryOperator::ADD || binary_expression.binary_operator == parser::BinaryOperator::SUBTRACT)) {
+            return transform_pointer_arithmetic_expression(binary_expression, instructions);
+        }
         std::unique_ptr<Value> src1 = emit_tacky_and_convert(*binary_expression.left_expression, instructions);
         std::unique_ptr<Value> src2 = emit_tacky_and_convert(*binary_expression.right_expression, instructions);
         std::string dst_name = make_and_add_temporary(*binary_expression.type);
@@ -161,6 +171,52 @@ std::unique_ptr<ExpressionResult> TackyGenerator::transform_binary_expression(pa
         BinaryOperator op = transform_binary_operator(binary_expression.binary_operator);
         instructions.emplace_back(std::make_unique<BinaryInstruction>(op, std::move(src1), std::move(src2), std::move(dst)));
         return std::make_unique<PlainOperand>(std::move(dst_copy));
+    }
+}
+
+std::unique_ptr<ExpressionResult> TackyGenerator::transform_pointer_arithmetic_expression(parser::BinaryExpression& binary_expression, std::vector<std::unique_ptr<Instruction>>& instructions)
+{
+    if (binary_expression.binary_operator == parser::BinaryOperator::ADD) {
+        std::unique_ptr<parser::Expression>* ptr_expr = nullptr;
+        std::unique_ptr<parser::Expression>* int_expr = nullptr;
+        if (is_type<PointerType>(*binary_expression.left_expression->type) && binary_expression.right_expression->type->is_integer()) {
+            ptr_expr = &binary_expression.left_expression;
+            int_expr = &binary_expression.right_expression;
+        } else if (binary_expression.left_expression->type->is_integer() && is_type<PointerType>(*binary_expression.right_expression->type)) {
+            ptr_expr = &binary_expression.right_expression;
+            int_expr = &binary_expression.left_expression;
+        } else {
+            throw InternalCompilerError("In transform_pointer_arithmetic_expression ADD invalid types");
+        }
+        std::unique_ptr<Value> ptr_res = emit_tacky_and_convert(**ptr_expr, instructions);
+        std::unique_ptr<Value> int_res = emit_tacky_and_convert(**int_expr, instructions);
+        std::unique_ptr<TemporaryVariable> dst = make_temporary_variable(*binary_expression.type);
+        instructions.emplace_back(std::make_unique<AddPointerInstruction>(std::move(ptr_res), std::move(int_res), get_pointer_scale(*(*ptr_expr)->type), dst->clone()));
+        return std::make_unique<PlainOperand>(std::move(dst));
+    } else if (binary_expression.binary_operator == parser::BinaryOperator::SUBTRACT) {
+        if (is_type<PointerType>(*binary_expression.left_expression->type) && binary_expression.right_expression->type->is_integer()) {
+            std::unique_ptr<Value> ptr_res = emit_tacky_and_convert(*binary_expression.left_expression, instructions);
+            std::unique_ptr<Value> int_res = emit_tacky_and_convert(*binary_expression.right_expression, instructions);
+            std::unique_ptr<TemporaryVariable> unary_dst = make_temporary_variable(*binary_expression.type);
+            std::unique_ptr<TemporaryVariable> dst = make_temporary_variable(*binary_expression.type);
+            instructions.emplace_back(std::make_unique<UnaryInstruction>(UnaryOperator::NEGATE, std::move(int_res), unary_dst->clone()));
+            instructions.emplace_back(std::make_unique<AddPointerInstruction>(std::move(ptr_res), std::move(unary_dst), get_pointer_scale(*binary_expression.left_expression->type), dst->clone()));
+            return std::make_unique<PlainOperand>(std::move(dst));
+        } else if (is_type<PointerType>(*binary_expression.left_expression->type) && is_type<PointerType>(*binary_expression.right_expression->type)) {
+            std::unique_ptr<Value> ptr1_res = emit_tacky_and_convert(*binary_expression.left_expression, instructions);
+            std::unique_ptr<Value> ptr2_res = emit_tacky_and_convert(*binary_expression.right_expression, instructions);
+            std::unique_ptr<TemporaryVariable> sub_dst = make_temporary_variable(*binary_expression.type);
+            std::unique_ptr<TemporaryVariable> dst = make_temporary_variable(*binary_expression.type);
+            // We can use either expr as they have the same type
+            std::unique_ptr<Value> ptr_size_constant = std::make_unique<Constant>(get_pointer_scale(*binary_expression.left_expression->type));
+            instructions.emplace_back(std::make_unique<BinaryInstruction>(BinaryOperator::SUBTRACT, std::move(ptr1_res), std::move(ptr2_res), sub_dst->clone()));
+            instructions.emplace_back(std::make_unique<BinaryInstruction>(BinaryOperator::DIVIDE, std::move(sub_dst), std::move(ptr_size_constant), dst->clone()));
+            return std::make_unique<PlainOperand>(std::move(dst));
+        } else {
+            throw InternalCompilerError("In transform_pointer_arithmetic_expression SUBTRACT invalid types");
+        }
+    } else {
+        throw InternalCompilerError("In transform_pointer_arithmetic_expression invalid operator");
     }
 }
 
@@ -326,7 +382,7 @@ std::unique_ptr<ExpressionResult> TackyGenerator::transform_cast_expression(pars
     } else if (is_type<PointerType>(*expr_type)) {
         if (is_type<IntType>(*target_type) || is_type<UnsignedIntType>(*target_type)) {
             instructions.emplace_back(std::make_unique<TruncateInstruction>(std::move(expr_res), std::move(dst)));
-        } else if (is_type<LongType>(*target_type) || is_type<UnsignedLongType>(*target_type) || is_type<PointerType>(*expr_type)) {
+        } else if (is_type<LongType>(*target_type) || is_type<UnsignedLongType>(*target_type) || is_type<PointerType>(*target_type)) {
             instructions.emplace_back(std::make_unique<CopyInstruction>(std::move(expr_res), std::move(dst)));
         } else {
             throw InternalCompilerError("Unsupported type");
@@ -374,6 +430,28 @@ std::unique_ptr<ExpressionResult> TackyGenerator::transform_address_of_expressio
     } else {
         throw InternalCompilerError("Unsupported ExpressionResult");
     }
+}
+
+std::unique_ptr<ExpressionResult> TackyGenerator::transform_subscript_expression(parser::SubscriptExpression& subscript_expression, std::vector<std::unique_ptr<Instruction>>& instructions)
+{
+    // in depth explataion at page 408
+    std::unique_ptr<parser::Expression>* ptr_expr = nullptr;
+    std::unique_ptr<parser::Expression>* int_expr = nullptr;
+    if (is_type<PointerType>(*subscript_expression.expression1->type) && subscript_expression.expression2->type->is_integer()) {
+        ptr_expr = &subscript_expression.expression1;
+        int_expr = &subscript_expression.expression2;
+    } else if (subscript_expression.expression1->type->is_integer() && is_type<PointerType>(*subscript_expression.expression2->type)) {
+        ptr_expr = &subscript_expression.expression2;
+        int_expr = &subscript_expression.expression1;
+    } else {
+        throw InternalCompilerError("In transform_subscript_expression invalid types");
+    }
+    std::unique_ptr<Value> ptr_res = emit_tacky_and_convert(**ptr_expr, instructions);
+    std::unique_ptr<Value> int_res = emit_tacky_and_convert(**int_expr, instructions);
+    std::unique_ptr<TemporaryVariable> dst = make_temporary_variable(*subscript_expression.type);
+    // TODO: make sure get_pointer_scale is ok here too
+    instructions.emplace_back(std::make_unique<AddPointerInstruction>(std::move(ptr_res), std::move(int_res), get_pointer_scale(*(*ptr_expr)->type), dst->clone()));
+    return std::make_unique<DereferencedPointer>(std::move(dst));
 }
 
 std::unique_ptr<Value> TackyGenerator::emit_tacky_and_convert(parser::Expression& expr, std::vector<std::unique_ptr<Instruction>>& instructions)
@@ -536,15 +614,37 @@ void TackyGenerator::transform_null_statement(parser::NullStatement& null_statem
     // do nothing
 }
 
+void TackyGenerator::transform_compound_initializer(const parser::Identifier& identifier, const parser::Initializer& init, size_t& index, std::vector<std::unique_ptr<Instruction>>& instructions)
+{
+    if(!init.type){
+        throw InternalCompilerError("in transform_compound_initializer type should be set");
+    }
+    
+    // Traverse using DFS and increase index each time we reach a leaf
+    if (auto single_init = dynamic_cast<const parser::SingleInitializer*>(&init)) {
+        std::unique_ptr<Value> value = emit_tacky_and_convert(*single_init->expression, instructions);
+        size_t type_size = single_init->type->size();
+        instructions.emplace_back(std::make_unique<CopyToOffsetInstruction>(std::move(value), identifier.name, index * type_size));
+        index++;
+    } else if (auto compund_init = dynamic_cast<const parser::CompoundInitializer*>(&init)) {
+        for (auto& init : compund_init->initializer_list) {
+            transform_compound_initializer(identifier, *init, index, instructions);
+        }
+    }
+}
+
 void TackyGenerator::transform_declaration(parser::Declaration& declaration, std::vector<std::unique_ptr<Instruction>>& instructions)
 {
     if (parser::VariableDeclaration* variable_declaration = dynamic_cast<parser::VariableDeclaration*>(&declaration)) {
         // We do not generate any code for local variable declarations with static or external specifiers
         if (variable_declaration->storage_class == parser::StorageClass::NONE && variable_declaration->expression.has_value()) {
-            /* TODO: FIX
-            std::unique_ptr<Value> value = emit_tacky_and_convert(*variable_declaration->expression.value(), instructions);
-            instructions.emplace_back(std::make_unique<CopyInstruction>(std::move(value), std::make_unique<TemporaryVariable>(variable_declaration->identifier.name)));
-            */
+            if (auto single_init = dynamic_cast<const parser::SingleInitializer*>(variable_declaration->expression.value().get())) {
+                std::unique_ptr<Value> value = emit_tacky_and_convert(*single_init->expression, instructions);
+                instructions.emplace_back(std::make_unique<CopyInstruction>(std::move(value), std::make_unique<TemporaryVariable>(variable_declaration->identifier.name)));
+            } else if (dynamic_cast<const parser::CompoundInitializer*>(variable_declaration->expression.value().get())) {
+                size_t index = 0;
+                transform_compound_initializer(variable_declaration->identifier, *variable_declaration->expression.value(), index, instructions);
+            }
         }
     } else if (dynamic_cast<parser::FunctionDeclaration*>(&declaration)) {
         // DO NOTHING

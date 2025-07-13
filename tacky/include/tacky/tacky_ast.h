@@ -39,6 +39,8 @@ class UIntToDoubleIntruction;
 class GetAddressInstruction;
 class LoadInstruction;
 class StoreInstruction;
+class AddPointerInstruction;
+class CopyToOffsetInstruction;
 
 // TackyVisitor interface
 class TackyVisitor {
@@ -60,6 +62,8 @@ public:
     virtual void visit(GetAddressInstruction& node) = 0;
     virtual void visit(LoadInstruction& node) = 0;
     virtual void visit(StoreInstruction& node) = 0;
+    virtual void visit(AddPointerInstruction& node) = 0;
+    virtual void visit(CopyToOffsetInstruction& node) = 0;
     virtual void visit(JumpInstruction& node) = 0;
     virtual void visit(JumpIfZeroInstruction& node) = 0;
     virtual void visit(JumpIfNotZeroInstruction& node) = 0;
@@ -393,6 +397,46 @@ public:
     std::unique_ptr<Value> destination_pointer;
 };
 
+class AddPointerInstruction : public Instruction {
+public:
+    AddPointerInstruction(std::unique_ptr<Value> source_pointer, std::unique_ptr<Value> index, size_t scale, std::unique_ptr<Value> destination)
+        : source_pointer(std::move(source_pointer))
+        , index(std::move(index))
+        , scale(scale)
+        , destination(std::move(destination))
+    {
+    }
+
+    void accept(TackyVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    std::unique_ptr<Value> source_pointer;
+    std::unique_ptr<Value> index;
+    size_t scale;
+    std::unique_ptr<Value> destination;
+};
+
+class CopyToOffsetInstruction : public Instruction {
+public:
+    CopyToOffsetInstruction(std::unique_ptr<Value> source, const std::string& identifier, size_t offset)
+        : source(std::move(source))
+        , identifier(identifier)
+        , offset(offset)
+    {
+    }
+
+    void accept(TackyVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    std::unique_ptr<Value> source;
+    Identifier identifier;
+    size_t offset;
+};
+
 class JumpInstruction : public Instruction {
 public:
     JumpInstruction(const std::string& id)
@@ -504,7 +548,7 @@ public:
 
 class StaticVariable : public TopLevel {
 public:
-    StaticVariable(const std::string& name, bool global, std::unique_ptr<Type> type, StaticInitialValueType init)
+    StaticVariable(const std::string& name, bool global, std::unique_ptr<Type> type, const StaticInitialValue& init)
         : name { name }
         , global { global }
         , type { std::move(type) }
@@ -520,7 +564,7 @@ public:
     Identifier name;
     bool global;
     std::unique_ptr<Type> type;
-    StaticInitialValueType init;
+    StaticInitialValue init;
 };
 
 class Program : public TackyAST {

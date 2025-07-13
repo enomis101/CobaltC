@@ -267,9 +267,9 @@ public:
 
 class ArrayType : public Type {
 public:
-    ArrayType(std::unique_ptr<Type> element_type, size_t size)
+    ArrayType(std::unique_ptr<Type> element_type, size_t array_size)
         : element_type { std::move(element_type) }
-        , size { size }
+        , array_size { array_size }
     {
     }
 
@@ -280,12 +280,12 @@ public:
 
         // Create and return new ArrayType with cloned components
         return std::make_unique<ArrayType>(
-            element_type->clone(), size);
+            element_type->clone(), array_size);
     }
 
     std::string to_string() const override
     {
-        return std::format("[{}]{}", size, element_type->to_string());
+        return std::format("[{}]{}", array_size, element_type->to_string());
     }
 
     bool equals(const Type& other) const override
@@ -296,11 +296,12 @@ public:
             return false;
         }
 
-        return element_type->equals(*other_array->element_type) && size == other_array->size;
+        return element_type->equals(*other_array->element_type) && array_size == other_array->array_size;
     }
 
     std::unique_ptr<Type> element_type;
-    size_t size;
+    size_t size() const override { return array_size * element_type->size(); }
+    size_t array_size;
 };
 
 template<typename T>

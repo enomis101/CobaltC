@@ -343,16 +343,17 @@ void TypeCheckPass::typecheck_initializer(const Type& target_type, Initializer& 
         single_init->type = target_type.clone();
     } else if (auto compound_init = dynamic_cast<CompoundInitializer*>(&init)) {
         if (auto arr_type = dynamic_cast<const ArrayType*>(&target_type)) {
-            if (compound_init->initializer_list.size() > arr_type->size) {
+            if (compound_init->initializer_list.size() > arr_type->array_size) {
                 throw TypeCheckPassError(std::format("Too many initializers at:\n{}", m_source_manager->get_source_line(init.source_location)));
             }
             for (auto& inner_init : compound_init->initializer_list) {
                 typecheck_initializer(*arr_type->element_type, *inner_init);
             }
             // pad with zeros
-            for (size_t i = compound_init->initializer_list.size(); i < arr_type->size; ++i) {
+            for (size_t i = compound_init->initializer_list.size(); i < arr_type->array_size; ++i) {
                 compound_init->initializer_list.emplace_back(get_zero_initializer(init.source_location, *arr_type->element_type));
             }
+            compound_init->type = target_type.clone();
         } else {
             throw TypeCheckPassError(std::format("Can't initialize scalar object with a compound initializer at:\n{}", m_source_manager->get_source_line(init.source_location)));
         }
@@ -365,17 +366,17 @@ std::unique_ptr<Initializer> TypeCheckPass::get_zero_initializer(SourceLocationI
 {
     if (auto arr_type = dynamic_cast<const ArrayType*>(&type)) {
         std::vector<std::unique_ptr<Initializer>> initializer_list;
-        for (size_t i = 0; i < arr_type->size; ++i) {
+        for (size_t i = 0; i < arr_type->array_size; ++i) {
             initializer_list.emplace_back(get_zero_initializer(loc, *arr_type->element_type));
         }
-        return std::make_unique<CompoundInitializer>(loc, std::move(initializer_list));
+        return std::make_unique<CompoundInitializer>(loc, std::move(initializer_list), type.clone());
     } else if (type.is_scalar()) {
         auto res = SymbolTable::convert_constant_type(0, type);
         if (!res.has_value()) {
             throw InternalCompilerError("Something went wrong with convert_constant_type in get_zero_initializer");
         }
         auto const_expr = std::make_unique<ConstantExpression>(loc, res.value());
-        return std::make_unique<SingleInitializer>(loc, std::move(const_expr));
+        return std::make_unique<SingleInitializer>(loc, std::move(const_expr), type.clone());
     } else {
         throw InternalCompilerError("Unsupported type in get_zero_initializer");
     }
@@ -395,7 +396,7 @@ StaticInitialValue TypeCheckPass::convert_static_initializer(const Type& target_
         return convert_constant_type_by_assignment(const_expr->value, target_type, init.source_location, warning_callback);
     } else if (auto compound_init = dynamic_cast<CompoundInitializer*>(&init)) {
         if (auto arr_type = dynamic_cast<const ArrayType*>(&target_type)) {
-            if (compound_init->initializer_list.size() > arr_type->size) {
+            if (compound_init->initializer_list.size() > arr_type->array_size) {
                 throw TypeCheckPassError(std::format("Too many initializers at:\n{}", m_source_manager->get_source_line(init.source_location)));
             }
             std::vector<StaticInitialValueType> initial_values;
@@ -405,7 +406,7 @@ StaticInitialValue TypeCheckPass::convert_static_initializer(const Type& target_
                 }
             }
 
-            size_t size_diff = arr_type->size - compound_init->initializer_list.size();
+            size_t size_diff = arr_type->array_size - compound_init->initializer_list.size();
             // pad with zeros
             if (size_diff > 0) {
                 auto zero_init = ZeroInit { get_static_zero_initializer(*arr_type->element_type) * size_diff };
@@ -433,7 +434,7 @@ StaticInitialValue TypeCheckPass::convert_static_initializer(const Type& target_
 size_t TypeCheckPass::get_static_zero_initializer(const Type& type)
 {
     if (auto arr_type = dynamic_cast<const ArrayType*>(&type)) {
-        return get_static_zero_initializer(*arr_type->element_type) * arr_type->size;
+        return get_static_zero_initializer(*arr_type->element_type) * arr_type->array_size;
     } else if (type.is_scalar()) {
         return type.size();
     } else {

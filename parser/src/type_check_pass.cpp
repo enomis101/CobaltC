@@ -187,7 +187,7 @@ void TypeCheckPass::typecheck_binary_expression(BinaryExpression& node)
     }
 
     // Get common type, handling pointer type
-    auto common_type = get_common_pointer_type(*node.left_expression, *node.right_expression);
+    auto common_type = get_common_type(*node.left_expression, *node.right_expression);
 
     convert_expression_to(node.left_expression, *common_type);
     convert_expression_to(node.right_expression, *common_type);
@@ -302,7 +302,7 @@ void TypeCheckPass::typecheck_dereference_expression(DereferenceExpression& node
 void TypeCheckPass::typecheck_address_of_expression(AddressOfExpression& node)
 {
     if (is_lvalue(*node.expression)) {
-        typecheck_expression_and_convert(node.expression);
+        typecheck_expression(*node.expression);
         node.type = std::make_unique<PointerType>(node.expression->type->clone());
     } else {
         throw TypeCheckPassError(std::format("Can't take the address of a non-lvalue at:\n{}", m_source_manager->get_source_line(node.source_location)));
@@ -696,8 +696,8 @@ void TypeCheckPass::typecheck_local_variable_declaration(VariableDeclaration& va
     } else if (variable_declaration.storage_class == StorageClass::STATIC) {
         StaticInitializer initial_value;
         if (!variable_declaration.expression.has_value()) {
-            // conversion is performed at compile time
-            initial_value = convert_constant_type_by_assignment(ConstantType(0), *variable_declaration.type, variable_declaration.source_location, warning_callback);
+            ZeroInit zero_init { TypeCheckPass::get_static_zero_initializer(*variable_declaration.type) };
+            initial_value = StaticInitialValue({ StaticInitialValueType(zero_init) });
         } else {
             // conversion is performed at compile time
             initial_value = convert_static_initializer(*variable_declaration.type, *variable_declaration.expression.value(), warning_callback);

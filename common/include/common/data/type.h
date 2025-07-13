@@ -285,7 +285,7 @@ public:
 
     std::string to_string() const override
     {
-        return std::format("{}[{}]", element_type->to_string(), size);
+        return std::format("[{}]{}", size, element_type->to_string());
     }
 
     bool equals(const Type& other) const override

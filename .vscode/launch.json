@@ -6,7 +6,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/compiler/cobaltc-compiler",
-            "args": ["/home/simone/compiler/writing-a-c-compiler-tests/tests/chapter_5/valid/allocate_temps_and_vars.c", "--validate"],
+            "args": ["/home/simone/compiler/writing-a-c-compiler-tests/tests/chapter_15/valid/declarators/equivalent_declarators.c", "--validate"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/",
             "environment": [],

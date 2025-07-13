@@ -38,6 +38,8 @@ class StaticConstant;
 class Cvttsd2siInstruction;
 class Cvtsi2sdInstruction;
 class LeaInstruction;
+class IndexedAddress;
+class PseudoMemory;
 
 class AssemblyVisitor {
 public:
@@ -349,6 +351,40 @@ public:
     int offset;
 };
 
+class IndexedAddress : public Operand {
+public:
+    IndexedAddress(RegisterName base_register_name, RegisterName index_register_name, int offset)
+        : base_register(std::make_unique<Register>(base_register_name, AssemblyType::QUAD_WORD))
+        , index_register(std::make_unique<Register>(index_register_name, AssemblyType::QUAD_WORD))
+        , offset(offset)
+    {
+    }
+
+    IndexedAddress(std::unique_ptr<Register> base_register, std::unique_ptr<Register> index_register, int offset)
+        : base_register(std::move(base_register))
+        , index_register(std::move(index_register))
+        , offset(offset)
+    {
+        this->base_register->type = AssemblyType::QUAD_WORD;
+    }
+
+    void accept(AssemblyVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    std::unique_ptr<Operand> clone() const override
+    {
+        auto base_reg = std::unique_ptr<Register>(dynamic_cast<Register*>(base_register->clone().release()));
+        auto index_reg = std::unique_ptr<Register>(dynamic_cast<Register*>(index_register->clone().release()));
+        return std::make_unique<IndexedAddress>(std::move(base_reg), std::move(index_reg), offset);
+    }
+
+    std::unique_ptr<Register> base_register;
+    std::unique_ptr<Register> index_register;
+    int offset;
+};
+
 class DataOperand : public Operand {
 public:
     DataOperand(const std::string& id)
@@ -367,6 +403,28 @@ public:
     }
 
     Identifier identifier;
+};
+
+class PseudoMemory : public Operand {
+public:
+    PseudoMemory(const std::string& id, size_t offset)
+        : identifier { id }
+        , offset(offset)
+    {
+    }
+
+    void accept(AssemblyVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    std::unique_ptr<Operand> clone() const override
+    {
+        return std::make_unique<DataOperand>(identifier.name);
+    }
+
+    Identifier identifier;
+    size_t offset;
 };
 
 class Instruction : public AssemblyAST {
@@ -911,7 +969,7 @@ public:
 
 class StaticVariable : public TopLevel {
 public:
-    StaticVariable(const std::string& name, bool global, size_t alignment, StaticInitialValueType static_init)
+    StaticVariable(const std::string& name, bool global, size_t alignment, StaticInitialValue static_init)
         : name { name }
         , global { global }
         , alignment(alignment)
@@ -932,7 +990,7 @@ public:
     Identifier name;
     bool global;
     size_t alignment;
-    StaticInitialValueType static_init;
+    StaticInitialValue static_init;
 };
 
 class StaticConstant : public TopLevel {

@@ -48,6 +48,8 @@ public:
     virtual void visit(Register& node) = 0;
     virtual void visit(PseudoRegister& node) = 0;
     virtual void visit(MemoryAddress& node) = 0;
+    virtual void visit(IndexedAddress& node) = 0;
+    virtual void visit(PseudoMemory& node) = 0;
     virtual void visit(DataOperand& node) = 0;
     virtual void visit(CommentInstruction& node) = 0;
     virtual void visit(ReturnInstruction& node) = 0;
@@ -323,7 +325,7 @@ public:
 
 class MemoryAddress : public Operand {
 public:
-    MemoryAddress(RegisterName base_register_name, int offset)
+    MemoryAddress(RegisterName base_register_name, long offset)
         : base_register(std::make_unique<Register>(base_register_name, AssemblyType::QUAD_WORD))
         , offset(offset)
     {
@@ -348,7 +350,7 @@ public:
     }
 
     std::unique_ptr<Register> base_register;
-    int offset;
+    long offset;
 };
 
 class IndexedAddress : public Operand {
@@ -407,7 +409,7 @@ public:
 
 class PseudoMemory : public Operand {
 public:
-    PseudoMemory(const std::string& id, size_t offset)
+    PseudoMemory(const std::string& id, int offset)
         : identifier { id }
         , offset(offset)
     {
@@ -424,7 +426,7 @@ public:
     }
 
     Identifier identifier;
-    size_t offset;
+    int offset;
 };
 
 class Instruction : public AssemblyAST {

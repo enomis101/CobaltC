@@ -35,6 +35,8 @@ private:
     std::vector<std::unique_ptr<Instruction>> transform_load_instruction(tacky::LoadInstruction& load_instruction);
     std::vector<std::unique_ptr<Instruction>> transform_store_instruction(tacky::StoreInstruction& store_instruction);
     std::vector<std::unique_ptr<Instruction>> transform_get_address_instruction(tacky::GetAddressInstruction& get_address_instruction);
+    std::vector<std::unique_ptr<Instruction>> transform_copy_to_offset_instruction(tacky::CopyToOffsetInstruction& copy_to_offset_instruction);
+    std::vector<std::unique_ptr<Instruction>> transform_add_pointer_instruction(tacky::AddPointerInstruction& add_pointer_instruction);
 
     std::vector<std::unique_ptr<Instruction>> transform_label_instruction(tacky::LabelInstruction& label_instruction);
     std::vector<std::unique_ptr<Instruction>> transform_sign_extend_instruction(tacky::SignExtendInstruction& sign_extend_instruction);

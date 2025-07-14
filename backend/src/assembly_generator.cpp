@@ -72,7 +72,13 @@ std::unique_ptr<Operand> AssemblyGenerator::transform_operand(tacky::Value& val)
         }
 
     } else if (tacky::TemporaryVariable* var = dynamic_cast<tacky::TemporaryVariable*>(&val)) {
-        return std::make_unique<PseudoRegister>(var->identifier.name);
+        const auto& symbol = m_symbol_table->symbol_at(var->identifier.name);
+        if(symbol.type->is_scalar()){
+            return std::make_unique<PseudoRegister>(var->identifier.name);
+        } else{
+            return std::make_unique<PseudoMemory>(var->identifier.name, 0);
+        }
+    
     } else {
         assert(false && "AssemblyGenerator: Invalid or Unsupported tacky::Value");
         return nullptr;
@@ -144,6 +150,10 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_instructi
         return transform_store_instruction(*store_instruction);
     } else if (auto get_address_instruction = dynamic_cast<tacky::GetAddressInstruction*>(&instruction)) {
         return transform_get_address_instruction(*get_address_instruction);
+    } else if (auto copy_to_offset_instruction = dynamic_cast<tacky::CopyToOffsetInstruction*>(&instruction)) {
+        return transform_copy_to_offset_instruction(*copy_to_offset_instruction);
+    } else if (auto add_pointer_instruction = dynamic_cast<tacky::AddPointerInstruction*>(&instruction)) {
+        return transform_add_pointer_instruction(*add_pointer_instruction);
     } else {
         throw InternalCompilerError("AssemblyGenerator: Invalid or Unsupported tacky::Instruction");
     }
@@ -208,6 +218,48 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_get_addre
     std::unique_ptr<Operand> dst = transform_operand(*get_address_instruction.destination);
     add_comment_instruction("get_address_instruction", instructions);
     instructions.emplace_back(std::make_unique<LeaInstruction>(std::move(src), std::move(dst)));
+    return instructions;
+}
+
+std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_copy_to_offset_instruction(tacky::CopyToOffsetInstruction& copy_to_offset_instruction)
+{
+    std::vector<std::unique_ptr<Instruction>> instructions;
+    std::unique_ptr<Operand> src = transform_operand(*copy_to_offset_instruction.source);
+    auto [src_type, _] = get_operand_type(*copy_to_offset_instruction.source);
+    std::unique_ptr<Operand> pseudo_mem = std::make_unique<PseudoMemory>(copy_to_offset_instruction.identifier.name, copy_to_offset_instruction.offset);
+    add_comment_instruction("copy_to_offset_instruction", instructions);
+    instructions.emplace_back(std::make_unique<MovInstruction>(src_type, std::move(src), std::move(pseudo_mem)));
+    return instructions;
+}
+
+std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_add_pointer_instruction(tacky::AddPointerInstruction& add_pointer_instruction)
+{
+    std::vector<std::unique_ptr<Instruction>> instructions;
+    std::unique_ptr<Operand> src = transform_operand(*add_pointer_instruction.source_pointer);
+    std::unique_ptr<Operand> idx = transform_operand(*add_pointer_instruction.index);
+    std::unique_ptr<Operand> dst = transform_operand(*add_pointer_instruction.destination);
+
+    if(auto imm_val = dynamic_cast<ImmediateValue*>(idx.get())){
+        long res = std::visit([&](const auto& val) -> long {
+            using T = std::decay_t<decltype(val)>;
+            if constexpr (std::is_same_v<T, int>) {
+                return static_cast<long>(val) * add_pointer_instruction.scale;
+            } else if constexpr (std::is_same_v<T, long>) {
+                return val * add_pointer_instruction.scale;
+            } else if constexpr (std::is_same_v<T, unsigned int>) {
+                return static_cast<long>(val) * add_pointer_instruction.scale;
+            } else if constexpr (std::is_same_v<T, unsigned long>) {
+                return static_cast<long>(val) * add_pointer_instruction.scale;
+            } else {
+                // std::monostate or double - invalid for index
+                throw InternalCompilerError("Invalid index type: only integer types allowed");
+            }
+        }, imm_val->value);
+        std::unique_ptr<Operand> mem = std::make_unique<MemoryAddress>(RegisterName::AX, res);
+        
+    }
+    add_comment_instruction("add_pointer_instruction", instructions);
+    instructions.emplace_back(std::make_unique<MovInstruction>(src_type, std::move(src), std::move(pseudo_mem)));
     return instructions;
 }
 

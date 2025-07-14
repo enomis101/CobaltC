@@ -495,6 +495,7 @@ public:
         case AssemblyType::LONG_WORD:
         case AssemblyType::QUAD_WORD:
         case AssemblyType::DOUBLE:
+        case AssemblyType::BYTE_ARRAY:
             break;
         default:
             assert(false);

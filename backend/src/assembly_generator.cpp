@@ -235,9 +235,10 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_copy_to_o
 std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_add_pointer_instruction(tacky::AddPointerInstruction& add_pointer_instruction)
 {
     std::vector<std::unique_ptr<Instruction>> instructions;
-    std::unique_ptr<Operand> src = transform_operand(*add_pointer_instruction.source_pointer);
+    std::unique_ptr<Operand> src_ptr = transform_operand(*add_pointer_instruction.source_pointer);
     std::unique_ptr<Operand> idx = transform_operand(*add_pointer_instruction.index);
     std::unique_ptr<Operand> dst = transform_operand(*add_pointer_instruction.destination);
+    add_comment_instruction("add_pointer_instruction", instructions);
 
     if(auto imm_val = dynamic_cast<ImmediateValue*>(idx.get())){
         long res = std::visit([&](const auto& val) -> long {
@@ -256,10 +257,32 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_add_point
             }
         }, imm_val->value);
         std::unique_ptr<Operand> mem = std::make_unique<MemoryAddress>(RegisterName::AX, res);
-        
+        std::unique_ptr<Operand> reg = std::make_unique<Register>(RegisterName::AX);
+        instructions.emplace_back(std::make_unique<MovInstruction>(AssemblyType::QUAD_WORD, std::move(src_ptr), std::move(reg)));
+        instructions.emplace_back(std::make_unique<LeaInstruction>(std::move(mem), std::move(dst)));
+
+    } else {
+        if(add_pointer_instruction.scale == 1  || add_pointer_instruction.scale == 2  || add_pointer_instruction.scale == 4  || add_pointer_instruction.scale == 8){
+            std::unique_ptr<Register> reg1 = std::make_unique<Register>(RegisterName::AX);
+            std::unique_ptr<Register> reg2 = std::make_unique<Register>(RegisterName::DX);
+
+            instructions.emplace_back(std::make_unique<MovInstruction>(AssemblyType::QUAD_WORD, std::move(src_ptr), reg1->clone()));
+            instructions.emplace_back(std::make_unique<MovInstruction>(AssemblyType::QUAD_WORD, std::move(idx), reg2->clone()));
+            std::unique_ptr<Operand> idx_addr = std::make_unique<IndexedAddress>(std::move(reg1), std::move(reg2), add_pointer_instruction.scale);
+            instructions.emplace_back(std::make_unique<LeaInstruction>(std::move(idx_addr), std::move(dst)));
+        } else {
+            std::unique_ptr<Register> reg1 = std::make_unique<Register>(RegisterName::AX);
+            std::unique_ptr<Register> reg2 = std::make_unique<Register>(RegisterName::DX);
+
+            instructions.emplace_back(std::make_unique<MovInstruction>(AssemblyType::QUAD_WORD, std::move(src_ptr), reg1->clone()));
+            instructions.emplace_back(std::make_unique<MovInstruction>(AssemblyType::QUAD_WORD, std::move(idx), reg2->clone()));
+            auto imm = std::make_unique<ImmediateValue>(add_pointer_instruction.scale);
+            instructions.emplace_back(std::make_unique<BinaryInstruction>(BinaryOperator::MULT, AssemblyType::QUAD_WORD, std::move(imm), reg2->clone()));
+
+            std::unique_ptr<Operand> idx_addr = std::make_unique<IndexedAddress>(std::move(reg1), std::move(reg2), 1);
+            instructions.emplace_back(std::make_unique<LeaInstruction>(std::move(idx_addr), std::move(dst)));
+        }
     }
-    add_comment_instruction("add_pointer_instruction", instructions);
-    instructions.emplace_back(std::make_unique<MovInstruction>(src_type, std::move(src), std::move(pseudo_mem)));
     return instructions;
 }
 

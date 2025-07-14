@@ -102,6 +102,7 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
         source_manager->set_token_list(tokens);
         LOG_INFO(LOG_CONTEXT, std::format("Lexing successful: {} tokens generated", tokens->size()));
 
+        /*
         if (logging::LogManager::logger()->is_enabled(LOG_CONTEXT, logging::LogLevel::DEBUG)) {
             std::string token_list = "Token List:\n";
             for (const Token& t : *tokens) {
@@ -109,6 +110,7 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
             }
             LOG_DEBUG(LOG_CONTEXT, token_list);
         }
+        */
     } catch (const LexerError& e) {
         throw CompilerError(std::format("Lexer error: {}", e.what()));
     } catch (const std::exception& e) {

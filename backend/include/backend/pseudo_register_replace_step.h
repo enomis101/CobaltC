@@ -29,6 +29,8 @@ private:
     void visit(PseudoRegister& node) override { }
     void visit(MemoryAddress& node) override { }
     void visit(DataOperand& node) override { }
+    void visit(IndexedAddress& node) override { }     // TODO: IMPLEMENT IF NEEDED
+    void visit(PseudoMemory& node) override { }       // TODO: IMPLEMENT IF NEEDED
     void visit(CommentInstruction& node) override { } // NOT NEEDED
     void visit(ReturnInstruction& node) override { }
     void visit(MovInstruction& node) override;
@@ -62,10 +64,17 @@ private:
     std::shared_ptr<BackendSymbolTable> m_symbol_table;
     size_t m_curr_offset;
 
-    // round-up to next multiple of 8
-    size_t round_up_8(size_t value)
+    // round-up to next multiple of alignment
+    size_t round_up(size_t value, size_t alignment)
     {
-        return (value + 7) & ~7;
+        // Check if alignment is a power of 2
+        if (alignment == 0 || (alignment & (alignment - 1)) != 0) {
+            // Handle non-power-of-2 alignments
+            return ((value + alignment - 1) / alignment) * alignment;
+        }
+
+        // Optimized version for power-of-2 alignments
+        return (value + alignment - 1) & ~(alignment - 1);
     }
 };
 

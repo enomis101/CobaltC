@@ -83,8 +83,8 @@ void FixUpInstructionsStep::fixup_mov_instruction(std::unique_ptr<Instruction>& 
 
     if (mov_instruction->type == AssemblyType::DOUBLE) {
         // Only need to check memory-to-memory constraint
-        bool source_is_memory = dynamic_cast<MemoryAddress*>(mov_instruction->source.get()) || dynamic_cast<DataOperand*>(mov_instruction->source.get());
-        bool dest_is_memory = dynamic_cast<MemoryAddress*>(mov_instruction->destination.get()) || dynamic_cast<DataOperand*>(mov_instruction->destination.get());
+        bool source_is_memory = mov_instruction->source->is_memory();
+        bool dest_is_memory = mov_instruction->destination->is_memory();
 
         if (source_is_memory && dest_is_memory) {
             // Use XMM register instead of R10
@@ -155,8 +155,8 @@ void FixUpInstructionsStep::fixup_mov_instruction(std::unique_ptr<Instruction>& 
     }
 
     // Handle memory-to-memory moves (not allowed in single x86-64 instruction)
-    bool source_is_memory = dynamic_cast<MemoryAddress*>(mov_instruction->source.get()) || dynamic_cast<DataOperand*>(mov_instruction->source.get());
-    bool dest_is_memory = dynamic_cast<MemoryAddress*>(mov_instruction->destination.get()) || dynamic_cast<DataOperand*>(mov_instruction->destination.get());
+    bool source_is_memory = mov_instruction->source->is_memory();
+    bool dest_is_memory = mov_instruction->destination->is_memory();
 
     if (source_is_memory && dest_is_memory) {
         // Use two-step process: memory -> R10 -> memory
@@ -225,8 +225,8 @@ void FixUpInstructionsStep::fixup_cmp_instruction(std::unique_ptr<Instruction>& 
             cmp_instruction->destination = std::make_unique<Register>(RegisterName::R11, original_type);
         } else {
             // Handle memory-to-memory comparison (not allowed in single instruction)
-            bool source_is_memory = dynamic_cast<MemoryAddress*>(cmp_instruction->source.get()) || dynamic_cast<DataOperand*>(cmp_instruction->source.get());
-            bool dest_is_memory = dynamic_cast<MemoryAddress*>(cmp_instruction->destination.get()) || dynamic_cast<DataOperand*>(cmp_instruction->destination.get());
+            bool source_is_memory = cmp_instruction->source->is_memory();
+            bool dest_is_memory = cmp_instruction->destination->is_memory();
 
             if (source_is_memory && dest_is_memory) {
                 instructions.emplace_back(std::make_unique<MovInstruction>(
@@ -306,8 +306,8 @@ void FixUpInstructionsStep::fixup_binary_instruction(std::unique_ptr<Instruction
     if (binary_instruction->binary_operator == BinaryOperator::ADD || binary_instruction->binary_operator == BinaryOperator::SUB || binary_instruction->binary_operator == BinaryOperator::AND || binary_instruction->binary_operator == BinaryOperator::OR) {
 
         // ADD and SUB cannot have both operands as memory addresses
-        bool source_is_memory = dynamic_cast<MemoryAddress*>(binary_instruction->source.get()) || dynamic_cast<DataOperand*>(binary_instruction->source.get());
-        bool dest_is_memory = dynamic_cast<MemoryAddress*>(binary_instruction->destination.get()) || dynamic_cast<DataOperand*>(binary_instruction->destination.get());
+        bool source_is_memory = binary_instruction->source->is_memory();
+        bool dest_is_memory = binary_instruction->destination->is_memory();
 
         if (source_is_memory && dest_is_memory) {
             instructions.emplace_back(std::make_unique<MovInstruction>(
@@ -475,7 +475,7 @@ void FixUpInstructionsStep::fixup_movsx_instruction(std::unique_ptr<Instruction>
 
     // Handle memory address as destination (not allowed)
     std::unique_ptr<Instruction> additional_instruction = nullptr;
-    bool dest_is_memory = dynamic_cast<MemoryAddress*>(movsx_instruction->destination.get()) || dynamic_cast<DataOperand*>(movsx_instruction->destination.get());
+    bool dest_is_memory = movsx_instruction->destination->is_memory();
 
     if (dest_is_memory) {
         // Store original destination for final move (result is 8 bytes, so use QUAD_WORD)
@@ -499,7 +499,7 @@ void FixUpInstructionsStep::fixup_mov_zero_extend_instruction(std::unique_ptr<In
 {
 
     auto mov_zero_extend_instruction = dynamic_cast<MovZeroExtendInstruction*>(instruction.get());
-    bool dest_is_memory = dynamic_cast<MemoryAddress*>(mov_zero_extend_instruction->destination.get()) || dynamic_cast<DataOperand*>(mov_zero_extend_instruction->destination.get());
+    bool dest_is_memory = mov_zero_extend_instruction->destination->is_memory();
 
     if (dest_is_memory) {
         auto mov_instr1 = std::make_unique<MovInstruction>(AssemblyType::LONG_WORD, std::move(mov_zero_extend_instruction->source), std::make_unique<Register>(RegisterName::R11));

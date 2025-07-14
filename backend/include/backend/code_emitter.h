@@ -28,6 +28,8 @@ private:
     void visit(PseudoRegister& node) override { throw CodeEmitterError("Found PseudoRegister node during CodeEmission"); }
     void visit(MemoryAddress& node) override;
     void visit(DataOperand& node) override;
+    void visit(IndexedAddress& node) override { } // TODO: IMPLEMENT IF NEEDED
+    void visit(PseudoMemory& node) override { }   // TODO: IMPLEMENT IF NEEDED
     void visit(CommentInstruction& node) override;
     void visit(ReturnInstruction& node) override;
     void visit(MovInstruction& node) override;

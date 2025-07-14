@@ -27,6 +27,8 @@ public:
     void visit(LeaInstruction& node) override { }           // TODO: IMPLEMENT IF NEEDED
     void visit(Cvttsd2siInstruction& node) override { }     // TODO: IMPLEMENT IF NEEDED
     void visit(Cvtsi2sdInstruction& node) override { }      // TODO: IMPLEMENT IF NEEDED
+    void visit(IndexedAddress& node) override { }           // TODO: IMPLEMENT IF NEEDED
+    void visit(PseudoMemory& node) override { }             // TODO: IMPLEMENT IF NEEDED
     void visit(UnaryInstruction& node) override;
     void visit(BinaryInstruction& node) override;
     void visit(CmpInstruction& node) override;

@@ -1,6 +1,7 @@
 #include "backend/pseudo_register_replace_step.h"
 #include "backend/assembly_ast.h"
 #include "backend/backend_symbol_table.h"
+#include "common/error/internal_compiler_error.h"
 #include <cassert>
 #include <variant>
 
@@ -121,12 +122,37 @@ void PseudoRegisterReplaceStep::check_and_replace(std::unique_ptr<Operand>& op)
         When we encounter a pseudoregister that isn’t in m_stack_offsets, we look it up in the symbol table.
         If we find that it has static storage duration, we’ll map it to a Data operand by the same name. Otherwise, we’ll assign it a new slot on the stack, as usual.
         */
-        if (!m_stack_offsets.contains(pseudo_reg_name) && m_symbol_table->contains_symbol(pseudo_reg_name) && std::get<ObjectEntry>(m_symbol_table->symbol_at(pseudo_reg_name)).is_static) {
+        bool is_static = m_symbol_table->contains_symbol(pseudo_reg_name) && std::get<ObjectEntry>(m_symbol_table->symbol_at(pseudo_reg_name)).is_static;
+        if (!m_stack_offsets.contains(pseudo_reg_name) && is_static) {
             new_op = std::make_unique<DataOperand>(pseudo_reg_name);
         } else {
-            assert(m_symbol_table->contains_symbol(pseudo_reg_name) && std::holds_alternative<ObjectEntry>(m_symbol_table->symbol_at(pseudo_reg_name)) && "PseudoRegister not contained in the symbol table");
+            if (!(m_symbol_table->contains_symbol(pseudo_reg_name) && std::holds_alternative<ObjectEntry>(m_symbol_table->symbol_at(pseudo_reg_name)))) {
+                throw InternalCompilerError("PseudoRegister not contained in the symbol table");
+            }
+
             AssemblyType type = std::get<ObjectEntry>(m_symbol_table->symbol_at(pseudo_reg_name)).type;
             size_t offset = get_offset(type, pseudo_reg_name);
+            new_op = std::make_unique<MemoryAddress>(RegisterName::BP, -offset);
+        }
+        op = std::move(new_op);
+    } else if (auto mem = dynamic_cast<PseudoMemory*>(op.get())) {
+        const std::string& pseudo_mem_name = mem->identifier.name;
+        std::unique_ptr<Operand> new_op = nullptr;
+        /*
+        When we encounter a pseudoregister that isn’t in m_stack_offsets, we look it up in the symbol table.
+        If we find that it has static storage duration, we’ll map it to a Data operand by the same name. Otherwise, we’ll assign it a new slot on the stack, as usual.
+        */
+        bool is_static = m_symbol_table->contains_symbol(pseudo_mem_name) && std::get<ObjectEntry>(m_symbol_table->symbol_at(pseudo_mem_name)).is_static;
+        if (!m_stack_offsets.contains(pseudo_mem_name) && is_static) {
+            new_op = std::make_unique<DataOperand>(pseudo_mem_name);
+        } else {
+            if (!(m_symbol_table->contains_symbol(pseudo_mem_name) && std::holds_alternative<ObjectEntry>(m_symbol_table->symbol_at(pseudo_mem_name)))) {
+                throw InternalCompilerError("PseudoMemory not contained in the symbol table");
+            }
+
+            AssemblyType type = std::get<ObjectEntry>(m_symbol_table->symbol_at(pseudo_mem_name)).type;
+            size_t offset = get_offset(type, pseudo_mem_name);
+            offset -= mem->offset;
             new_op = std::make_unique<MemoryAddress>(RegisterName::BP, -offset);
         }
         op = std::move(new_op);
@@ -139,7 +165,9 @@ size_t PseudoRegisterReplaceStep::get_offset(AssemblyType type, const std::strin
         if (type == AssemblyType::LONG_WORD) {
             m_curr_offset += 4;
         } else if (type == AssemblyType::QUAD_WORD || type == AssemblyType::DOUBLE) {
-            m_curr_offset = round_up_8(m_curr_offset + 8);
+            m_curr_offset = round_up(m_curr_offset + 8, 8);
+        } else if (type == AssemblyType::BYTE_ARRAY) {
+            m_curr_offset = round_up(m_curr_offset + type.size(), type.alignment());
         }
         m_stack_offsets[name] = m_curr_offset;
     }

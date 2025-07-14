@@ -31,6 +31,8 @@ private:
     void visit(DataOperand& node) override { }
     void visit(CommentInstruction& node) override { } // NOT NEEDED
     void visit(ReturnInstruction& node) override { }
+    void visit(IndexedAddress& node) override { } // TODO: IMPLEMENT IF NEEDED
+    void visit(PseudoMemory& node) override { }   // TODO: IMPLEMENT IF NEEDED
     void visit(MovInstruction& node) override { }
     void visit(MovsxInstruction& node) override { }
     void visit(MovZeroExtendInstruction& node) override { }

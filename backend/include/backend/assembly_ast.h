@@ -257,6 +257,8 @@ class Operand : public AssemblyAST {
 public:
     virtual ~Operand() = default;
     virtual std::unique_ptr<Operand> clone() const = 0;
+
+    virtual bool is_memory() const { return false; }
 };
 
 class ImmediateValue : public Operand {
@@ -349,6 +351,8 @@ public:
         return std::make_unique<MemoryAddress>(std::unique_ptr<Register>(dynamic_cast<Register*>(reg.release())), offset);
     }
 
+    bool is_memory() const override { return true; }
+
     std::unique_ptr<Register> base_register;
     long offset;
 };
@@ -382,6 +386,8 @@ public:
         return std::make_unique<IndexedAddress>(std::move(base_reg), std::move(index_reg), offset);
     }
 
+    bool is_memory() const override { return true; }
+
     std::unique_ptr<Register> base_register;
     std::unique_ptr<Register> index_register;
     int offset;
@@ -404,6 +410,8 @@ public:
         return std::make_unique<DataOperand>(identifier.name);
     }
 
+    bool is_memory() const override { return true; }
+
     Identifier identifier;
 };
 
@@ -422,7 +430,7 @@ public:
 
     std::unique_ptr<Operand> clone() const override
     {
-        return std::make_unique<DataOperand>(identifier.name);
+        return std::make_unique<PseudoMemory>(identifier.name, offset);
     }
 
     Identifier identifier;

@@ -73,12 +73,12 @@ std::unique_ptr<Operand> AssemblyGenerator::transform_operand(tacky::Value& val)
 
     } else if (tacky::TemporaryVariable* var = dynamic_cast<tacky::TemporaryVariable*>(&val)) {
         const auto& symbol = m_symbol_table->symbol_at(var->identifier.name);
-        if(symbol.type->is_scalar()){
+        if (symbol.type->is_scalar()) {
             return std::make_unique<PseudoRegister>(var->identifier.name);
-        } else{
+        } else {
             return std::make_unique<PseudoMemory>(var->identifier.name, 0);
         }
-    
+
     } else {
         assert(false && "AssemblyGenerator: Invalid or Unsupported tacky::Value");
         return nullptr;
@@ -240,7 +240,7 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_add_point
     std::unique_ptr<Operand> dst = transform_operand(*add_pointer_instruction.destination);
     add_comment_instruction("add_pointer_instruction", instructions);
 
-    if(auto imm_val = dynamic_cast<ImmediateValue*>(idx.get())){
+    if (auto imm_val = dynamic_cast<ImmediateValue*>(idx.get())) {
         long res = std::visit([&](const auto& val) -> long {
             using T = std::decay_t<decltype(val)>;
             if constexpr (std::is_same_v<T, int>) {
@@ -255,14 +255,15 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_add_point
                 // std::monostate or double - invalid for index
                 throw InternalCompilerError("Invalid index type: only integer types allowed");
             }
-        }, imm_val->value);
+        },
+            imm_val->value);
         std::unique_ptr<Operand> mem = std::make_unique<MemoryAddress>(RegisterName::AX, res);
         std::unique_ptr<Operand> reg = std::make_unique<Register>(RegisterName::AX);
         instructions.emplace_back(std::make_unique<MovInstruction>(AssemblyType::QUAD_WORD, std::move(src_ptr), std::move(reg)));
         instructions.emplace_back(std::make_unique<LeaInstruction>(std::move(mem), std::move(dst)));
 
     } else {
-        if(add_pointer_instruction.scale == 1  || add_pointer_instruction.scale == 2  || add_pointer_instruction.scale == 4  || add_pointer_instruction.scale == 8){
+        if (add_pointer_instruction.scale == 1 || add_pointer_instruction.scale == 2 || add_pointer_instruction.scale == 4 || add_pointer_instruction.scale == 8) {
             std::unique_ptr<Register> reg1 = std::make_unique<Register>(RegisterName::AX);
             std::unique_ptr<Register> reg2 = std::make_unique<Register>(RegisterName::DX);
 
@@ -750,9 +751,7 @@ std::unique_ptr<TopLevel> AssemblyGenerator::transform_top_level(tacky::TopLevel
     if (tacky::FunctionDefinition* fun = dynamic_cast<tacky::FunctionDefinition*>(&top_level)) {
         return transform_function(*fun);
     } else if (tacky::StaticVariable* static_var = dynamic_cast<tacky::StaticVariable*>(&top_level)) {
-        // TODO: FIX
-        // return std::make_unique<StaticVariable>(static_var->name.name, static_var->global, static_var->type->alignment(), static_var->init);
-        return nullptr;
+        return std::make_unique<StaticVariable>(static_var->name.name, static_var->global, static_var->type->alignment(), static_var->init);
     } else {
         assert(false && "In transform_top_level: invalid top level class");
         return nullptr;
@@ -857,7 +856,7 @@ std::pair<AssemblyType, bool> AssemblyGenerator::convert_type(const Type& type)
     } else if (dynamic_cast<const PointerType*>(&type)) {
         assembly_type = AssemblyType::QUAD_WORD;
     } else if (auto arr_type = dynamic_cast<const ArrayType*>(&type)) {
-        //for variables less than 16 bytes use same alignement as element
+        // for variables less than 16 bytes use same alignement as element
         size_t alignment = (arr_type->size() >= 16) ? 16 : arr_type->alignment();
         assembly_type = AssemblyType(AssemblyType::BYTE_ARRAY, arr_type->size(), alignment);
     }

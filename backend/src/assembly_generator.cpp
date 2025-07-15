@@ -65,7 +65,7 @@ std::unique_ptr<Operand> AssemblyGenerator::transform_operand(tacky::Value& val)
     if (tacky::Constant* constant = dynamic_cast<tacky::Constant*>(&val)) {
         if (std::holds_alternative<double>(constant->value)) {
             auto double_val = std::get<double>(constant->value);
-            std::string constant_label = add_static_constant(double_val, 8);
+            std::string constant_label = add_static_double_constant(double_val, 8);
             return std::make_unique<DataOperand>(constant_label);
         } else {
             return std::make_unique<ImmediateValue>(constant->value);
@@ -401,7 +401,7 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_double_to
     } else {
         std::string label1 = m_name_generator->make_label("uint_to_double");
         std::string label2 = m_name_generator->make_label("uint_to_double");
-        std::string upper_bound_label = add_static_constant(9223372036854775808.0, 8);
+        std::string upper_bound_label = add_static_double_constant(9223372036854775808.0, 8);
 
         instructions.emplace_back(std::make_unique<CmpInstruction>(AssemblyType::QUAD_WORD, std::make_unique<DataOperand>(upper_bound_label), src->clone()));
         instructions.emplace_back(std::make_unique<JmpCCInstruction>(ConditionCode::AE, label1));
@@ -441,7 +441,7 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_unary_ins
 
     } else if (is_double && unary_instruction.unary_operator == tacky::UnaryOperator::NEGATE) {
         // We need to align -0.0 to 16 bytes so that we can use it in the xorpd instruction
-        std::string const_label = add_static_constant(-0.0, 16);
+        std::string const_label = add_static_double_constant(-0.0, 16);
         auto data_operand = std::make_unique<DataOperand>(const_label);
         instructions.emplace_back(std::make_unique<MovInstruction>(AssemblyType::DOUBLE, std::move(src), std::move(dst)));
         instructions.emplace_back(std::make_unique<BinaryInstruction>(BinaryOperator::XOR, AssemblyType::DOUBLE, std::move(data_operand), std::move(dst_copy)));
@@ -870,14 +870,15 @@ void AssemblyGenerator::add_comment_instruction(const std::string& message, std:
     }
 }
 
-std::string AssemblyGenerator::add_static_constant(double val, size_t alignment)
+std::string AssemblyGenerator::add_static_double_constant(double val, size_t alignment)
 {
     std::string label = get_constant_label(val, alignment);
     if (!m_static_constants_map.contains(label)) {
         std::string compact_label = "const_label_" + std::to_string(m_static_constants_map.size());
         m_static_constants_map[label].first = compact_label;
-        // TODO: FIX
-        // m_static_constants_map[label].second = std::make_unique<StaticConstant>(compact_label, alignment, val);
+        StaticInitialValue init;
+        init.values = { StaticInitialValueType(val) };
+        m_static_constants_map[label].second = std::make_unique<StaticConstant>(compact_label, alignment, init);
         m_backend_symbol_table->insert_symbol(compact_label, ObjectEntry { AssemblyType::DOUBLE, true, true });
     }
     return m_static_constants_map[label].first;

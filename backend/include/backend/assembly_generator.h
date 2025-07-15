@@ -70,7 +70,7 @@ private:
     const std::vector<RegisterName> DOUBLE_FUNCTION_REGISTERS;
 
     void generate_backend_symbol_table();
-    std::string add_static_constant(double val, size_t alignment);
+    std::string add_static_double_constant(double val, size_t alignment);
     std::string get_constant_label(double val, size_t alignment);
 
     std::unordered_map<std::string, std::pair<std::string, std::unique_ptr<TopLevel>>> m_static_constants_map;

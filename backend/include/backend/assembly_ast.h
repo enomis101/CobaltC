@@ -1006,7 +1006,7 @@ public:
 
 class StaticConstant : public TopLevel {
 public:
-    StaticConstant(const std::string& name, size_t alignment, StaticInitialValueType static_init)
+    StaticConstant(const std::string& name, size_t alignment, StaticInitialValue static_init)
         : name { name }
         , alignment(alignment)
         , static_init(static_init)
@@ -1025,7 +1025,7 @@ public:
 
     Identifier name;
     size_t alignment;
-    StaticInitialValueType static_init;
+    StaticInitialValue static_init;
 };
 
 class Program : public AssemblyAST {

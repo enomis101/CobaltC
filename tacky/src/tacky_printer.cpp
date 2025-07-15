@@ -307,6 +307,101 @@ void PrinterVisitor::visit(CopyInstruction& node)
     }
 }
 
+void PrinterVisitor::visit(GetAddressInstruction& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"GetAddressInstruction\"];\n";
+
+    if (node.source) {
+        node.source->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.source.get())
+                      << " [label=\"source\"];\n";
+    }
+
+    if (node.destination) {
+        node.destination->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.destination.get())
+                      << " [label=\"destination\"];\n";
+    }
+}
+
+void PrinterVisitor::visit(LoadInstruction& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"LoadInstruction\"];\n";
+
+    if (node.source_pointer) {
+        node.source_pointer->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.source_pointer.get())
+                      << " [label=\"source_pointer\"];\n";
+    }
+
+    if (node.destination) {
+        node.destination->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.destination.get())
+                      << " [label=\"destination\"];\n";
+    }
+}
+
+void PrinterVisitor::visit(StoreInstruction& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"StoreInstruction\"];\n";
+
+    if (node.source) {
+        node.source->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.source.get())
+                      << " [label=\"source\"];\n";
+    }
+
+    if (node.destination_pointer) {
+        node.destination_pointer->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.destination_pointer.get())
+                      << " [label=\"destination_pointer\"];\n";
+    }
+}
+
+void PrinterVisitor::visit(AddPointerInstruction& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"AddPointerInstruction\\nscale: " << node.scale << "\"];\n";
+
+    if (node.source_pointer) {
+        node.source_pointer->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.source_pointer.get())
+                      << " [label=\"source_pointer\"];\n";
+    }
+
+    if (node.index) {
+        node.index->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.index.get())
+                      << " [label=\"index\"];\n";
+    }
+
+    if (node.destination) {
+        node.destination->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.destination.get())
+                      << " [label=\"destination\"];\n";
+    }
+}
+
+void PrinterVisitor::visit(CopyToOffsetInstruction& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"CopyToOffsetInstruction\\noffset: " << node.offset << "\"];\n";
+
+    if (node.source) {
+        node.source->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.source.get())
+                      << " [label=\"source\"];\n";
+    }
+
+    // Process the identifier
+    node.identifier.accept(*this);
+    m_dot_content << "  node" << id << " -> node" << get_node_id(&node.identifier)
+                  << " [label=\"identifier\"];\n";
+}
+
 void PrinterVisitor::visit(JumpInstruction& node)
 {
     int id = get_node_id(&node);
@@ -394,11 +489,9 @@ void PrinterVisitor::visit(FunctionDefinition& node)
 void PrinterVisitor::visit(StaticVariable& node)
 {
     int id = get_node_id(&node);
-    /*TODO: FIX
     m_dot_content << "  node" << id << " [label=\"StaticVariable\\nglobal: "
-                  << (node.global ? "true" : "false")
-                  << "\\ninit: " << escape_string(constant_value_to_string(node.init)) << "\"];\n";
-    */
+                  << (node.global ? "true" : "false") << "\"];\n";
+
     // Process the name identifier
     node.name.accept(*this);
     m_dot_content << "  node" << id << " -> node" << get_node_id(&node.name)

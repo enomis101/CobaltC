@@ -372,6 +372,7 @@ public:
         , offset(offset)
     {
         this->base_register->type = AssemblyType::QUAD_WORD;
+        this->index_register->type = AssemblyType::QUAD_WORD;
     }
 
     void accept(AssemblyVisitor& visitor) override
@@ -495,6 +496,7 @@ public:
         case AssemblyType::LONG_WORD:
         case AssemblyType::QUAD_WORD:
         case AssemblyType::DOUBLE:
+            break;
         case AssemblyType::BYTE_ARRAY:
             break;
         default:

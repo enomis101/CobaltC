@@ -283,6 +283,15 @@ void CodeEmitter::visit(DataOperand& node)
     *m_file_stream << std::format("{}(%rip)", label_name);
 }
 
+void CodeEmitter::visit(IndexedAddress& node)
+{
+    *m_file_stream << "(";
+    node.base_register->accept(*this);
+    *m_file_stream << ", ";
+    node.index_register->accept(*this);
+    *m_file_stream << std::format(", {})", node.offset);
+}
+
 void CodeEmitter::visit(CommentInstruction& node)
 {
     *m_file_stream << std::format("\t#{}\n", node.message);
@@ -453,43 +462,42 @@ void CodeEmitter::visit(StaticVariable& node)
         *m_file_stream << std::format("\t.globl {}\n", node.name.name);
     }
 
-    /*TODO: FIX
-    if (std::holds_alternative<int>(node.static_init)) {
-        int init_value = std::get<int>(node.static_init);
-        bool init_to_zero = init_value == 0;
-        *m_file_stream << std::format("\t{}\n", (init_to_zero ? ".bss" : ".data"));
+    bool is_all_zero = node.static_init.values.size() == 1 && node.static_init.values[0].is_zero();
+    if (is_all_zero) {
+        *m_file_stream << "\t.bss\n";
         *m_file_stream << std::format("\t.balign {}\n", node.alignment);
         *m_file_stream << std::format("{}:\n", node.name.name);
-        *m_file_stream << std::format("\t{} {}\n", (init_to_zero ? ".zero" : ".long"), (init_to_zero ? 4 : init_value));
-    } else if (std::holds_alternative<long>(node.static_init)) {
-        long init_value = std::get<long>(node.static_init);
-        bool init_to_zero = init_value == 0;
-        *m_file_stream << std::format("\t{}\n", (init_to_zero ? ".bss" : ".data"));
+        *m_file_stream << std::format("\t.zero {}\n", node.static_init.values[0].zero_size());
+    } else {
+        *m_file_stream << "\t.data\n";
         *m_file_stream << std::format("\t.balign {}\n", node.alignment);
         *m_file_stream << std::format("{}:\n", node.name.name);
-        *m_file_stream << std::format("\t{} {}\n", (init_to_zero ? ".zero" : ".quad"), (init_to_zero ? 8 : init_value));
-    } else if (std::holds_alternative<unsigned int>(node.static_init)) {
-        auto init_value = std::get<unsigned int>(node.static_init);
-        bool init_to_zero = init_value == 0;
-        *m_file_stream << std::format("\t{}\n", (init_to_zero ? ".bss" : ".data"));
-        *m_file_stream << std::format("\t.balign {}\n", node.alignment);
-        *m_file_stream << std::format("{}:\n", node.name.name);
-        *m_file_stream << std::format("\t{} {}\n", (init_to_zero ? ".zero" : ".long"), (init_to_zero ? 4 : init_value));
-    } else if (std::holds_alternative<unsigned long>(node.static_init)) {
-        auto init_value = std::get<unsigned long>(node.static_init);
-        bool init_to_zero = init_value == 0;
-        *m_file_stream << std::format("\t{}\n", (init_to_zero ? ".bss" : ".data"));
-        *m_file_stream << std::format("\t.balign {}\n", node.alignment);
-        *m_file_stream << std::format("{}:\n", node.name.name);
-        *m_file_stream << std::format("\t{} {}\n", (init_to_zero ? ".zero" : ".quad"), (init_to_zero ? 8 : init_value));
-    } else if (std::holds_alternative<double>(node.static_init)) {
-        auto init_value = std::get<double>(node.static_init);
-        *m_file_stream << std::format("\t{}\n", (".data"));
-        *m_file_stream << std::format("\t.balign {}\n", node.alignment);
-        *m_file_stream << std::format("{}:\n", node.name.name);
-        *m_file_stream << std::format("\t{} {}\n", (".double"), (init_value));
+
+        for (auto& static_init : node.static_init.values) {
+            if (static_init.is_zero()) {
+                *m_file_stream << std::format("\t.zero {}\n", static_init.zero_size());
+            } else {
+                ConstantType const_static_init = static_init.constant_value();
+
+                if (std::holds_alternative<int>(const_static_init)) {
+                    int init_value = std::get<int>(const_static_init);
+                    *m_file_stream << std::format("\t.long {}\n", init_value);
+                } else if (std::holds_alternative<long>(const_static_init)) {
+                    long init_value = std::get<long>(const_static_init);
+                    *m_file_stream << std::format("\t.quad {}\n", init_value);
+                } else if (std::holds_alternative<unsigned int>(const_static_init)) {
+                    auto init_value = std::get<unsigned int>(const_static_init);
+                    *m_file_stream << std::format("\t.long {}\n", init_value);
+                } else if (std::holds_alternative<unsigned long>(const_static_init)) {
+                    auto init_value = std::get<unsigned long>(const_static_init);
+                    *m_file_stream << std::format("\t.quad {}\n", init_value);
+                } else if (std::holds_alternative<double>(const_static_init)) {
+                    auto init_value = std::get<double>(const_static_init);
+                    *m_file_stream << std::format("\t.double {}\n", init_value);
+                }
+            }
+        }
     }
-    */
 }
 
 void CodeEmitter::visit(StaticConstant& node)
@@ -504,14 +512,20 @@ void CodeEmitter::visit(StaticConstant& node)
         *m_file_stream << std::format("{}:\n", node.name.name);
     }
 
-    /*TODO: FIX
-    if (std::holds_alternative<double>(node.static_init)) {
-        auto init_value = std::get<double>(node.static_init);
-        *m_file_stream << std::format("\t{} {}\n", (".double"), (init_value));
-    } else {
-        throw CodeEmitterError("CodeEmitter: Unsupported StaticConstant type");
+    if (node.static_init.values.size() != 1) {
+        throw InternalCompilerError("CodeEmitter: StaticConstant must be single");
     }
-    */
+    if (node.static_init.values[0].is_zero()) {
+        *m_file_stream << std::format("\t{} {}\n", (".double"), 0.0);
+    } else {
+        ConstantType const_static_init = node.static_init.values[0].constant_value();
+        if (std::holds_alternative<double>(const_static_init)) {
+            double init_value = std::get<double>(const_static_init);
+            *m_file_stream << std::format("\t{} {}\n", (".double"), (init_value));
+        } else {
+            throw InternalCompilerError("CodeEmitter: Unsupported StaticConstant type");
+        }
+    }
 }
 
 void CodeEmitter::visit(Program& node)

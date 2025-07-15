@@ -1,6 +1,7 @@
 #pragma once
 #include "backend/assembly_ast.h"
 #include "backend/backend_symbol_table.h"
+#include "common/error/internal_compiler_error.h"
 #include <fstream>
 #include <memory>
 #include <stdexcept>
@@ -22,19 +23,19 @@ public:
     void emit_code();
 
 private:
-    void visit(Identifier& node) override { throw CodeEmitterError("visit(Identifier&) is not supported"); }
+    void visit(Identifier& node) override { throw InternalCompilerError("visit(Identifier&) is not supported"); }
     void visit(ImmediateValue& node) override;
     void visit(Register& node) override;
-    void visit(PseudoRegister& node) override { throw CodeEmitterError("Found PseudoRegister node during CodeEmission"); }
+    void visit(PseudoRegister& node) override { throw InternalCompilerError("Found PseudoRegister node during CodeEmission"); }
     void visit(MemoryAddress& node) override;
     void visit(DataOperand& node) override;
-    void visit(IndexedAddress& node) override { } // TODO: IMPLEMENT IF NEEDED
-    void visit(PseudoMemory& node) override { }   // TODO: IMPLEMENT IF NEEDED
+    void visit(IndexedAddress& node) override;
+    void visit(PseudoMemory& node) override { throw InternalCompilerError("Found PseudoMemory node during CodeEmission"); }
     void visit(CommentInstruction& node) override;
     void visit(ReturnInstruction& node) override;
     void visit(MovInstruction& node) override;
     void visit(MovsxInstruction& node) override;
-    void visit(MovZeroExtendInstruction& node) override { throw CodeEmitterError("Found MovZeroExtendInstruction node during CodeEmission"); }
+    void visit(MovZeroExtendInstruction& node) override { throw InternalCompilerError("Found MovZeroExtendInstruction node during CodeEmission"); }
     void visit(LeaInstruction& node) override;
     void visit(Cvttsd2siInstruction& node) override;
     void visit(Cvtsi2sdInstruction& node) override;

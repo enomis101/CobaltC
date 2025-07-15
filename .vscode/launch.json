@@ -6,7 +6,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/compiler/cobaltc-compiler",
-            "args": ["/home/simone/compiler/writing-a-c-compiler-tests/tests/chapter_15/valid/subscripting/simple_subscripts.c", "--codegen"],
+            "args": ["/home/simone/compiler/writing-a-c-compiler-tests/tests/chapter_15/valid/subscripting/subscript_nested.c", ""],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/",
             "environment": [],

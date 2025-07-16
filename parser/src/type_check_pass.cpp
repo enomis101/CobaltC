@@ -377,6 +377,7 @@ std::unique_ptr<Initializer> TypeCheckPass::get_zero_initializer(SourceLocationI
             throw InternalCompilerError("Something went wrong with convert_constant_type in get_zero_initializer");
         }
         auto const_expr = std::make_unique<ConstantExpression>(loc, res.value());
+        const_expr->type = type.clone();
         return std::make_unique<SingleInitializer>(loc, std::move(const_expr), type.clone());
     } else {
         throw InternalCompilerError("Unsupported type in get_zero_initializer");

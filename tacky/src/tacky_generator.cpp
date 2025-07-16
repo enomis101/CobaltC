@@ -448,7 +448,7 @@ std::unique_ptr<ExpressionResult> TackyGenerator::transform_subscript_expression
     }
     std::unique_ptr<Value> ptr_res = emit_tacky_and_convert(**ptr_expr, instructions);
     std::unique_ptr<Value> int_res = emit_tacky_and_convert(**int_expr, instructions);
-    std::unique_ptr<TemporaryVariable> dst = make_temporary_variable(*subscript_expression.type);
+    std::unique_ptr<TemporaryVariable> dst = make_temporary_variable(*(*ptr_expr)->type);
     // TODO: make sure get_pointer_scale is ok here too
     instructions.emplace_back(std::make_unique<AddPointerInstruction>(std::move(ptr_res), std::move(int_res), get_pointer_scale(*(*ptr_expr)->type), dst->clone()));
     return std::make_unique<DereferencedPointer>(std::move(dst));

@@ -498,6 +498,10 @@ void TackyGenerator::transform_statement(parser::Statement& statement, std::vect
 void TackyGenerator::transform_return_statement(parser::ReturnStatement& return_statement, std::vector<std::unique_ptr<Instruction>>& instructions)
 {
     std::unique_ptr<Value> value = emit_tacky_and_convert(*(return_statement.expression.get()), instructions);
+    if(is_type<ArrayType>(*return_statement.expression->type)){
+        //DEBUG;
+        int i = 0;
+    }
     instructions.emplace_back(std::make_unique<ReturnInstruction>(std::move(value)));
 }
 
@@ -735,5 +739,9 @@ std::string TackyGenerator::make_and_add_temporary(const Type& type, const Ident
 
 std::unique_ptr<TemporaryVariable> TackyGenerator::make_temporary_variable(const Type& type, const IdentifierAttribute& attr)
 {
+    if(is_type<ArrayType>(type)){
+        //DEBUG
+        int x = 0;
+    }
     return std::make_unique<TemporaryVariable>(make_and_add_temporary(type, attr));
 }

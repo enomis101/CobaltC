@@ -9,7 +9,7 @@ namespace parser {
 
 class PrinterVisitor : public ParserVisitor {
 public:
-    PrinterVisitor();
+    PrinterVisitor(bool require_valid_type = false);
 
     // Generate DOT file from the ParserAST
     void generate_dot_file(const std::string& filename, ParserAST& ast);
@@ -27,14 +27,14 @@ public:
     void visit(AssignmentExpression& node) override;
     void visit(ConditionalExpression& node) override;
     void visit(FunctionCallExpression& node) override;
-    void visit(DereferenceExpression& node) override { } // TODO: IMPLEMENT
-    void visit(AddressOfExpression& node) override { }   // TODO: IMPLEMENT
-    void visit(SubscriptExpression& node) override { }   // TODO: IMPLEMENT
+    void visit(DereferenceExpression& node) override;
+    void visit(AddressOfExpression& node) override;
+    void visit(SubscriptExpression& node) override;
     void visit(ExpressionStatement& node) override;
     void visit(IfStatement& node) override;
     void visit(NullStatement& node) override;
-    void visit(SingleInitializer& node) override { }   // TODO: IMPLEMENT
-    void visit(CompoundInitializer& node) override { } // TODO: IMPLEMENT
+    void visit(SingleInitializer& node) override;
+    void visit(CompoundInitializer& node) override;
     void visit(VariableDeclaration& node) override;
     void visit(Block& node) override;
     void visit(CompoundStatement& node) override;
@@ -59,7 +59,8 @@ private:
     std::string constant_value_to_string(const ConstantType& value);
     std::string type_to_string(const std::unique_ptr<Type>& type);
 
-    int m_node_count;                                     // Counter for generating unique node IDs
+    int m_node_count; // Counter for generating unique node IDs
+    bool m_require_valid_type;
     std::unordered_map<const ParserAST*, int> m_node_ids; // Maps ParserAST nodes to their unique IDs
     std::stringstream m_dot_content;                      // Buffer for dot file content
 };

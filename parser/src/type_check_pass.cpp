@@ -30,8 +30,9 @@ void TypeCheckPass::typecheck_expression_and_convert(std::unique_ptr<Expression>
     // Check if we need array-to-pointer conversion
     if (auto array_type = dynamic_cast<ArrayType*>(expr->type.get())) {
         // Create AddressOf expression for array-to-pointer decay
+        auto referenced_type = array_type->element_type->clone();
         auto addr_expr = std::make_unique<AddressOfExpression>(expr->source_location, std::move(expr));
-        addr_expr->type = std::make_unique<PointerType>(array_type->element_type->clone());
+        addr_expr->type = std::make_unique<PointerType>(std::move(referenced_type));
         expr = std::move(addr_expr);
     }
 }
@@ -422,6 +423,7 @@ StaticInitialValue TypeCheckPass::convert_static_initializer(const Type& target_
                     res.values.push_back(val);
                 }
             }
+            compound_init->type = target_type.clone();
             return res;
         } else {
             throw TypeCheckPassError(std::format("Can't initialize scalar object with a compound initializer at:\n{}", m_source_manager->get_source_line(init.source_location)));

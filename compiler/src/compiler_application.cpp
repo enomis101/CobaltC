@@ -168,7 +168,7 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
         if (logging::LogManager::logger()->is_enabled(LOG_CONTEXT, logging::LogLevel::DEBUG)) {
             std::string debug_str = "Parsed Program\n";
             LOG_DEBUG(LOG_CONTEXT, debug_str);
-            parser::PrinterVisitor printer;
+            parser::PrinterVisitor printer(true);
             std::string base_name = file_path.stem().string();
             printer.generate_dot_file("debug/" + base_name + "_semantic_analysisAST.dot", *(parser_ast.get()));
             LOG_DEBUG(LOG_CONTEXT, "Generated AST visualization");

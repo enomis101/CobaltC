@@ -1,4 +1,5 @@
 #include "parser/parser_printer.h"
+#include "common/error/internal_compiler_error.h"
 #include "parser/parser_ast.h"
 #include <fstream>
 #include <sstream>
@@ -6,8 +7,9 @@
 
 using namespace parser;
 
-PrinterVisitor::PrinterVisitor()
+PrinterVisitor::PrinterVisitor(bool require_valid_type)
     : m_node_count(0)
+    , m_require_valid_type(require_valid_type)
 {
 }
 
@@ -75,6 +77,8 @@ std::string PrinterVisitor::constant_value_to_string(const ConstantType& value)
             return std::to_string(v) + "U";
         } else if constexpr (std::is_same_v<T, unsigned long>) {
             return std::to_string(v) + "UL";
+        } else if constexpr (std::is_same_v<T, double>) {
+            return std::to_string(v);
         } else {
             return "[unknown_type]";
         }
@@ -85,9 +89,12 @@ std::string PrinterVisitor::constant_value_to_string(const ConstantType& value)
 std::string PrinterVisitor::type_to_string(const std::unique_ptr<Type>& type)
 {
     if (type) {
-        return type->to_string();
+        return "\\ntype: " + type->to_string();
+    } else if (m_require_valid_type) {
+        throw InternalCompilerError("Type must be valid");
+    } else {
+        return "";
     }
-    return "[no_type]";
 }
 
 void PrinterVisitor::visit(Identifier& node)
@@ -103,9 +110,7 @@ void PrinterVisitor::visit(UnaryExpression& node)
     std::string label = "UnaryExpression\\noperator: " + operator_to_string(node.unary_operator);
 
     // Add type information if available
-    if (node.type) {
-        label += "\\ntype: " + type_to_string(node.type);
-    }
+    label += type_to_string(node.type);
 
     m_dot_content << "  node" << id << " [label=\"" << label << "\"];\n";
 
@@ -122,9 +127,7 @@ void PrinterVisitor::visit(BinaryExpression& node)
     std::string label = "BinaryExpression\\noperator: " + operator_to_string(node.binary_operator);
 
     // Add type information if available
-    if (node.type) {
-        label += "\\ntype: " + type_to_string(node.type);
-    }
+    label += type_to_string(node.type);
 
     m_dot_content << "  node" << id << " [label=\"" << label << "\"];\n";
 
@@ -147,9 +150,7 @@ void PrinterVisitor::visit(ConstantExpression& node)
     std::string label = "ConstantExpression\\nvalue: " + constant_value_to_string(node.value);
 
     // Add type information if available
-    if (node.type) {
-        label += "\\ntype: " + type_to_string(node.type);
-    }
+    label += type_to_string(node.type);
 
     m_dot_content << "  node" << id << " [label=\"" << label << "\"];\n";
 }
@@ -172,9 +173,7 @@ void PrinterVisitor::visit(VariableExpression& node)
     std::string label = "VariableExpression";
 
     // Add type information if available
-    if (node.type) {
-        label += "\\ntype: " + type_to_string(node.type);
-    }
+    label += type_to_string(node.type);
 
     m_dot_content << "  node" << id << " [label=\"" << label << "\"];\n";
 
@@ -192,9 +191,14 @@ void PrinterVisitor::visit(CastExpression& node)
     // Add type information if available
     if (node.type) {
         label += "\\nresult_type: " + type_to_string(node.type);
+    } else {
+        label += "\\nresult_type: [no_type]";
     }
+
     if (node.target_type) {
         label += "\\ntarget_type: " + type_to_string(node.target_type);
+    } else {
+        label += "\\ntarget_type: [no_type]";
     }
 
     m_dot_content << "  node" << id << " [label=\"" << label << "\"];\n";
@@ -213,9 +217,7 @@ void PrinterVisitor::visit(AssignmentExpression& node)
     std::string label = "AssignmentExpression";
 
     // Add type information if available
-    if (node.type) {
-        label += "\\ntype: " + type_to_string(node.type);
-    }
+    label += type_to_string(node.type);
 
     m_dot_content << "  node" << id << " [label=\"" << label << "\"];\n";
 
@@ -238,9 +240,7 @@ void PrinterVisitor::visit(ConditionalExpression& node)
     std::string label = "ConditionalExpression";
 
     // Add type information if available
-    if (node.type) {
-        label += "\\ntype: " + type_to_string(node.type);
-    }
+    label += type_to_string(node.type);
 
     m_dot_content << "  node" << id << " [label=\"" << label << "\"];\n";
 
@@ -269,9 +269,7 @@ void PrinterVisitor::visit(FunctionCallExpression& node)
     std::string label = "FunctionCallExpression";
 
     // Add type information if available
-    if (node.type) {
-        label += "\\ntype: " + type_to_string(node.type);
-    }
+    label += type_to_string(node.type);
 
     m_dot_content << "  node" << id << " [label=\"" << label << "\"];\n";
 
@@ -287,6 +285,63 @@ void PrinterVisitor::visit(FunctionCallExpression& node)
             m_dot_content << "  node" << id << " -> node" << get_node_id(node.arguments[i].get())
                           << " [label=\"arguments[" << i << "]\"];\n";
         }
+    }
+}
+
+void PrinterVisitor::visit(DereferenceExpression& node)
+{
+    int id = get_node_id(&node);
+    std::string label = "DereferenceExpression";
+
+    // Add type information if available
+    label += type_to_string(node.type);
+
+    m_dot_content << "  node" << id << " [label=\"" << label << "\"];\n";
+
+    if (node.expression) {
+        node.expression->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.expression.get())
+                      << " [label=\"expression\"];\n";
+    }
+}
+
+void PrinterVisitor::visit(AddressOfExpression& node)
+{
+    int id = get_node_id(&node);
+    std::string label = "AddressOfExpression";
+
+    // Add type information if available
+    label += type_to_string(node.type);
+
+    m_dot_content << "  node" << id << " [label=\"" << label << "\"];\n";
+
+    if (node.expression) {
+        node.expression->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.expression.get())
+                      << " [label=\"expression\"];\n";
+    }
+}
+
+void PrinterVisitor::visit(SubscriptExpression& node)
+{
+    int id = get_node_id(&node);
+    std::string label = "SubscriptExpression";
+
+    // Add type information if available
+    label += type_to_string(node.type);
+
+    m_dot_content << "  node" << id << " [label=\"" << label << "\"];\n";
+
+    if (node.expression1) {
+        node.expression1->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.expression1.get())
+                      << " [label=\"expression1\"];\n";
+    }
+
+    if (node.expression2) {
+        node.expression2->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.expression2.get())
+                      << " [label=\"expression2\"];\n";
     }
 }
 
@@ -332,6 +387,43 @@ void PrinterVisitor::visit(NullStatement& node)
     m_dot_content << "  node" << id << " [label=\"NullStatement\"];\n";
 }
 
+void PrinterVisitor::visit(SingleInitializer& node)
+{
+    int id = get_node_id(&node);
+    std::string label = "SingleInitializer";
+
+    // Add type information if available
+    label += type_to_string(node.type);
+
+    m_dot_content << "  node" << id << " [label=\"" << label << "\"];\n";
+
+    if (node.expression) {
+        node.expression->accept(*this);
+        m_dot_content << "  node" << id << " -> node" << get_node_id(node.expression.get())
+                      << " [label=\"expression\"];\n";
+    }
+}
+
+void PrinterVisitor::visit(CompoundInitializer& node)
+{
+    int id = get_node_id(&node);
+    std::string label = "CompoundInitializer\\ninitializers: " + std::to_string(node.initializer_list.size());
+
+    // Add type information if available
+    label += type_to_string(node.type);
+
+    m_dot_content << "  node" << id << " [label=\"" << label << "\"];\n";
+
+    // Visit each initializer in the list
+    for (size_t i = 0; i < node.initializer_list.size(); ++i) {
+        if (node.initializer_list[i]) {
+            node.initializer_list[i]->accept(*this);
+            m_dot_content << "  node" << id << " -> node" << get_node_id(node.initializer_list[i].get())
+                          << " [label=\"initializer[" << i << "]\"];\n";
+        }
+    }
+}
+
 std::string PrinterVisitor::storage_class_to_string(StorageClass sc)
 {
     switch (sc) {
@@ -364,10 +456,7 @@ void PrinterVisitor::visit(VariableDeclaration& node)
     std::string label = "VariableDeclaration\\nstorage_class: " + storage_class_to_string(node.storage_class) + "\\ndeclaration_scope: " + declaration_scope_to_string(node.scope);
 
     // Add type information if available
-    if (node.type) {
-        label += "\\ntype: " + type_to_string(node.type);
-    }
-
+    label += type_to_string(node.type);
     m_dot_content << "  node" << id << " [label=\"" << label << "\"];\n";
 
     // Visit the identifier
@@ -389,10 +478,7 @@ void PrinterVisitor::visit(FunctionDeclaration& node)
     std::string label = "FunctionDeclaration\\nname: " + escape_string(node.name.name) + "\\nstorage_class: " + storage_class_to_string(node.storage_class) + "\\ndeclaration_scope: " + declaration_scope_to_string(node.scope);
 
     // Add type information if available
-    if (node.type) {
-        label += "\\ntype: " + type_to_string(node.type);
-    }
-
+    label += type_to_string(node.type);
     m_dot_content << "  node" << id << " [label=\"" << label << "\"];\n";
 
     // Visit the name identifier

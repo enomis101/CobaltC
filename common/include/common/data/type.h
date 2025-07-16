@@ -240,7 +240,7 @@ public:
 
         // Create and return new PointerType with cloned components
         return std::make_unique<PointerType>(
-            referenced_type->clone());
+            std::move(cloned_referenced_type));
     }
 
     std::string to_string() const override
@@ -280,7 +280,7 @@ public:
 
         // Create and return new ArrayType with cloned components
         return std::make_unique<ArrayType>(
-            element_type->clone(), array_size);
+            std::move(cloned_referenced_type), array_size);
     }
 
     std::string to_string() const override

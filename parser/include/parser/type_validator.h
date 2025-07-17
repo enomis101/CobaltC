@@ -1,18 +1,14 @@
 #pragma once
-#include "common/data/type.h"
 #include "parser/parser_ast.h"
-#include <memory>
-#include <sstream>
-#include <unordered_map>
 
 namespace parser {
 
-class PrinterVisitor : public ParserVisitor {
+class TypeValidator : public ParserVisitor {
 public:
-    PrinterVisitor() = default;
+    TypeValidator() = default;
 
-    // Generate DOT file from the ParserAST
-    void generate_dot_file(const std::string& filename, ParserAST& ast);
+    // Validate that all expressions and variables have valid types
+    void validate_types(ParserAST& ast);
 
     // Implementation of visitor interface methods
     void visit(Identifier& node) override;
@@ -47,21 +43,8 @@ public:
     void visit(ForInitExpression& node) override;
 
 private:
-    // Get or assign a unique ID for each node
-    int get_node_id(const ParserAST* node);
-
-    // Helper methods for string conversion
-    std::string operator_to_string(UnaryOperator op);
-    std::string operator_to_string(BinaryOperator op);
-    std::string storage_class_to_string(StorageClass sc);
-    std::string declaration_scope_to_string(DeclarationScope scope);
-    std::string escape_string(const std::string& str);
-    std::string constant_value_to_string(const ConstantType& value);
-    std::string type_to_string(const std::unique_ptr<Type>& type);
-
-    int m_node_count; // Counter for generating unique node IDs
-    std::unordered_map<const ParserAST*, int> m_node_ids; // Maps ParserAST nodes to their unique IDs
-    std::stringstream m_dot_content;                      // Buffer for dot file content
+    // Helper method to validate that a type is valid
+    void validate_type(const std::unique_ptr<Type>& type, const std::string& node_name);
 };
 
 } // namespace parser

@@ -1,5 +1,4 @@
 #include "parser/parser_printer.h"
-#include "common/error/internal_compiler_error.h"
 #include "parser/parser_ast.h"
 #include <fstream>
 #include <sstream>
@@ -7,11 +6,6 @@
 
 using namespace parser;
 
-PrinterVisitor::PrinterVisitor(bool require_valid_type)
-    : m_node_count(0)
-    , m_require_valid_type(require_valid_type)
-{
-}
 
 void PrinterVisitor::generate_dot_file(const std::string& filename, ParserAST& ast)
 {
@@ -90,10 +84,8 @@ std::string PrinterVisitor::type_to_string(const std::unique_ptr<Type>& type)
 {
     if (type) {
         return "\\ntype: " + type->to_string();
-    } else if (m_require_valid_type) {
-        throw InternalCompilerError("Type must be valid");
     } else {
-        return "";
+        return "\\ntype: [no_type]";
     }
 }
 
@@ -109,7 +101,7 @@ void PrinterVisitor::visit(UnaryExpression& node)
     int id = get_node_id(&node);
     std::string label = "UnaryExpression\\noperator: " + operator_to_string(node.unary_operator);
 
-    // Add type information if available
+    // Add type information
     label += type_to_string(node.type);
 
     m_dot_content << "  node" << id << " [label=\"" << label << "\"];\n";
@@ -126,7 +118,7 @@ void PrinterVisitor::visit(BinaryExpression& node)
     int id = get_node_id(&node);
     std::string label = "BinaryExpression\\noperator: " + operator_to_string(node.binary_operator);
 
-    // Add type information if available
+    // Add type information
     label += type_to_string(node.type);
 
     m_dot_content << "  node" << id << " [label=\"" << label << "\"];\n";
@@ -149,7 +141,7 @@ void PrinterVisitor::visit(ConstantExpression& node)
     int id = get_node_id(&node);
     std::string label = "ConstantExpression\\nvalue: " + constant_value_to_string(node.value);
 
-    // Add type information if available
+    // Add type information
     label += type_to_string(node.type);
 
     m_dot_content << "  node" << id << " [label=\"" << label << "\"];\n";
@@ -172,7 +164,7 @@ void PrinterVisitor::visit(VariableExpression& node)
     int id = get_node_id(&node);
     std::string label = "VariableExpression";
 
-    // Add type information if available
+    // Add type information
     label += type_to_string(node.type);
 
     m_dot_content << "  node" << id << " [label=\"" << label << "\"];\n";
@@ -188,15 +180,15 @@ void PrinterVisitor::visit(CastExpression& node)
     int id = get_node_id(&node);
     std::string label = "CastExpression";
 
-    // Add type information if available
+    // Add type information
     if (node.type) {
-        label += "\\nresult_type: " + type_to_string(node.type);
+        label += "\\nresult_type: " + node.type->to_string();
     } else {
         label += "\\nresult_type: [no_type]";
     }
 
     if (node.target_type) {
-        label += "\\ntarget_type: " + type_to_string(node.target_type);
+        label += "\\ntarget_type: " + node.target_type->to_string();
     } else {
         label += "\\ntarget_type: [no_type]";
     }
@@ -216,7 +208,7 @@ void PrinterVisitor::visit(AssignmentExpression& node)
     int id = get_node_id(&node);
     std::string label = "AssignmentExpression";
 
-    // Add type information if available
+    // Add type information
     label += type_to_string(node.type);
 
     m_dot_content << "  node" << id << " [label=\"" << label << "\"];\n";
@@ -239,7 +231,7 @@ void PrinterVisitor::visit(ConditionalExpression& node)
     int id = get_node_id(&node);
     std::string label = "ConditionalExpression";
 
-    // Add type information if available
+    // Add type information
     label += type_to_string(node.type);
 
     m_dot_content << "  node" << id << " [label=\"" << label << "\"];\n";
@@ -268,7 +260,7 @@ void PrinterVisitor::visit(FunctionCallExpression& node)
     int id = get_node_id(&node);
     std::string label = "FunctionCallExpression";
 
-    // Add type information if available
+    // Add type information
     label += type_to_string(node.type);
 
     m_dot_content << "  node" << id << " [label=\"" << label << "\"];\n";
@@ -293,7 +285,7 @@ void PrinterVisitor::visit(DereferenceExpression& node)
     int id = get_node_id(&node);
     std::string label = "DereferenceExpression";
 
-    // Add type information if available
+    // Add type information
     label += type_to_string(node.type);
 
     m_dot_content << "  node" << id << " [label=\"" << label << "\"];\n";
@@ -310,7 +302,7 @@ void PrinterVisitor::visit(AddressOfExpression& node)
     int id = get_node_id(&node);
     std::string label = "AddressOfExpression";
 
-    // Add type information if available
+    // Add type information
     label += type_to_string(node.type);
 
     m_dot_content << "  node" << id << " [label=\"" << label << "\"];\n";
@@ -327,7 +319,7 @@ void PrinterVisitor::visit(SubscriptExpression& node)
     int id = get_node_id(&node);
     std::string label = "SubscriptExpression";
 
-    // Add type information if available
+    // Add type information
     label += type_to_string(node.type);
 
     m_dot_content << "  node" << id << " [label=\"" << label << "\"];\n";
@@ -392,7 +384,7 @@ void PrinterVisitor::visit(SingleInitializer& node)
     int id = get_node_id(&node);
     std::string label = "SingleInitializer";
 
-    // Add type information if available
+    // Add type information
     label += type_to_string(node.type);
 
     m_dot_content << "  node" << id << " [label=\"" << label << "\"];\n";
@@ -409,7 +401,7 @@ void PrinterVisitor::visit(CompoundInitializer& node)
     int id = get_node_id(&node);
     std::string label = "CompoundInitializer\\ninitializers: " + std::to_string(node.initializer_list.size());
 
-    // Add type information if available
+    // Add type information
     label += type_to_string(node.type);
 
     m_dot_content << "  node" << id << " [label=\"" << label << "\"];\n";
@@ -455,7 +447,7 @@ void PrinterVisitor::visit(VariableDeclaration& node)
     int id = get_node_id(&node);
     std::string label = "VariableDeclaration\\nstorage_class: " + storage_class_to_string(node.storage_class) + "\\ndeclaration_scope: " + declaration_scope_to_string(node.scope);
 
-    // Add type information if available
+    // Add type information
     label += type_to_string(node.type);
     m_dot_content << "  node" << id << " [label=\"" << label << "\"];\n";
 
@@ -477,7 +469,7 @@ void PrinterVisitor::visit(FunctionDeclaration& node)
     int id = get_node_id(&node);
     std::string label = "FunctionDeclaration\\nname: " + escape_string(node.name.name) + "\\nstorage_class: " + storage_class_to_string(node.storage_class) + "\\ndeclaration_scope: " + declaration_scope_to_string(node.scope);
 
-    // Add type information if available
+    // Add type information
     label += type_to_string(node.type);
     m_dot_content << "  node" << id << " [label=\"" << label << "\"];\n";
 

@@ -14,6 +14,7 @@
 #include "parser/parser_printer.h"
 #include "parser/semantic_analyzer.h"
 #include "parser/semantic_analyzer_error.h"
+#include "parser/type_validator.h"
 #include "tacky/tacky_generator.h"
 #include "tacky/tacky_printer.h"
 #include <algorithm>
@@ -162,13 +163,15 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
 
         parser::SemanticAnalyzer semantic_analyzer(parser_ast, name_generator, symbol_table, source_manager, warning_manager);
         semantic_analyzer.analyze();
-
+        parser::TypeValidator type_validator;
+        type_validator.validate_types(*parser_ast);
+        
         LOG_INFO(LOG_CONTEXT, "Semantic Analysis");
 
         if (logging::LogManager::logger()->is_enabled(LOG_CONTEXT, logging::LogLevel::DEBUG)) {
             std::string debug_str = "Parsed Program\n";
             LOG_DEBUG(LOG_CONTEXT, debug_str);
-            parser::PrinterVisitor printer(true);
+            parser::PrinterVisitor printer;
             std::string base_name = file_path.stem().string();
             printer.generate_dot_file("debug/" + base_name + "_semantic_analysisAST.dot", *(parser_ast.get()));
             LOG_DEBUG(LOG_CONTEXT, "Generated AST visualization");

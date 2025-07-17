@@ -165,7 +165,7 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
         semantic_analyzer.analyze();
         parser::TypeValidator type_validator;
         type_validator.validate_types(*parser_ast);
-        
+
         LOG_INFO(LOG_CONTEXT, "Semantic Analysis");
 
         if (logging::LogManager::logger()->is_enabled(LOG_CONTEXT, logging::LogLevel::DEBUG)) {

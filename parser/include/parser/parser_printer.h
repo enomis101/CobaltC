@@ -59,7 +59,7 @@ private:
     std::string constant_value_to_string(const ConstantType& value);
     std::string type_to_string(const std::unique_ptr<Type>& type);
 
-    int m_node_count; // Counter for generating unique node IDs
+    int m_node_count;                                     // Counter for generating unique node IDs
     std::unordered_map<const ParserAST*, int> m_node_ids; // Maps ParserAST nodes to their unique IDs
     std::stringstream m_dot_content;                      // Buffer for dot file content
 };

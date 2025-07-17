@@ -169,11 +169,11 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_return_in
     std::unique_ptr<Operand> src = transform_operand(*return_instruction.value);
     std::unique_ptr<Operand> dst = std::make_unique<Register>(is_double ? RegisterName::XMM0 : RegisterName::AX);
     add_comment_instruction("return_instruction", instructions);
-    if(value_type == AssemblyType::BYTE_ARRAY){
+    if (value_type == AssemblyType::BYTE_ARRAY) {
         tacky::PrinterVisitor printer;
         printer.generate_dot_file("debug/test_tacky.dot", return_instruction);
     }
-    
+
     instructions.emplace_back(std::make_unique<MovInstruction>(value_type, std::move(src), std::move(dst)));
     instructions.emplace_back(std::make_unique<ReturnInstruction>());
     return instructions;

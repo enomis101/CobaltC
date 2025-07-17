@@ -450,12 +450,12 @@ std::unique_ptr<ExpressionResult> TackyGenerator::transform_subscript_expression
     std::unique_ptr<Value> int_res = emit_tacky_and_convert(**int_expr, instructions);
     std::unique_ptr<TemporaryVariable> dst = make_temporary_variable(*(*ptr_expr)->type);
 
-    //In subscript operations we want to use the referenced type size  
+    // In subscript operations we want to use the referenced type size
     size_t scale = 0;
-    if(auto ptr_type = dynamic_cast<PointerType*>((*ptr_expr)->type.get())){
+    if (auto ptr_type = dynamic_cast<PointerType*>((*ptr_expr)->type.get())) {
         scale = ptr_type->referenced_type->size();
     }
-    //auto scale = get_pointer_scale(*(*ptr_expr)->type);
+    // auto scale = get_pointer_scale(*(*ptr_expr)->type);
     instructions.emplace_back(std::make_unique<AddPointerInstruction>(std::move(ptr_res), std::move(int_res), scale, dst->clone()));
     return std::make_unique<DereferencedPointer>(std::move(dst));
 }

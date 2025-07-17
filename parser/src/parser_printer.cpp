@@ -6,7 +6,6 @@
 
 using namespace parser;
 
-
 void PrinterVisitor::generate_dot_file(const std::string& filename, ParserAST& ast)
 {
     // Reset state for new file generation

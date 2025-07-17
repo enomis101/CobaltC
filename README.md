@@ -14,6 +14,8 @@ git clone https://github.com/nlsandler/writing-a-c-compiler-tests/
 
 ## TODO List
 
+- [ ] Add semantic analysis and tacky stage unit tests and validation stages (move type validation out from parser printer wiwch checks that every expression has a valid type)
+
 - [ ] Unit tests
 - [ ] Tacky IR with std::variant
 - [ ] Improved Error Reporting, store SourceRange or Token ranges for every AST node

@@ -449,8 +449,14 @@ std::unique_ptr<ExpressionResult> TackyGenerator::transform_subscript_expression
     std::unique_ptr<Value> ptr_res = emit_tacky_and_convert(**ptr_expr, instructions);
     std::unique_ptr<Value> int_res = emit_tacky_and_convert(**int_expr, instructions);
     std::unique_ptr<TemporaryVariable> dst = make_temporary_variable(*(*ptr_expr)->type);
-    // TODO: make sure get_pointer_scale is ok here too
-    instructions.emplace_back(std::make_unique<AddPointerInstruction>(std::move(ptr_res), std::move(int_res), get_pointer_scale(*(*ptr_expr)->type), dst->clone()));
+
+    //In subscript operations we want to use the referenced type size  
+    size_t scale = 0;
+    if(auto ptr_type = dynamic_cast<PointerType*>((*ptr_expr)->type.get())){
+        scale = ptr_type->referenced_type->size();
+    }
+    //auto scale = get_pointer_scale(*(*ptr_expr)->type);
+    instructions.emplace_back(std::make_unique<AddPointerInstruction>(std::move(ptr_res), std::move(int_res), scale, dst->clone()));
     return std::make_unique<DereferencedPointer>(std::move(dst));
 }
 
@@ -498,10 +504,6 @@ void TackyGenerator::transform_statement(parser::Statement& statement, std::vect
 void TackyGenerator::transform_return_statement(parser::ReturnStatement& return_statement, std::vector<std::unique_ptr<Instruction>>& instructions)
 {
     std::unique_ptr<Value> value = emit_tacky_and_convert(*(return_statement.expression.get()), instructions);
-    if(is_type<ArrayType>(*return_statement.expression->type)){
-        //DEBUG;
-        int i = 0;
-    }
     instructions.emplace_back(std::make_unique<ReturnInstruction>(std::move(value)));
 }
 
@@ -739,9 +741,5 @@ std::string TackyGenerator::make_and_add_temporary(const Type& type, const Ident
 
 std::unique_ptr<TemporaryVariable> TackyGenerator::make_temporary_variable(const Type& type, const IdentifierAttribute& attr)
 {
-    if(is_type<ArrayType>(type)){
-        //DEBUG
-        int x = 0;
-    }
     return std::make_unique<TemporaryVariable>(make_and_add_temporary(type, attr));
 }

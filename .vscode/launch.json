@@ -6,7 +6,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/compiler/cobaltc-compiler",
-            "args": ["/home/simone/compiler/writing-a-c-compiler-tests/tests/chapter_15/valid/pointer_arithmetic/pointer_add.c", ""],
+            "args": ["/home/simone/compiler/writing-a-c-compiler-tests/tests/chapter_15/valid/subscripting/array_of_pointers_to_arrays.c", "-S"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/",
             "environment": [],

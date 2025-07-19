@@ -27,7 +27,23 @@ TEST_F(ParserTest, ParseConstantExpression)
     EXPECT_EQ(std::get<int>(const_expr->value), 42);
 }
 
-TEST_F(ParserTest, ParseUnaryExpression)
+TEST_F(ParserTest, ParseUnaryExpression_Complement)
+{
+    auto ast = parse_string("int main(void) { return ~5; }");
+
+    auto func_decl = dynamic_cast<FunctionDeclaration*>(ast->declarations[0].get());
+    auto return_stmt = dynamic_cast<ReturnStatement*>(func_decl->body.value()->items[0].get());
+    auto unary_expr = dynamic_cast<UnaryExpression*>(return_stmt->expression.get());
+
+    ASSERT_NE(unary_expr, nullptr);
+    EXPECT_EQ(unary_expr->unary_operator, UnaryOperator::COMPLEMENT);
+
+    auto const_expr = dynamic_cast<ConstantExpression*>(unary_expr->expression.get());
+    ASSERT_NE(const_expr, nullptr);
+    EXPECT_EQ(std::get<int>(const_expr->value), 5);
+}
+
+TEST_F(ParserTest, ParseUnaryExpression_Negate)
 {
     auto ast = parse_string("int main(void) { return -5; }");
 
@@ -37,6 +53,23 @@ TEST_F(ParserTest, ParseUnaryExpression)
 
     ASSERT_NE(unary_expr, nullptr);
     EXPECT_EQ(unary_expr->unary_operator, UnaryOperator::NEGATE);
+
+    auto const_expr = dynamic_cast<ConstantExpression*>(unary_expr->expression.get());
+    ASSERT_NE(const_expr, nullptr);
+    EXPECT_EQ(std::get<int>(const_expr->value), 5);
+}
+
+
+TEST_F(ParserTest, ParseUnaryExpression_Not)
+{
+    auto ast = parse_string("int main(void) { return !5; }");
+
+    auto func_decl = dynamic_cast<FunctionDeclaration*>(ast->declarations[0].get());
+    auto return_stmt = dynamic_cast<ReturnStatement*>(func_decl->body.value()->items[0].get());
+    auto unary_expr = dynamic_cast<UnaryExpression*>(return_stmt->expression.get());
+
+    ASSERT_NE(unary_expr, nullptr);
+    EXPECT_EQ(unary_expr->unary_operator, UnaryOperator::NOT);
 
     auto const_expr = dynamic_cast<ConstantExpression*>(unary_expr->expression.get());
     ASSERT_NE(const_expr, nullptr);
@@ -306,11 +339,7 @@ TEST_F(ParserTest, ParseSubscriptExpression)
 // TODO: Cast expressions
 // TODO: Complex type casts
 
-// TODO: Array subscript expressions (`arr[index]`)
-
 // TODO: Unary operators edge cases
-// TODO: Complement operator (`~`)
-// TODO: Logical NOT operator (`!`)
 
 // TODO: Binary operators edge cases
 // TODO: All comparison operators (`!=`, `<=`, `>=`) - some covered

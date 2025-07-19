@@ -14,3 +14,12 @@ public:
     {
     }
 };
+
+class UnsupportedFeatureError : public std::runtime_error {
+public:
+    explicit UnsupportedFeatureError(const std::string& message)
+        : std::runtime_error(message)
+    {
+    }
+};
+

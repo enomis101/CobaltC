@@ -942,7 +942,8 @@ std::tuple<std::string, std::unique_ptr<Type>, std::vector<Identifier>> Parser::
             for (auto& param : fun_decl->parameters) {
                 auto [param_name, param_type, _] = process_declarator(*param.parameter_declarator, *param.parameter_type);
                 if (is_type<FunctionType>(*param_type)) {
-                    throw DeclaratorError("Function pointers in parametrs arent supported");
+                    //COBALTC_SPECIFIC
+                    throw UnsupportedFeatureError("Function pointers in parametrs arent supported");
                 }
                 param_names.push_back(std::move(param_name));
                 param_types.emplace_back((std::move(param_type)));
@@ -950,7 +951,7 @@ std::tuple<std::string, std::unique_ptr<Type>, std::vector<Identifier>> Parser::
             std::unique_ptr<Type> derived_type = std::make_unique<FunctionType>(type.clone(), std::move(param_types));
             return { fun_id_decl->identifier, std::move(derived_type), param_names };
         } else {
-            throw DeclaratorError("Can't apply additional type derivations to a function type");
+            throw UnsupportedFeatureError("Can't apply additional type derivations to a function type");
         }
     } else {
         throw DeclaratorError("Unsuypported declarator type");

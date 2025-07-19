@@ -68,7 +68,7 @@
             "program": "${workspaceFolder}/build/parser/tests/parser_expressions_test",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/build/",
+            "cwd": "${workspaceFolder}/",
             "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",

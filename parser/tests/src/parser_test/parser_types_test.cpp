@@ -3,7 +3,7 @@
 // ============== Type Specifier Tests ==============
 
 // TODO: Complex type specifiers
-// TODO: `long long` combinations  
+// TODO: `long long` combinations
 // TODO: `unsigned long` combinations
 // TODO: `signed` keyword variations
 // TODO: `double` type usage

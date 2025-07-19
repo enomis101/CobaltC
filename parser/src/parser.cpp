@@ -938,7 +938,7 @@ std::tuple<std::string, std::unique_ptr<Type>, std::vector<Identifier>> Parser::
             for (auto& param : fun_decl->parameters) {
                 auto [param_name, param_type, _] = process_declarator(*param.parameter_declarator, *param.parameter_type);
                 if (is_type<FunctionType>(*param_type)) {
-                    //COBALTC_SPECIFIC
+                    // COBALTC_SPECIFIC
                     throw UnsupportedFeatureError("Function pointers in parametrs arent supported");
                 }
                 param_names.push_back(std::move(param_name));

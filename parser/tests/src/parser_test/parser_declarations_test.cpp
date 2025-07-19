@@ -54,7 +54,6 @@ TEST_F(ParserTest, ParseFunctionWithParameters)
     EXPECT_EQ(func_decl->params[1].name, "b");
 }
 
-
 TEST_F(ParserTest, ParseFunctionPrototype)
 {
     auto ast = parse_string("int foo(int x);");
@@ -172,7 +171,6 @@ TEST_F(ParserTest, ParseMultipleDeclarations)
     EXPECT_NE(dynamic_cast<FunctionDeclaration*>(ast->declarations[3].get()), nullptr);
 }
 
-
 TEST_F(ParserTest, ParseFunctionDeclarationWithVoidParameters)
 {
     auto ast = parse_string("int add(void) { return 10; }");
@@ -186,8 +184,8 @@ TEST_F(ParserTest, ParseFunctionDeclarationWithVoidParameters)
 
 TEST_F(ParserTest, ParseFunctionDeclarationWithEmptyParameters)
 {
-    //COBALTC_SPECIFIC
-    //cant declare empty parametr list
+    // COBALTC_SPECIFIC
+    // cant declare empty parametr list
 
     EXPECT_THROW(parse_string("int add() { return 10; }"), Parser::ParserError);
 }
@@ -212,24 +210,23 @@ TEST_F(ParserTest, ParseFunctionDeclarationWithComplexParameters)
     EXPECT_EQ(func_decl->params[4].name, "matrix");
     EXPECT_TRUE(func_decl->body.has_value());
 
-    EXPECT_TRUE(is_type<IntType>(*func_type->return_type)); 
-    EXPECT_TRUE(is_type<IntType>(*func_type->parameters_type[0])); 
-    EXPECT_TRUE(is_type<PointerType>(*func_type->parameters_type[1])); 
-    EXPECT_TRUE(is_type<ArrayType>(*func_type->parameters_type[2])); 
+    EXPECT_TRUE(is_type<IntType>(*func_type->return_type));
+    EXPECT_TRUE(is_type<IntType>(*func_type->parameters_type[0]));
+    EXPECT_TRUE(is_type<PointerType>(*func_type->parameters_type[1]));
+    EXPECT_TRUE(is_type<ArrayType>(*func_type->parameters_type[2]));
     auto ptr_to_ptr_type = dynamic_cast<PointerType*>(func_type->parameters_type[3].get());
-    EXPECT_TRUE(ptr_to_ptr_type && is_type<PointerType>(*ptr_to_ptr_type->referenced_type)); 
+    EXPECT_TRUE(ptr_to_ptr_type && is_type<PointerType>(*ptr_to_ptr_type->referenced_type));
     auto matrix_type = dynamic_cast<ArrayType*>(func_type->parameters_type[4].get());
-    EXPECT_TRUE(matrix_type && is_type<ArrayType>(*matrix_type->element_type)); 
+    EXPECT_TRUE(matrix_type && is_type<ArrayType>(*matrix_type->element_type));
 }
 
 TEST_F(ParserTest, ParseFunctionDeclarationWithFunctionPointerParameter)
 {
-    //COBALTC_SPECIFIC
-    //do not support function pointers as parameters
+    // COBALTC_SPECIFIC
+    // do not support function pointers as parameters
 
     EXPECT_THROW(parse_string("int add(int (*func)(int, int)) { return 10; }"), Parser::ParserError);
 }
-
 
 TEST_F(ParserTest, ParseFunctionDeclarationPointerReturnType)
 {
@@ -246,12 +243,12 @@ TEST_F(ParserTest, ParseFunctionDeclarationPointerReturnType)
     ASSERT_EQ(func_decl->params.size(), 0);
     EXPECT_TRUE(func_decl->body.has_value());
 
-    EXPECT_TRUE(is_type<PointerType>(*func_type->return_type)); 
+    EXPECT_TRUE(is_type<PointerType>(*func_type->return_type));
 }
 
 TEST_F(ParserTest, ParseFunctionDeclarationArrayReturnType)
 {
-    //cant return array type
+    // cant return array type
     EXPECT_THROW(parse_string("int[3] add(void) { return 0; }"), Parser::ParserError);
 }
 
@@ -285,7 +282,7 @@ TEST_F(ParserTest, ParseStaticPointerVariable)
 
     auto var_decl = dynamic_cast<VariableDeclaration*>(ast->declarations[0].get());
     ASSERT_NE(var_decl, nullptr);
-    
+
     EXPECT_EQ(var_decl->storage_class, StorageClass::STATIC);
     EXPECT_TRUE(is_type<PointerType>(*var_decl->type));
     EXPECT_FALSE(var_decl->expression.has_value());
@@ -297,7 +294,7 @@ TEST_F(ParserTest, ParseExternPointerVariable)
 
     auto var_decl = dynamic_cast<VariableDeclaration*>(ast->declarations[0].get());
     ASSERT_NE(var_decl, nullptr);
-    
+
     EXPECT_EQ(var_decl->storage_class, StorageClass::EXTERN);
     EXPECT_TRUE(is_type<PointerType>(*var_decl->type));
     EXPECT_FALSE(var_decl->expression.has_value());
@@ -309,10 +306,10 @@ TEST_F(ParserTest, ParseStaticArrayVariable)
 
     auto var_decl = dynamic_cast<VariableDeclaration*>(ast->declarations[0].get());
     ASSERT_NE(var_decl, nullptr);
-    
+
     EXPECT_EQ(var_decl->storage_class, StorageClass::STATIC);
     EXPECT_TRUE(is_type<ArrayType>(*var_decl->type));
-    
+
     auto array_type = dynamic_cast<ArrayType*>(var_decl->type.get());
     ASSERT_NE(array_type, nullptr);
     EXPECT_EQ(array_type->array_size, 10);
@@ -324,10 +321,10 @@ TEST_F(ParserTest, ParseExternArrayVariable)
 
     auto var_decl = dynamic_cast<VariableDeclaration*>(ast->declarations[0].get());
     ASSERT_NE(var_decl, nullptr);
-    
+
     EXPECT_EQ(var_decl->storage_class, StorageClass::EXTERN);
     EXPECT_TRUE(is_type<ArrayType>(*var_decl->type));
-    
+
     auto array_type = dynamic_cast<ArrayType*>(var_decl->type.get());
     ASSERT_NE(array_type, nullptr);
     EXPECT_EQ(array_type->array_size, 100);
@@ -339,9 +336,9 @@ TEST_F(ParserTest, ParseStaticPointerToPointer)
 
     auto var_decl = dynamic_cast<VariableDeclaration*>(ast->declarations[0].get());
     ASSERT_NE(var_decl, nullptr);
-    
+
     EXPECT_EQ(var_decl->storage_class, StorageClass::STATIC);
-    
+
     auto ptr_type = dynamic_cast<PointerType*>(var_decl->type.get());
     ASSERT_NE(ptr_type, nullptr);
     EXPECT_TRUE(is_type<PointerType>(*ptr_type->referenced_type));
@@ -353,13 +350,13 @@ TEST_F(ParserTest, ParseExternMultiDimensionalArray)
 
     auto var_decl = dynamic_cast<VariableDeclaration*>(ast->declarations[0].get());
     ASSERT_NE(var_decl, nullptr);
-    
+
     EXPECT_EQ(var_decl->storage_class, StorageClass::EXTERN);
-    
+
     auto outer_array = dynamic_cast<ArrayType*>(var_decl->type.get());
     ASSERT_NE(outer_array, nullptr);
     EXPECT_EQ(outer_array->array_size, 5);
-    
+
     auto inner_array = dynamic_cast<ArrayType*>(outer_array->element_type.get());
     ASSERT_NE(inner_array, nullptr);
     EXPECT_EQ(inner_array->array_size, 10);
@@ -371,9 +368,9 @@ TEST_F(ParserTest, ParseStaticArrayOfPointers)
 
     auto var_decl = dynamic_cast<VariableDeclaration*>(ast->declarations[0].get());
     ASSERT_NE(var_decl, nullptr);
-    
+
     EXPECT_EQ(var_decl->storage_class, StorageClass::STATIC);
-    
+
     auto array_type = dynamic_cast<ArrayType*>(var_decl->type.get());
     ASSERT_NE(array_type, nullptr);
     EXPECT_EQ(array_type->array_size, 5);
@@ -383,8 +380,8 @@ TEST_F(ParserTest, ParseStaticArrayOfPointers)
 // Function pointers - should fail since function pointers aren't supported
 TEST_F(ParserTest, ParseFunctionPointer_ShouldFail)
 {
-    //COBALTC_SPECIFIC
-    //function pointers not supported
+    // COBALTC_SPECIFIC
+    // function pointers not supported
     EXPECT_THROW(parse_string("int (*global_func_ptr)(void);"), UnsupportedFeatureError);
 }
 

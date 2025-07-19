@@ -1,5 +1,6 @@
 #include "common/data/type.h"
 #include "parser/parser_ast.h"
+#include "parser/parser_printer.h"
 #include "parser_test/parser_test.h"
 
 // ============== Basic Expression Tests ==============
@@ -242,19 +243,68 @@ TEST_F(ParserTest, ParsePointerCastExpression)
     auto init = dynamic_cast<SingleInitializer*>(var_decl->expression.value().get());
     EXPECT_TRUE(init);
 
-    auto cast_expr = dynamic_cast<CastExpression*>(init->expression.get());
+    auto expr = dynamic_cast<CastExpression*>(init->expression.get());
 
-    EXPECT_TRUE(cast_expr);
-    EXPECT_TRUE(is_type<PointerType>(*cast_expr->target_type));
+    EXPECT_TRUE(expr);
+    EXPECT_TRUE(is_type<PointerType>(*expr->target_type));
+}
+
+// ============== Address-of operator Tests ==============
+
+TEST_F(ParserTest, ParseAddressOfExpression)
+{
+    auto ast = parse_string("long* y = &x;");
+
+    auto var_decl = dynamic_cast<VariableDeclaration*>(ast->declarations[0].get());
+    EXPECT_NE(var_decl, nullptr);
+
+    EXPECT_TRUE(var_decl->expression.has_value());
+    auto init = dynamic_cast<SingleInitializer*>(var_decl->expression.value().get());
+    EXPECT_TRUE(init);
+
+    auto expr = dynamic_cast<AddressOfExpression*>(init->expression.get());
+
+    EXPECT_TRUE(expr);
+}
+
+TEST_F(ParserTest, ParseDereferenceExpression)
+{
+    auto ast = parse_string("long* y = *x;");
+
+    auto var_decl = dynamic_cast<VariableDeclaration*>(ast->declarations[0].get());
+    EXPECT_NE(var_decl, nullptr);
+
+    EXPECT_TRUE(var_decl->expression.has_value());
+    auto init = dynamic_cast<SingleInitializer*>(var_decl->expression.value().get());
+    EXPECT_TRUE(init);
+
+    auto expr = dynamic_cast<DereferenceExpression*>(init->expression.get());
+
+    EXPECT_TRUE(expr);
+}
+
+TEST_F(ParserTest, ParseSubscriptExpression)
+{
+    auto ast = parse_string("long y = x[0];");
+
+    auto var_decl = dynamic_cast<VariableDeclaration*>(ast->declarations[0].get());
+    EXPECT_NE(var_decl, nullptr);
+
+    EXPECT_TRUE(var_decl->expression.has_value());
+    auto init = dynamic_cast<SingleInitializer*>(var_decl->expression.value().get());
+    EXPECT_TRUE(init);
+
+    auto expr = dynamic_cast<SubscriptExpression*>(init->expression.get());
+    parser::PrinterVisitor printer;
+    printer.generate_dot_file("debug/test.dot", *(ast.get()));
+    
+    EXPECT_TRUE(expr);
 }
 
 // ============== TODOs ==============
 
 // TODO: Cast expressions
 // TODO: Complex type casts
-
-// TODO: Address-of operator (`&variable`)
-// TODO: Dereference operator (`*pointer`)
 
 // TODO: Array subscript expressions (`arr[index]`)
 

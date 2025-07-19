@@ -27,7 +27,7 @@ TEST_F(ParserTest, ParseError_InvalidForLoop)
     expect_parse_error<Parser::ParserError>("int main(void) { for (int i = 0 i < 10; i++) {} }");
 }
 
-//Type specifier errors
+// Type specifier errors
 TEST_F(ParserTest, ParseError_MultipleTypeSpecifiers)
 {
     expect_parse_error<Parser::ParserError>("int main(void) { int int x = 0; }");
@@ -53,7 +53,7 @@ TEST_F(ParserTest, ParseError_InvalidCombinationTypeSpecifiers_Double)
     expect_parse_error<Parser::ParserError>("int main(void) { signed double x = 0; }");
 }
 
-// Declarator errors  
+// Declarator errors
 
 TEST_F(ParserTest, ParseError_InvalidArraySize_Zero)
 {
@@ -65,7 +65,7 @@ TEST_F(ParserTest, ParseError_InvalidArraySize_Negative)
 }
 
 // ============== TODOs ==============
-// TODO: Declarator errors  
+// TODO: Declarator errors
 // TODO: Complex nested declarators
 
 // TODO: Expression parsing errors

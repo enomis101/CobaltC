@@ -3,8 +3,13 @@ include(GoogleTest)
 
 # Define the list of test files
 set(TEST_FILES
-    parser_test.cpp
-    # Add other test files here
+    src/parser_test/parser_types_test.cpp
+    src/parser_test/parser_declarations_test.cpp
+    src/parser_test/parser_expressions_test.cpp
+    src/parser_test/parser_initializers_test.cpp
+    src/parser_test/parser_statements_test.cpp
+    src/parser_test/parser_errors_test.cpp
+    src/parser_test/parser_edge_cases_test.cpp
 )
 
 # Create an executable for each test file
@@ -33,6 +38,7 @@ foreach(TEST_FILE ${TEST_FILES})
     target_include_directories(${TEST_NAME}
         PRIVATE
         ${CMAKE_SOURCE_DIR}/parser/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
     )
     
     # Discover tests

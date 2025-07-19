@@ -65,7 +65,7 @@
             "name": "Debug Parser Test",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/parser/tests/parser_test",
+            "program": "${workspaceFolder}/build/parser/tests/parser_expressions_test",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/build/",

@@ -1,3 +1,5 @@
+#include "common/data/type.h"
+#include "parser/parser_ast.h"
 #include "parser_test/parser_test.h"
 
 // ============== Basic Expression Tests ==============
@@ -210,11 +212,45 @@ TEST_F(ParserTest, ParseRightAssociativity)
     ASSERT_NE(assign3, nullptr);
 }
 
+// ============== Cast expressions Tests ==============
+
+TEST_F(ParserTest, ParseSimpleCastExpression)
+{
+    auto ast = parse_string("long y = (long) x;");
+
+    auto var_decl = dynamic_cast<VariableDeclaration*>(ast->declarations[0].get());
+    EXPECT_NE(var_decl, nullptr);
+
+    EXPECT_TRUE(var_decl->expression.has_value());
+    auto init = dynamic_cast<SingleInitializer*>(var_decl->expression.value().get());
+    EXPECT_TRUE(init);
+
+    auto cast_expr = dynamic_cast<CastExpression*>(init->expression.get());
+
+    EXPECT_TRUE(cast_expr);
+    EXPECT_TRUE(is_type<LongType>(*cast_expr->target_type));
+}
+
+TEST_F(ParserTest, ParsePointerCastExpression)
+{
+    auto ast = parse_string("long* y = (long*) x;");
+
+    auto var_decl = dynamic_cast<VariableDeclaration*>(ast->declarations[0].get());
+    EXPECT_NE(var_decl, nullptr);
+
+    EXPECT_TRUE(var_decl->expression.has_value());
+    auto init = dynamic_cast<SingleInitializer*>(var_decl->expression.value().get());
+    EXPECT_TRUE(init);
+
+    auto cast_expr = dynamic_cast<CastExpression*>(init->expression.get());
+
+    EXPECT_TRUE(cast_expr);
+    EXPECT_TRUE(is_type<PointerType>(*cast_expr->target_type));
+}
+
 // ============== TODOs ==============
 
 // TODO: Cast expressions
-// TODO: Simple casts (`(int)x`)
-// TODO: Pointer casts (`(int*)ptr`)
 // TODO: Complex type casts
 
 // TODO: Address-of operator (`&variable`)

@@ -54,15 +54,10 @@ protected:
     }
 
     // Helper to check if parsing throws an exception
+    template<typename Error>
     void expect_parse_error(const std::string& content)
     {
-        std::string filepath = create_test_file(content);
-        LexerContext lexer_context { filepath, token_table, source_manager, warning_manager };
-        Lexer lexer(lexer_context);
-        auto tokens = std::make_shared<std::vector<Token>>(lexer.tokenize());
-        source_manager->set_token_list(tokens);
-        Parser parser(*tokens, source_manager);
-        EXPECT_THROW(parser.parse_program(), Parser::ParserError);
+        EXPECT_THROW(parse_string(content), Error);
     }
 
     std::shared_ptr<TokenTable> token_table;

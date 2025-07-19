@@ -416,10 +416,6 @@ std::unique_ptr<Expression> Parser::parse_expression(int min_prec)
 
     std::unique_ptr<Expression> left = parse_unary_expression();
 
-    if (!has_tokens()) { // TODO: Is it needed?
-        return left;
-    }
-
     next_token = &peek();
     while (next_token && is_binary_operator(next_token->type()) && precedence(*next_token) >= min_prec) {
         SourceLocationIndex loc = m_source_manager->get_index(*next_token);
@@ -520,7 +516,7 @@ std::unique_ptr<Expression> Parser::parse_primary_expression()
             return std::make_unique<FunctionCallExpression>(loc, identifier_token.lexeme(), std::move(args));
         }
     } else {
-        throw ParserError(*this, std::format("Malformed Factor at\n{}", m_source_manager->get_source_line(next_token.source_location())));
+        throw ParserError(*this, std::format("Invalid primary expression at\n{}", m_source_manager->get_source_line(next_token.source_location())));
     }
 }
 

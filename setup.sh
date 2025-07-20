@@ -12,6 +12,8 @@ ROOT_DIRECTORY=$(realpath ${__SETUP_SCRIPT_DIRECTORY})
 #
 BUILD_TYPE=Debug
 ENABLE_TESTING_PARAMETERS="-DENABLE_TESTING=OFF"
+ENABLE_COVERAGE_PARAMETERS="-DENABLE_COVERAGE=OFF"
+
 #
 # Parses arguments
 #
@@ -43,6 +45,10 @@ while [[ $# -gt 0 ]]; do
             ENABLE_TESTING_PARAMETERS="-DENABLE_TESTING=ON"
             shift 1
             ;;
+        --enable-coverage)
+            ENABLE_COVERAGE_PARAMETERS="-DENABLE_COVERAGE=ON"
+            shift 1
+            ;;
         *)
             echo "Unknown option $1"
             exit 1
@@ -64,4 +70,4 @@ mkdir -p $BUILD_DIRECTORY
 #
 # Starts cmake
 #
-cd $BUILD_DIRECTORY && cmake $ROOT_DIRECTORY -DCMAKE_BUILD_TYPE=$BUILD_TYPE $ENABLE_TESTING_PARAMETERS
+cd $BUILD_DIRECTORY && cmake $ROOT_DIRECTORY -DCMAKE_BUILD_TYPE=$BUILD_TYPE $ENABLE_TESTING_PARAMETERS $ENABLE_COVERAGE_PARAMETERS

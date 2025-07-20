@@ -123,12 +123,12 @@ if(ENABLE_COVERAGE)
             COMMAND ../scripts/launch_tests_coverage.sh --chapter 15
 
             # Capture coverage info with comprehensive error handling
-            COMMAND ${LCOV_PATH} --directory . --capture --output-file coverage_raw.info 
+            COMMAND ${LCOV_PATH} --directory . --capture --output-file full_coverage_raw.info 
                 --rc branch_coverage=1 
                 --ignore-errors mismatch,gcov,unused,negative,empty,corrupt
             
             # Remove unwanted files with comprehensive patterns
-            COMMAND ${LCOV_PATH} --remove coverage_raw.info 
+            COMMAND ${LCOV_PATH} --remove full_coverage_raw.info 
                 '/usr/*' 
                 '*/tests/*' 
                 '*test*.cpp' 
@@ -137,13 +137,13 @@ if(ENABLE_COVERAGE)
                 '*/external/*'
                 '*/googletest/*'
                 '*/CMakeFiles/*'
-                --output-file coverage_filtered.info 
+                --output-file full_coverage_filtered.info 
                 --rc branch_coverage=1
                 --ignore-errors unused,empty
             
             # Generate HTML report with additional options
-            COMMAND ${GENHTML_PATH} coverage_filtered.info 
-                --output-directory coverage_html 
+            COMMAND ${GENHTML_PATH} full_coverage_filtered.info 
+                --output-directory full_coverage_html 
                 --rc branch_coverage=1
                 --ignore-errors source,corrupt
                 --legend
@@ -153,12 +153,12 @@ if(ENABLE_COVERAGE)
                 --sort
             
             # Print summary
-            COMMAND ${LCOV_PATH} --summary coverage_filtered.info
+            COMMAND ${LCOV_PATH} --summary full_coverage_filtered.info
             
             WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
             COMMENT "Generating comprehensive coverage report"
 
-            COMMAND xdg-open coverage_html/index.html
+            COMMAND xdg-open full_coverage_html/index.html
         )
         
     endif()

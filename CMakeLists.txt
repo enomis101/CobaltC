@@ -56,7 +56,9 @@ set(COMPILER_LIB_TARGET ${PROJECT_NAME}-compiler-lib)
 set(COMPILER_APP_TARGET ${PROJECT_NAME}-compiler)
 
 if(ENABLE_COVERAGE)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 --coverage -fprofile-arcs -ftest-coverage")
+    # More comprehensive coverage flags
+    set(COVERAGE_FLAGS "-g -O0 --coverage -fprofile-arcs -ftest-coverage -fprofile-update=atomic -fno-inline -fno-inline-small-functions -fno-default-inline")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COVERAGE_FLAGS}")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage")
     
     # Add lcov target
@@ -65,37 +67,100 @@ if(ENABLE_COVERAGE)
     
     if(LCOV_PATH AND GENHTML_PATH)
         add_custom_target(coverage
-            # Cleanup lcov
+            # Cleanup lcov and reset counters
             COMMAND ${LCOV_PATH} --directory . --zerocounters
+            COMMAND find . -name "*.gcda" -delete
             
             # Run tests
-            COMMAND ctest
-            
-            # Capture coverage info with updated flags
-            COMMAND ${LCOV_PATH} --directory . --capture --output-file coverage.info 
+            COMMAND ctest --output-on-failure
+
+            # Capture coverage info with comprehensive error handling
+            COMMAND ${LCOV_PATH} --directory . --capture --output-file coverage_raw.info 
                 --rc branch_coverage=1 
-                --ignore-errors mismatch,gcov,unused
+                --ignore-errors mismatch,gcov,unused,negative,empty,corrupt
             
-            # Remove system headers and test files with correct patterns
-            COMMAND ${LCOV_PATH} --remove coverage.info 
+            # Remove unwanted files with comprehensive patterns
+            COMMAND ${LCOV_PATH} --remove coverage_raw.info 
                 '/usr/*' 
                 '*/tests/*' 
                 '*test*.cpp' 
+                '*test*.h*'
                 '*/_deps/*'
                 '*/external/*'
+                '*/googletest/*'
+                '*/CMakeFiles/*'
                 --output-file coverage_filtered.info 
                 --rc branch_coverage=1
-                --ignore-errors unused
+                --ignore-errors unused,empty
             
-            # Generate HTML report
+            # Generate HTML report with additional options
             COMMAND ${GENHTML_PATH} coverage_filtered.info 
                 --output-directory coverage_html 
                 --rc branch_coverage=1
-                --ignore-errors source
+                --ignore-errors source,corrupt
+                --legend
+                --show-details
+                --highlight
+                --frames
+                --sort
+            
+            # Print summary
+            COMMAND ${LCOV_PATH} --summary coverage_filtered.info
             
             WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-            COMMENT "Generating coverage report"
+            COMMENT "Generating comprehensive coverage report"
+
+            COMMAND xdg-open coverage_html/index.html
         )
+
+        add_custom_target(full_coverage
+            # Cleanup lcov and reset counters
+            COMMAND ${LCOV_PATH} --directory . --zerocounters
+            COMMAND find . -name "*.gcda" -delete
+            
+            # Run tests
+            COMMAND ctest --output-on-failure
+            COMMAND ../scripts/launch_tests_coverage.sh --chapter 15
+
+            # Capture coverage info with comprehensive error handling
+            COMMAND ${LCOV_PATH} --directory . --capture --output-file coverage_raw.info 
+                --rc branch_coverage=1 
+                --ignore-errors mismatch,gcov,unused,negative,empty,corrupt
+            
+            # Remove unwanted files with comprehensive patterns
+            COMMAND ${LCOV_PATH} --remove coverage_raw.info 
+                '/usr/*' 
+                '*/tests/*' 
+                '*test*.cpp' 
+                '*test*.h*'
+                '*/_deps/*'
+                '*/external/*'
+                '*/googletest/*'
+                '*/CMakeFiles/*'
+                --output-file coverage_filtered.info 
+                --rc branch_coverage=1
+                --ignore-errors unused,empty
+            
+            # Generate HTML report with additional options
+            COMMAND ${GENHTML_PATH} coverage_filtered.info 
+                --output-directory coverage_html 
+                --rc branch_coverage=1
+                --ignore-errors source,corrupt
+                --legend
+                --show-details
+                --highlight
+                --frames
+                --sort
+            
+            # Print summary
+            COMMAND ${LCOV_PATH} --summary coverage_filtered.info
+            
+            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+            COMMENT "Generating comprehensive coverage report"
+
+            COMMAND xdg-open coverage_html/index.html
+        )
+        
     endif()
 endif()
 

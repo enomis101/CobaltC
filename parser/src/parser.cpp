@@ -6,7 +6,6 @@
 #include "common/data/type.h"
 #include "common/error/internal_compiler_error.h"
 #include "parser/parser_ast.h"
-#include <cassert>
 #include <format>
 #include <memory>
 #include <unordered_set>
@@ -614,7 +613,7 @@ UnaryOperator Parser::parse_unary_operator()
     const Token& next_token = peek();
     auto it = unary_op_map.find(next_token.type());
     if (it == unary_op_map.end()) {
-        throw ParserError(*this, std::format("Unsupported Unary Operator {}", Token::type_to_string(next_token.type())));
+        throw InternalCompilerError(std::format("Unsupported Unary Operator {}", Token::type_to_string(next_token.type())));
     }
 
     take_token();
@@ -646,7 +645,7 @@ BinaryOperator Parser::parse_binary_operator()
     auto it = binary_op_map.find(next_token.type());
 
     if (it == binary_op_map.end()) {
-        throw ParserError(*this, std::format("Unsupported Binary Operator {}", Token::type_to_string(next_token.type())));
+        throw InternalCompilerError(std::format("Unsupported Binary Operator {}", Token::type_to_string(next_token.type())));
     }
 
     take_token();
@@ -673,7 +672,7 @@ std::unique_ptr<Expression> Parser::parse_constant()
     } else if (next_token.type() == TokenType::DOUBLE_CONSTANT) {
         return std::make_unique<ConstantExpression>(loc, next_token.literal<double>());
     } else {
-        throw ParserError(*this, std::format("Unsupported constant type {}", Token::type_to_string(next_token.type())));
+        throw InternalCompilerError(std::format("Unsupported constant type {}", Token::type_to_string(next_token.type())));
     }
 }
 
@@ -701,7 +700,9 @@ const Token& Parser::peek(int lh)
 
 const Token& Parser::last_token()
 {
-    assert(i > 0 && "last_token fail");
+    if (i <= 0) {
+        throw InternalCompilerError("last_token fail");
+    }
     return m_tokens[i - 1];
 }
 
@@ -732,7 +733,7 @@ int Parser::precedence(const Token& token)
     case TokenType::ASSIGNMENT:
         return 1;
     default: {
-        throw ParserError(*this, "Parser::precedence unexpected token");
+        throw InternalCompilerError("Parser::precedence unexpected token");
     }
     }
 }
@@ -830,6 +831,7 @@ bool Parser::is_constant(TokenType type)
     }
 }
 
+/*
 bool Parser::is_unary_expression(TokenType type)
 {
     return is_unary_operator(type) || type == TokenType::OPEN_PAREN || is_postfix_expression(type);
@@ -844,6 +846,7 @@ bool Parser::is_primary_expression(TokenType type)
 {
     return is_constant(type) || type == TokenType::IDENTIFIER || type == TokenType::OPEN_PAREN;
 }
+*/
 
 StorageClass Parser::to_storage_class(TokenType tt)
 {
@@ -872,7 +875,7 @@ std::pair<std::unique_ptr<Type>, StorageClass> Parser::parse_type_and_storage_cl
         } else if (token_type == TokenType::STATIC_KW || token_type == TokenType::EXTERN_KW) {
             storage_classes.push_back(token_type);
         } else {
-            assert(false && "Invalid specifier");
+            throw InternalCompilerError("Invalid specifier in parse_type_and_storage_class");
         }
         take_token();
         next_token = &peek();
@@ -887,7 +890,9 @@ std::pair<std::unique_ptr<Type>, StorageClass> Parser::parse_type_and_storage_cl
     StorageClass storage_class = StorageClass::NONE;
     if (storage_classes.size() == 1) {
         storage_class = to_storage_class(storage_classes.at(0));
-        assert(storage_class != StorageClass::NONE);
+        if (storage_class == StorageClass::NONE) {
+            throw InternalCompilerError("Invalid storage class in parse_type_and_storage_class");
+        }
     }
     return { std::move(type), storage_class };
 }

@@ -172,9 +172,9 @@ private:
     bool is_type_specificer(TokenType type);
     bool is_constant(TokenType type);
 
-    bool is_unary_expression(TokenType type);
-    bool is_postfix_expression(TokenType type);
-    bool is_primary_expression(TokenType type);
+    // /bool is_unary_expression(TokenType type);
+    // /bool is_postfix_expression(TokenType type);
+    // /bool is_primary_expression(TokenType type);
     // std::unique_ptr<Identifier> parse_identifier();
 
     const Token& expect(TokenType expected);

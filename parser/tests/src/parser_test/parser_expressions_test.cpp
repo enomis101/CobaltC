@@ -1,6 +1,5 @@
 #include "common/data/type.h"
 #include "parser/parser_ast.h"
-#include "parser/parser_printer.h"
 #include "parser_test/parser_test.h"
 
 // ============== Basic Expression Tests ==============
@@ -58,7 +57,6 @@ TEST_F(ParserTest, ParseUnaryExpression_Negate)
     ASSERT_NE(const_expr, nullptr);
     EXPECT_EQ(std::get<int>(const_expr->value), 5);
 }
-
 
 TEST_F(ParserTest, ParseUnaryExpression_Not)
 {
@@ -349,7 +347,7 @@ TEST_F(ParserTest, ParseSubscriptExpression)
     EXPECT_TRUE(init);
 
     auto expr = dynamic_cast<SubscriptExpression*>(init->expression.get());
-    
+
     EXPECT_TRUE(expr);
 }
 
@@ -564,7 +562,7 @@ TEST_F(ParserTest, ParseMultipleSubscriptExpression)
 
     auto func_decl = dynamic_cast<FunctionDeclaration*>(ast->declarations[0].get());
     auto return_stmt = dynamic_cast<ReturnStatement*>(func_decl->body.value()->items[0].get());
-    
+
     // Should be arr[i][j] -> (arr[i])[j]
     auto outer_subscript = dynamic_cast<SubscriptExpression*>(return_stmt->expression.get());
     ASSERT_NE(outer_subscript, nullptr);
@@ -595,7 +593,7 @@ TEST_F(ParserTest, ParseTripleSubscriptExpression)
 
     auto func_decl = dynamic_cast<FunctionDeclaration*>(ast->declarations[0].get());
     auto return_stmt = dynamic_cast<ReturnStatement*>(func_decl->body.value()->items[0].get());
-    
+
     // Should be matrix[x][y][z] -> ((matrix[x])[y])[z]
     auto outermost = dynamic_cast<SubscriptExpression*>(return_stmt->expression.get());
     ASSERT_NE(outermost, nullptr);
@@ -613,6 +611,74 @@ TEST_F(ParserTest, ParseTripleSubscriptExpression)
 }
 
 // ============== Complex Cast Expression Tests ==============
+
+TEST_F(ParserTest, ParsePointerArrayCastExpression)
+{
+    auto ast = parse_string("long* y = (int(*)[3]) x;");
+
+    auto var_decl = dynamic_cast<VariableDeclaration*>(ast->declarations[0].get());
+    EXPECT_NE(var_decl, nullptr);
+
+    EXPECT_TRUE(var_decl->expression.has_value());
+    auto init = dynamic_cast<SingleInitializer*>(var_decl->expression.value().get());
+    EXPECT_TRUE(init);
+
+    auto expr = dynamic_cast<CastExpression*>(init->expression.get());
+
+    EXPECT_TRUE(expr);
+    EXPECT_TRUE(is_type<PointerType>(*expr->target_type));
+}
+
+TEST_F(ParserTest, ParseNestedPointerCastExpression)
+{
+    auto ast = parse_string("long* y = (int *(*)) x;");
+
+    auto var_decl = dynamic_cast<VariableDeclaration*>(ast->declarations[0].get());
+    EXPECT_NE(var_decl, nullptr);
+
+    EXPECT_TRUE(var_decl->expression.has_value());
+    auto init = dynamic_cast<SingleInitializer*>(var_decl->expression.value().get());
+    EXPECT_TRUE(init);
+
+    auto expr = dynamic_cast<CastExpression*>(init->expression.get());
+
+    EXPECT_TRUE(expr);
+    EXPECT_TRUE(is_type<PointerType>(*expr->target_type));
+}
+
+TEST_F(ParserTest, ParseNestedPointerCastExpression_2)
+{
+    auto ast = parse_string("long* y = (int (*)) x;");
+
+    auto var_decl = dynamic_cast<VariableDeclaration*>(ast->declarations[0].get());
+    EXPECT_NE(var_decl, nullptr);
+
+    EXPECT_TRUE(var_decl->expression.has_value());
+    auto init = dynamic_cast<SingleInitializer*>(var_decl->expression.value().get());
+    EXPECT_TRUE(init);
+
+    auto expr = dynamic_cast<CastExpression*>(init->expression.get());
+
+    EXPECT_TRUE(expr);
+    EXPECT_TRUE(is_type<PointerType>(*expr->target_type));
+}
+
+TEST_F(ParserTest, ParseNestedPointerCastExpression_3)
+{
+    auto ast = parse_string("long* y = (int ***) x;");
+
+    auto var_decl = dynamic_cast<VariableDeclaration*>(ast->declarations[0].get());
+    EXPECT_NE(var_decl, nullptr);
+
+    EXPECT_TRUE(var_decl->expression.has_value());
+    auto init = dynamic_cast<SingleInitializer*>(var_decl->expression.value().get());
+    EXPECT_TRUE(init);
+
+    auto expr = dynamic_cast<CastExpression*>(init->expression.get());
+
+    EXPECT_TRUE(expr);
+    EXPECT_TRUE(is_type<PointerType>(*expr->target_type));
+}
 
 TEST_F(ParserTest, ParseArrayCastExpression)
 {
@@ -634,7 +700,7 @@ TEST_F(ParserTest, ParseNestedCastExpression)
 
     auto func_decl = dynamic_cast<FunctionDeclaration*>(ast->declarations[0].get());
     auto return_stmt = dynamic_cast<ReturnStatement*>(func_decl->body.value()->items[0].get());
-    
+
     // Outer cast to int
     auto outer_cast = dynamic_cast<CastExpression*>(return_stmt->expression.get());
     ASSERT_NE(outer_cast, nullptr);
@@ -654,7 +720,7 @@ TEST_F(ParserTest, ParseNestedConditionalExpression)
 
     auto func_decl = dynamic_cast<FunctionDeclaration*>(ast->declarations[0].get());
     auto return_stmt = dynamic_cast<ReturnStatement*>(func_decl->body.value()->items[0].get());
-    
+
     // Should be a ? (b ? c : d) : e due to right associativity
     auto outer_cond = dynamic_cast<ConditionalExpression*>(return_stmt->expression.get());
     ASSERT_NE(outer_cond, nullptr);
@@ -707,7 +773,7 @@ TEST_F(ParserTest, ParseOperatorPrecedenceComplex)
 
     auto func_decl = dynamic_cast<FunctionDeclaration*>(ast->declarations[0].get());
     auto return_stmt = dynamic_cast<ReturnStatement*>(func_decl->body.value()->items[0].get());
-    
+
     // Should be ((a * b) + (c / d)) - (e % f)
     auto outer_sub = dynamic_cast<BinaryExpression*>(return_stmt->expression.get());
     ASSERT_NE(outer_sub, nullptr);
@@ -728,7 +794,7 @@ TEST_F(ParserTest, ParseMixedUnaryAndBinary)
 
     auto func_decl = dynamic_cast<FunctionDeclaration*>(ast->declarations[0].get());
     auto return_stmt = dynamic_cast<ReturnStatement*>(func_decl->body.value()->items[0].get());
-    
+
     // Should be ((-a) * (~b)) + (!c)
     auto add_expr = dynamic_cast<BinaryExpression*>(return_stmt->expression.get());
     ASSERT_NE(add_expr, nullptr);
@@ -762,7 +828,7 @@ TEST_F(ParserTest, ParseComplexExpressionWithEverything)
 
     auto func_decl = dynamic_cast<FunctionDeclaration*>(ast->declarations[0].get());
     auto return_stmt = dynamic_cast<ReturnStatement*>(func_decl->body.value()->items[0].get());
-    
+
     // Top level should be addition
     auto add_expr = dynamic_cast<BinaryExpression*>(return_stmt->expression.get());
     ASSERT_NE(add_expr, nullptr);
@@ -804,7 +870,7 @@ TEST_F(ParserTest, ParseComplexAddressOfExpression)
 
     auto func_decl = dynamic_cast<FunctionDeclaration*>(ast->declarations[0].get());
     auto return_stmt = dynamic_cast<ReturnStatement*>(func_decl->body.value()->items[0].get());
-    
+
     auto addr_expr = dynamic_cast<AddressOfExpression*>(return_stmt->expression.get());
     ASSERT_NE(addr_expr, nullptr);
 
@@ -819,7 +885,7 @@ TEST_F(ParserTest, ParseComplexDereferenceExpression)
 
     auto func_decl = dynamic_cast<FunctionDeclaration*>(ast->declarations[0].get());
     auto return_stmt = dynamic_cast<ReturnStatement*>(func_decl->body.value()->items[0].get());
-    
+
     auto deref_expr = dynamic_cast<DereferenceExpression*>(return_stmt->expression.get());
     ASSERT_NE(deref_expr, nullptr);
 

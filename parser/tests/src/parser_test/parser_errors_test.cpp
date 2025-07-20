@@ -59,9 +59,15 @@ TEST_F(ParserTest, ParseError_InvalidArraySize_Zero)
 {
     expect_parse_error<Parser::ParserError>("int main(void) { int x[0] = 0; }");
 }
+
 TEST_F(ParserTest, ParseError_InvalidArraySize_Negative)
 {
     expect_parse_error<Parser::ParserError>("int main(void) { int x[-1] = 0; }");
+}
+
+TEST_F(ParserTest, ParseError_InvalidArraySize_Negative_Long)
+{
+    expect_parse_error<Parser::ParserError>("int main(void) { int x[0l] = 0; }");
 }
 
 // ============== TODOs ==============

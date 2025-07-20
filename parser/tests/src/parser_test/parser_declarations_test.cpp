@@ -315,6 +315,51 @@ TEST_F(ParserTest, ParseStaticArrayVariable)
     EXPECT_EQ(array_type->array_size, 10);
 }
 
+TEST_F(ParserTest, ParseStaticArrayVariable_UnsignedSize)
+{
+    auto ast = parse_string("static int arr[10u];");
+
+    auto var_decl = dynamic_cast<VariableDeclaration*>(ast->declarations[0].get());
+    ASSERT_NE(var_decl, nullptr);
+
+    EXPECT_EQ(var_decl->storage_class, StorageClass::STATIC);
+    EXPECT_TRUE(is_type<ArrayType>(*var_decl->type));
+
+    auto array_type = dynamic_cast<ArrayType*>(var_decl->type.get());
+    ASSERT_NE(array_type, nullptr);
+    EXPECT_EQ(array_type->array_size, 10);
+}
+
+TEST_F(ParserTest, ParseStaticArrayVariable_UnsignedLongSize)
+{
+    auto ast = parse_string("static int arr[10ul];");
+
+    auto var_decl = dynamic_cast<VariableDeclaration*>(ast->declarations[0].get());
+    ASSERT_NE(var_decl, nullptr);
+
+    EXPECT_EQ(var_decl->storage_class, StorageClass::STATIC);
+    EXPECT_TRUE(is_type<ArrayType>(*var_decl->type));
+
+    auto array_type = dynamic_cast<ArrayType*>(var_decl->type.get());
+    ASSERT_NE(array_type, nullptr);
+    EXPECT_EQ(array_type->array_size, 10);
+}
+
+TEST_F(ParserTest, ParseStaticArrayVariable_LongSize)
+{
+    auto ast = parse_string("static int arr[10l];");
+
+    auto var_decl = dynamic_cast<VariableDeclaration*>(ast->declarations[0].get());
+    ASSERT_NE(var_decl, nullptr);
+
+    EXPECT_EQ(var_decl->storage_class, StorageClass::STATIC);
+    EXPECT_TRUE(is_type<ArrayType>(*var_decl->type));
+
+    auto array_type = dynamic_cast<ArrayType*>(var_decl->type.get());
+    ASSERT_NE(array_type, nullptr);
+    EXPECT_EQ(array_type->array_size, 10);
+}
+
 TEST_F(ParserTest, ParseExternArrayVariable)
 {
     auto ast = parse_string("extern int global_arr[100];");

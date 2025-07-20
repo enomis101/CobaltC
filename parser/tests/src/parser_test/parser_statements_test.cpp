@@ -1,4 +1,5 @@
 #include "parser_test/parser_test.h"
+#include <gtest/gtest.h>
 
 // ============== Control Flow Tests ==============
 
@@ -66,6 +67,42 @@ TEST_F(ParserTest, ParseForLoop)
 
     auto for_init = dynamic_cast<ForInitDeclaration*>(for_stmt->init.get());
     ASSERT_NE(for_init, nullptr);
+}
+
+TEST_F(ParserTest, ParseForLoop_ExprInit)
+{
+    auto ast = parse_string("int main(void) { for ( a = 1; i < 10; i = i + 1) x = x + i; }");
+
+    auto func_decl = dynamic_cast<FunctionDeclaration*>(ast->declarations[0].get());
+    auto for_stmt = dynamic_cast<ForStatement*>(func_decl->body.value()->items[0].get());
+
+    ASSERT_NE(for_stmt, nullptr);
+    ASSERT_NE(for_stmt->init, nullptr);
+    ASSERT_TRUE(for_stmt->condition.has_value());
+    ASSERT_TRUE(for_stmt->post.has_value());
+    ASSERT_NE(for_stmt->body, nullptr);
+
+    auto for_init = dynamic_cast<ForInitExpression*>(for_stmt->init.get());
+    ASSERT_NE(for_init, nullptr);
+    EXPECT_TRUE(for_init->expression.has_value());
+}
+
+TEST_F(ParserTest, ParseForLoop_NoInit)
+{
+    auto ast = parse_string("int main(void) { for (; i < 10; i = i + 1) x = x + i; }");
+
+    auto func_decl = dynamic_cast<FunctionDeclaration*>(ast->declarations[0].get());
+    auto for_stmt = dynamic_cast<ForStatement*>(func_decl->body.value()->items[0].get());
+
+    ASSERT_NE(for_stmt, nullptr);
+    ASSERT_NE(for_stmt->init, nullptr);
+    ASSERT_TRUE(for_stmt->condition.has_value());
+    ASSERT_TRUE(for_stmt->post.has_value());
+    ASSERT_NE(for_stmt->body, nullptr);
+
+    auto for_init = dynamic_cast<ForInitExpression*>(for_stmt->init.get());
+    ASSERT_NE(for_init, nullptr);
+    EXPECT_FALSE(for_init->expression.has_value());
 }
 
 TEST_F(ParserTest, ParseBreakContinue)

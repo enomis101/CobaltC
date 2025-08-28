@@ -196,6 +196,7 @@ add_subdirectory(parser)
 add_subdirectory(tacky)
 add_subdirectory(backend)
 add_subdirectory(compiler)
+add_subdirectory(examples)
 
 # Set environment variables for the target when run from the build directory
 set_property(TARGET ${COMPILER_APP_TARGET} PROPERTY

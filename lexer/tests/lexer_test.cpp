@@ -355,6 +355,282 @@ TEST_F(LexerTest, MultipleWarnings)
     EXPECT_EQ(warnings[1].type, LexerWarningType::CAST);
 }
 
+// Add these tests to your existing LexerTest class
+
+// Character Literal Tests
+TEST_F(LexerTest, SimpleCharacterLiterals)
+{
+    std::string filepath = create_test_file("'a' 'Z' '5' ' '");
+
+    auto lexer = create_lexer(filepath);
+    auto tokens = lexer.tokenize();
+
+    ASSERT_EQ(tokens.size(), 4);
+
+    // Test 'a' -> ASCII 97
+    EXPECT_EQ(tokens[0].type(), TokenType::CHAR_LITERAL);
+    EXPECT_EQ(tokens[0].lexeme(), "'a'");
+    EXPECT_EQ(tokens[0].literal<int>(), 97);
+
+    // Test 'Z' -> ASCII 90
+    EXPECT_EQ(tokens[1].type(), TokenType::CHAR_LITERAL);
+    EXPECT_EQ(tokens[1].lexeme(), "'Z'");
+    EXPECT_EQ(tokens[1].literal<int>(), 90);
+
+    // Test '5' -> ASCII 53
+    EXPECT_EQ(tokens[2].type(), TokenType::CHAR_LITERAL);
+    EXPECT_EQ(tokens[2].lexeme(), "'5'");
+    EXPECT_EQ(tokens[2].literal<int>(), 53);
+
+    // Test ' ' (space) -> ASCII 32
+    EXPECT_EQ(tokens[3].type(), TokenType::CHAR_LITERAL);
+    EXPECT_EQ(tokens[3].lexeme(), "' '");
+    EXPECT_EQ(tokens[3].literal<int>(), 32);
+}
+
+TEST_F(LexerTest, CharacterLiteralEscapeSequences)
+{
+    std::string filepath = create_test_file("'\\'' '\\\"' '\\?' '\\\\' '\\a' '\\b' '\\f' '\\n' '\\r' '\\t' '\\v'");
+
+    auto lexer = create_lexer(filepath);
+    auto tokens = lexer.tokenize();
+
+    ASSERT_EQ(tokens.size(), 11);
+
+    // Test all valid escape sequences from Table 16-1
+    EXPECT_EQ(tokens[0].type(), TokenType::CHAR_LITERAL);
+    EXPECT_EQ(tokens[0].lexeme(), "'\\''");
+    EXPECT_EQ(tokens[0].literal<int>(), 39); // Single quote
+
+    EXPECT_EQ(tokens[1].type(), TokenType::CHAR_LITERAL);
+    EXPECT_EQ(tokens[1].lexeme(), "'\\\"'");
+    EXPECT_EQ(tokens[1].literal<int>(), 34); // Double quote
+
+    EXPECT_EQ(tokens[2].type(), TokenType::CHAR_LITERAL);
+    EXPECT_EQ(tokens[2].lexeme(), "'\\?'");
+    EXPECT_EQ(tokens[2].literal<int>(), 63); // Question mark
+
+    EXPECT_EQ(tokens[3].type(), TokenType::CHAR_LITERAL);
+    EXPECT_EQ(tokens[3].lexeme(), "'\\\\'");
+    EXPECT_EQ(tokens[3].literal<int>(), 92); // Backslash
+
+    EXPECT_EQ(tokens[4].type(), TokenType::CHAR_LITERAL);
+    EXPECT_EQ(tokens[4].lexeme(), "'\\a'");
+    EXPECT_EQ(tokens[4].literal<int>(), 7); // Audible alert
+
+    EXPECT_EQ(tokens[5].type(), TokenType::CHAR_LITERAL);
+    EXPECT_EQ(tokens[5].lexeme(), "'\\b'");
+    EXPECT_EQ(tokens[5].literal<int>(), 8); // Backspace
+
+    EXPECT_EQ(tokens[6].type(), TokenType::CHAR_LITERAL);
+    EXPECT_EQ(tokens[6].lexeme(), "'\\f'");
+    EXPECT_EQ(tokens[6].literal<int>(), 12); // Form feed
+
+    EXPECT_EQ(tokens[7].type(), TokenType::CHAR_LITERAL);
+    EXPECT_EQ(tokens[7].lexeme(), "'\\n'");
+    EXPECT_EQ(tokens[7].literal<int>(), 10); // New line
+
+    EXPECT_EQ(tokens[8].type(), TokenType::CHAR_LITERAL);
+    EXPECT_EQ(tokens[8].lexeme(), "'\\r'");
+    EXPECT_EQ(tokens[8].literal<int>(), 13); // Carriage return
+
+    EXPECT_EQ(tokens[9].type(), TokenType::CHAR_LITERAL);
+    EXPECT_EQ(tokens[9].lexeme(), "'\\t'");
+    EXPECT_EQ(tokens[9].literal<int>(), 9); // Horizontal tab
+
+    EXPECT_EQ(tokens[10].type(), TokenType::CHAR_LITERAL);
+    EXPECT_EQ(tokens[10].lexeme(), "'\\v'");
+    EXPECT_EQ(tokens[10].literal<int>(), 11); // Vertical tab
+}
+
+TEST_F(LexerTest, InvalidCharacterLiterals)
+{
+    // Test unterminated character literal
+    std::string filepath1 = create_test_file("'a");
+    auto lexer1 = create_lexer(filepath1);
+    EXPECT_THROW({ lexer1.tokenize(); }, LexerError);
+
+    // Test empty character literal
+    std::string filepath2 = create_test_file("''");
+    auto lexer2 = create_lexer(filepath2);
+    EXPECT_THROW({ lexer2.tokenize(); }, LexerError);
+
+    // Test invalid escape sequence
+    std::string filepath3 = create_test_file("'\\x'");
+    auto lexer3 = create_lexer(filepath3);
+    EXPECT_THROW({ lexer3.tokenize(); }, LexerError);
+
+    // Test character literal with newline (should be escaped)
+    std::string filepath4 = create_test_file("'\n'");
+    auto lexer4 = create_lexer(filepath4);
+    EXPECT_THROW({ lexer4.tokenize(); }, LexerError);
+
+    // Test multiple characters (not supported in this implementation)
+    std::string filepath5 = create_test_file("'ab'");
+    auto lexer5 = create_lexer(filepath5);
+    EXPECT_THROW({ lexer5.tokenize(); }, LexerError);
+}
+
+// String Literal Tests
+TEST_F(LexerTest, SimpleStringLiterals)
+{
+    std::string filepath = create_test_file("\"hello\" \"world\" \"123\" \"\"");
+
+    auto lexer = create_lexer(filepath);
+    auto tokens = lexer.tokenize();
+
+    ASSERT_EQ(tokens.size(), 4);
+
+    EXPECT_EQ(tokens[0].type(), TokenType::STRING_LITERAL);
+    EXPECT_EQ(tokens[0].lexeme(), "\"hello\"");
+    EXPECT_EQ(tokens[0].literal<std::string>(), "hello");
+
+    EXPECT_EQ(tokens[1].type(), TokenType::STRING_LITERAL);
+    EXPECT_EQ(tokens[1].lexeme(), "\"world\"");
+    EXPECT_EQ(tokens[1].literal<std::string>(), "world");
+
+    EXPECT_EQ(tokens[2].type(), TokenType::STRING_LITERAL);
+    EXPECT_EQ(tokens[2].lexeme(), "\"123\"");
+    EXPECT_EQ(tokens[2].literal<std::string>(), "123");
+
+    // Test empty string
+    EXPECT_EQ(tokens[3].type(), TokenType::STRING_LITERAL);
+    EXPECT_EQ(tokens[3].lexeme(), "\"\"");
+    EXPECT_EQ(tokens[3].literal<std::string>(), "");
+}
+
+TEST_F(LexerTest, StringLiteralsWithEscapeSequences)
+{
+    std::string filepath = create_test_file("\"Hello\\nWorld\" \"Tab\\there\" \"Quote: \\\"text\\\"\" \"Backslash: \\\\\"");
+
+    auto lexer = create_lexer(filepath);
+    auto tokens = lexer.tokenize();
+
+    ASSERT_EQ(tokens.size(), 4);
+
+    EXPECT_EQ(tokens[0].type(), TokenType::STRING_LITERAL);
+    EXPECT_EQ(tokens[0].lexeme(), "\"Hello\\nWorld\"");
+    EXPECT_EQ(tokens[0].literal<std::string>(), "Hello\nWorld");
+
+    EXPECT_EQ(tokens[1].type(), TokenType::STRING_LITERAL);
+    EXPECT_EQ(tokens[1].lexeme(), "\"Tab\\there\"");
+    EXPECT_EQ(tokens[1].literal<std::string>(), "Tab\there");
+
+    EXPECT_EQ(tokens[2].type(), TokenType::STRING_LITERAL);
+    EXPECT_EQ(tokens[2].lexeme(), "\"Quote: \\\"text\\\"\"");
+    EXPECT_EQ(tokens[2].literal<std::string>(), "Quote: \"text\"");
+
+    EXPECT_EQ(tokens[3].type(), TokenType::STRING_LITERAL);
+    EXPECT_EQ(tokens[3].lexeme(), "\"Backslash: \\\\\"");
+    EXPECT_EQ(tokens[3].literal<std::string>(), "Backslash: \\");
+}
+
+TEST_F(LexerTest, StringLiteralsWithAllEscapeSequences)
+{
+    std::string filepath = create_test_file("\"\\' \\\" \\? \\\\ \\a \\b \\f \\n \\r \\t \\v\"");
+
+    auto lexer = create_lexer(filepath);
+    auto tokens = lexer.tokenize();
+
+    ASSERT_EQ(tokens.size(), 1);
+
+    EXPECT_EQ(tokens[0].type(), TokenType::STRING_LITERAL);
+    EXPECT_EQ(tokens[0].literal<std::string>(), "' \" ? \\ \a \b \f \n \r \t \v");
+}
+
+TEST_F(LexerTest, StringLiteralWithSingleQuotes)
+{
+    // Single quotes don't need to be escaped in string literals
+    std::string filepath = create_test_file("\"Don't worry\"");
+
+    auto lexer = create_lexer(filepath);
+    auto tokens = lexer.tokenize();
+
+    ASSERT_EQ(tokens.size(), 1);
+    EXPECT_EQ(tokens[0].type(), TokenType::STRING_LITERAL);
+    EXPECT_EQ(tokens[0].literal<std::string>(), "Don't worry");
+}
+
+TEST_F(LexerTest, InvalidStringLiterals)
+{
+    // Test unterminated string literal
+    std::string filepath1 = create_test_file("\"hello");
+    auto lexer1 = create_lexer(filepath1);
+    EXPECT_THROW({ lexer1.tokenize(); }, LexerError);
+
+    // Test string with newline (should be escaped)
+    std::string filepath2 = create_test_file("\"hello\nworld\"");
+    auto lexer2 = create_lexer(filepath2);
+    EXPECT_THROW({ lexer2.tokenize(); }, LexerError);
+
+    // Test string with invalid escape sequence
+    std::string filepath3 = create_test_file("\"hello\\x\"");
+    auto lexer3 = create_lexer(filepath3);
+    EXPECT_THROW({ lexer3.tokenize(); }, LexerError);
+
+    // Test string with unescaped backslash at end
+    std::string filepath4 = create_test_file("\"hello\\\"");
+    auto lexer4 = create_lexer(filepath4);
+    EXPECT_THROW({ lexer4.tokenize(); }, LexerError);
+}
+
+TEST_F(LexerTest, CharAndStringInContext)
+{
+    std::string filepath = create_test_file("char c = 'a'; char* str = \"hello\";");
+
+    auto lexer = create_lexer(filepath);
+    auto tokens = lexer.tokenize();
+
+    // Find the character and string literals
+    bool found_char = false, found_string = false;
+    for (const auto& token : tokens) {
+        if (token.type() == TokenType::CHAR_LITERAL) {
+            EXPECT_EQ(token.lexeme(), "'a'");
+            EXPECT_EQ(token.literal<int>(), 97);
+            found_char = true;
+        }
+        if (token.type() == TokenType::STRING_LITERAL) {
+            EXPECT_EQ(token.lexeme(), "\"hello\"");
+            EXPECT_EQ(token.literal<std::string>(), "hello");
+            found_string = true;
+        }
+    }
+
+    EXPECT_TRUE(found_char);
+    EXPECT_TRUE(found_string);
+}
+
+TEST_F(LexerTest, ComplexStringWithMixedEscapes)
+{
+    std::string filepath = create_test_file("\"Line 1\\nLine 2\\tTabbed\\\"Quoted\\\" \\\\Path\"");
+
+    auto lexer = create_lexer(filepath);
+    auto tokens = lexer.tokenize();
+
+    ASSERT_EQ(tokens.size(), 1);
+    EXPECT_EQ(tokens[0].type(), TokenType::STRING_LITERAL);
+    EXPECT_EQ(tokens[0].literal<std::string>(), "Line 1\nLine 2\tTabbed\"Quoted\" \\Path");
+}
+
+TEST_F(LexerTest, EdgeCaseEscapeSequences)
+{
+    // Test question mark - can be escaped but doesn't need to be
+    std::string filepath = create_test_file("'?' '\\?' \"?\" \"\\?\"");
+
+    auto lexer = create_lexer(filepath);
+    auto tokens = lexer.tokenize();
+
+    ASSERT_EQ(tokens.size(), 4);
+
+    // Both '?' and '\?' should give the same result
+    EXPECT_EQ(tokens[0].literal<int>(), 63);
+    EXPECT_EQ(tokens[1].literal<int>(), 63);
+
+    // Both "?" and "\?" should give the same result
+    EXPECT_EQ(tokens[2].literal<std::string>(), "?");
+    EXPECT_EQ(tokens[3].literal<std::string>(), "?");
+}
+
 TEST_F(LexerTest, SimpleIdentifier)
 {
     std::string filepath = create_test_file("myVariable");

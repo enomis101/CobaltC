@@ -8,6 +8,7 @@
 #include "parser/parser_ast.h"
 #include <format>
 #include <memory>
+#include <string>
 #include <unordered_set>
 #include <vector>
 
@@ -505,6 +506,16 @@ std::unique_ptr<Expression> Parser::parse_primary_expression()
         std::unique_ptr<Expression> res = parse_expression();
         expect(TokenType::CLOSE_PAREN);
         return res;
+    } else if (next_token.type() == TokenType::STRING_LITERAL) {
+        const Token* string_token = &peek();
+        std::string string_literal;
+        // Concatenate multiple string literals, escapes is automatic
+        while (string_token->type() == TokenType::STRING_LITERAL) {
+            string_literal += string_token->literal<std::string>();
+            take_token();
+            string_token = &peek();
+        }
+        return std::make_unique<StringExpression>(loc, string_literal);
     } else if (next_token.type() == TokenType::IDENTIFIER) {
         const Token& identifier_token = expect(TokenType::IDENTIFIER);
         const Token& new_next_token = peek();
@@ -584,12 +595,28 @@ std::unique_ptr<Type> Parser::parse_type_specifier_list(const std::vector<TokenT
         throw ParserError(*this, std::format("Type specifier with both signed and unsigned at:\n{}", m_source_manager->get_source_line(last_token().source_location())));
     }
 
+    // CHAR
+    if (type_specifiers_set.contains(TokenType::CHAR_KW)) {
+        if (type_specifiers_set.size() == 1) {
+            return std::make_unique<CharType>();
+        }
+        if (type_specifiers_set.contains(TokenType::SIGNED_KW)) {
+            return std::make_unique<SignedCharType>();
+        }
+        if (type_specifiers_set.contains(TokenType::UNSIGNED_KW)) {
+            return std::make_unique<UnsignedCharType>();
+        }
+        throw ParserError(*this, std::format("Wrong Char Type specifier:\n{}", m_source_manager->get_source_line(last_token().source_location())));
+    }
+
+    // DOUBLE
     if (type_specifiers_set.size() == 1 && type_specifiers_set.contains(TokenType::DOUBLE_KW)) {
         return std::make_unique<DoubleType>();
     } else if (type_specifiers_set.contains(TokenType::DOUBLE_KW)) {
         throw ParserError(*this, std::format("Can't combine double with other type specifiers at:\n{}", m_source_manager->get_source_line(last_token().source_location())));
     }
 
+    // INTS
     if (type_specifiers_set.contains(TokenType::LONG_KW) && type_specifiers_set.contains(TokenType::UNSIGNED_KW)) {
         return std::make_unique<UnsignedLongType>();
     } else if (type_specifiers_set.contains(TokenType::UNSIGNED_KW)) {
@@ -671,6 +698,9 @@ std::unique_ptr<Expression> Parser::parse_constant()
         return std::make_unique<ConstantExpression>(loc, next_token.literal<unsigned long>());
     } else if (next_token.type() == TokenType::DOUBLE_CONSTANT) {
         return std::make_unique<ConstantExpression>(loc, next_token.literal<double>());
+    } else if (next_token.type() == TokenType::CHAR_LITERAL) {
+        // char constants are promoted to int
+        return std::make_unique<ConstantExpression>(loc, next_token.literal<int>());
     } else {
         throw InternalCompilerError(std::format("Unsupported constant type {}", Token::type_to_string(next_token.type())));
     }
@@ -795,6 +825,7 @@ bool Parser::is_specificer(TokenType type)
     case TokenType::SIGNED_KW:
     case TokenType::UNSIGNED_KW:
     case TokenType::DOUBLE_KW:
+    case TokenType::CHAR_KW:
     case TokenType::STATIC_KW:
     case TokenType::EXTERN_KW:
         return true;
@@ -811,6 +842,7 @@ bool Parser::is_type_specificer(TokenType type)
     case TokenType::SIGNED_KW:
     case TokenType::UNSIGNED_KW:
     case TokenType::DOUBLE_KW:
+    case TokenType::CHAR_KW:
         return true;
     default:
         return false;
@@ -825,6 +857,7 @@ bool Parser::is_constant(TokenType type)
     case TokenType::LONG_CONSTANT:
     case TokenType::UNSIGNED_LONG_CONSTANT:
     case TokenType::DOUBLE_CONSTANT:
+    case TokenType::CHAR_LITERAL:
         return true;
     default:
         return false;
@@ -997,6 +1030,9 @@ size_t Parser::parse_array_size()
         size = constant_size;
     } else if (next_token.type() == TokenType::UNSIGNED_LONG_CONSTANT) {
         size = next_token.literal<unsigned long>();
+    } else if (next_token.type() == TokenType::CHAR_LITERAL) {
+        // char constants are (promoted) stored as int
+        size = next_token.literal<int>();
     } else {
         throw ParserError(*this, std::format("Expected integer constant at\n{}", m_source_manager->get_source_line(loc)));
     }

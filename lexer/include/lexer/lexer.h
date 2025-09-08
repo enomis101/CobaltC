@@ -71,7 +71,10 @@ private:
     std::shared_ptr<WarningManager> m_warning_manager;
     LocationTracker m_curr_location_tracker;
 
-    std::pair<TokenType, Token::LiteralType> convert_constant(const std::string& lexeme, TokenType type, Token::LiteralType literal);
+    std::pair<TokenType, Token::LiteralType> convert_literal_value(const std::string& lexeme, TokenType type);
     double parse_double(const std::string& lexeme);
-    bool is_constant(TokenType type);
+    std::string unescape(const std::string& str);
+    bool is_literal(TokenType type);
+    bool is_valid_escape_sequence(char c, char& escape_sequence);
+    bool get_escape_sequence(char c);
 };

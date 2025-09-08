@@ -1,4 +1,6 @@
 #include "common/data/token.h"
+#include "common/data/type.h"
+#include "common/error/internal_compiler_error.h"
 #include <sstream>
 
 Token::Token(TokenType type, const std::string& lexeme, LiteralType literal, const SourceLocation& source_location)
@@ -109,14 +111,27 @@ std::string Token::to_string() const
        << ", line=" << m_source_location.line_number;
 
     // Handle the variant literal
-    if (std::holds_alternative<int>(m_literal)) {
-        ss << ", literal=" << std::get<int>(m_literal);
-    } else if (std::holds_alternative<long>(m_literal)) {
-        ss << ", literal=" << std::get<long>(m_literal);
-    } else if (std::holds_alternative<unsigned int>(m_literal)) {
-        ss << ", literal=" << std::get<unsigned int>(m_literal);
-    } else if (std::holds_alternative<unsigned long>(m_literal)) {
-        ss << ", literal=" << std::get<unsigned long>(m_literal);
+    if (std::holds_alternative<ConstantType>(m_literal)) {
+        auto constant_literal = std::get<ConstantType>(m_literal);
+        if (std::holds_alternative<int>(constant_literal)) {
+            ss << ", literal=" << std::get<int>(constant_literal);
+        } else if (std::holds_alternative<long>(constant_literal)) {
+            ss << ", literal=" << std::get<long>(constant_literal);
+        } else if (std::holds_alternative<unsigned int>(constant_literal)) {
+            ss << ", literal=" << std::get<unsigned int>(constant_literal);
+        } else if (std::holds_alternative<unsigned long>(constant_literal)) {
+            ss << ", literal=" << std::get<unsigned long>(constant_literal);
+        } else if (std::holds_alternative<double>(constant_literal)) {
+            ss << ", literal=" << std::get<double>(constant_literal);
+        } else if (std::holds_alternative<char>(constant_literal)) {
+            ss << ", literal=" << std::get<char>(constant_literal);
+        } else if (std::holds_alternative<unsigned char>(constant_literal)) {
+            ss << ", literal=" << std::get<unsigned char>(constant_literal);
+        }
+    } else if (std::holds_alternative<std::string>(m_literal)) {
+        ss << ", literal=" << std::get<std::string>(m_literal);
+    } else {
+        throw TokenError("Invalid Token!");
     }
 
     ss << "}";

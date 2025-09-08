@@ -7,9 +7,10 @@
 #include <variant>
 #include <vector>
 
-using ConstantType = std::variant<std::monostate, int, long, unsigned int, unsigned long, double>;
+using ConstantType = std::variant<std::monostate, int, long, unsigned int, unsigned long, double, char, unsigned char>;
 
 namespace TypeSizes {
+inline constexpr size_t CHAR_SIZE = 1;
 inline constexpr size_t INT_SIZE = 4;
 inline constexpr size_t LONG_SIZE = 8;
 inline constexpr size_t UNSIGNED_INT_SIZE = 4;
@@ -127,6 +128,59 @@ public:
     size_t alignment() const override { return 8; }
     size_t size() const override { return TypeSizes::UNSIGNED_LONG_SIZE; }
     bool is_integer() const override { return true; }
+    bool is_scalar() const override { return true; }
+};
+
+class CharType : public Type {
+public:
+    std::unique_ptr<Type> clone() const override
+    {
+        return std::make_unique<CharType>();
+    }
+
+    std::string to_string() const override
+    {
+        return "char";
+    }
+
+    bool is_signed() const override { return true; }
+    bool is_arithmetic() const override { return true; }
+    size_t alignment() const override { return 1; }
+    size_t size() const override { return TypeSizes::CHAR_SIZE; }
+    bool is_scalar() const override { return true; }
+};
+
+class UnsignedCharType : public Type {
+public:
+    std::unique_ptr<Type> clone() const override
+    {
+        return std::make_unique<UnsignedCharType>();
+    }
+
+    std::string to_string() const override
+    {
+        return "unsigned char";
+    }
+    bool is_arithmetic() const override { return true; }
+    size_t alignment() const override { return 1; }
+    size_t size() const override { return TypeSizes::CHAR_SIZE; }
+    bool is_scalar() const override { return true; }
+};
+
+class SignedCharType : public Type {
+public:
+    std::unique_ptr<Type> clone() const override
+    {
+        return std::make_unique<SignedCharType>();
+    }
+
+    std::string to_string() const override
+    {
+        return "signed char";
+    }
+    bool is_arithmetic() const override { return true; }
+    size_t alignment() const override { return 1; }
+    size_t size() const override { return TypeSizes::CHAR_SIZE; }
     bool is_scalar() const override { return true; }
 };
 

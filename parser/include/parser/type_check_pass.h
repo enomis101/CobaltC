@@ -88,6 +88,7 @@ private:
     void visit(DereferenceExpression& node) override { throw InternalCompilerError("visit(Expression&) should not be called - use typecheck_expression_and_convert instead"); }
     void visit(AddressOfExpression& node) override { throw InternalCompilerError("visit(Expression&) should not be called - use typecheck_expression_and_convert instead"); }
     void visit(SubscriptExpression& node) override { throw InternalCompilerError("visit(Expression&) should not be called - use typecheck_expression_and_convert instead"); }
+    void visit(StringExpression& node) override { } // TODO: IMPLEMENT
 
     void typecheck_file_scope_variable_declaration(VariableDeclaration& variable_declaration);
     void typecheck_local_variable_declaration(VariableDeclaration& variable_declaration);

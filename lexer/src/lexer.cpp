@@ -1,6 +1,7 @@
 #include "lexer/lexer.h"
 #include "common/data/source_location.h"
 #include "common/data/token_table.h"
+#include "common/data/type.h"
 #include "common/data/warning_manager.h"
 #include "common/error/internal_compiler_error.h"
 #include <cassert>
@@ -14,6 +15,7 @@
 
 #include <charconv>
 #include <string_view>
+#include <variant>
 
 namespace fs = std::filesystem;
 
@@ -113,7 +115,7 @@ std::vector<Token> Lexer::tokenize()
         std::string lexeme = input.substr(i, search_res);
         std::optional<TokenType> result = m_token_table->match(lexeme);
 
-        if(!result.has_value()){
+        if (!result.has_value()) {
             auto err = m_source_manager->get_source_line(m_curr_location_tracker.current());
             throw InternalCompilerError(std::format("TokenTable::match failed after valid search!\n{}", err));
         }
@@ -121,8 +123,13 @@ std::vector<Token> Lexer::tokenize()
         TokenType type = result.value();
         Token::LiteralType literal;
 
-        if (is_constant(type)) {
-            std::tie(type, literal) = convert_constant(lexeme, type, literal);
+        if (is_literal(type)) {
+            try {
+                std::tie(type, literal) = convert_literal_value(lexeme, type);
+            } catch (std::exception& e) {
+                auto err = m_source_manager->get_source_line(m_curr_location_tracker.current());
+                throw InternalCompilerError(std::format("TokenTable::match failed convert_literal_value\n{}\n{}", std::string(e.what()), err));
+            }
         }
 
         Token t(type, lexeme, literal, m_curr_location_tracker.current());
@@ -134,10 +141,12 @@ std::vector<Token> Lexer::tokenize()
     return res;
 }
 
-std::pair<TokenType, Token::LiteralType> Lexer::convert_constant(const std::string& lexeme, const TokenType type, const Token::LiteralType literal)
+std::pair<TokenType, Token::LiteralType> Lexer::convert_literal_value(const std::string& lexeme, const TokenType type)
 {
     TokenType new_type = type;
-    Token::LiteralType new_literal = literal;
+    Token::LiteralType new_literal;
+    ConstantType constant_literal;
+    std::string string_literal;
     if (type == TokenType::CONSTANT) {
         try {
             // Try int first
@@ -149,7 +158,7 @@ std::pair<TokenType, Token::LiteralType> Lexer::convert_constant(const std::stri
             }
 
             if (long_val >= INT_MIN && long_val <= INT_MAX) {
-                new_literal = static_cast<int>(long_val);
+                constant_literal = static_cast<int>(long_val);
             } else {
                 /* If a constant is too large to store as an int,
                  * it's automatically promoted to long, even without an 'L' suffix
@@ -157,7 +166,7 @@ std::pair<TokenType, Token::LiteralType> Lexer::convert_constant(const std::stri
                 auto warn_line = m_source_manager->get_source_line(m_curr_location_tracker.current());
                 m_warning_manager->raise_warning(LexerWarningType::CAST, std::format("Integer constant '{}' exceeds int range [{}, {}], automatically promoting to long:\n{}", lexeme, INT_MIN, INT_MAX, warn_line));
                 new_type = TokenType::LONG_CONSTANT;
-                new_literal = long_val;
+                constant_literal = long_val;
             }
         } catch (const std::exception& e) {
             auto err_line = m_source_manager->get_source_line(m_curr_location_tracker.current());
@@ -174,7 +183,7 @@ std::pair<TokenType, Token::LiteralType> Lexer::convert_constant(const std::stri
             }
 
             if (ulong_val <= UINT_MAX) {
-                new_literal = static_cast<unsigned int>(ulong_val);
+                constant_literal = static_cast<unsigned int>(ulong_val);
             } else {
                 /* If an unsigned constant is too large to store as unsigned int,
                  * it's automatically promoted to unsigned long, even with just 'U' suffix
@@ -182,7 +191,7 @@ std::pair<TokenType, Token::LiteralType> Lexer::convert_constant(const std::stri
                 auto warn_line = m_source_manager->get_source_line(m_curr_location_tracker.current());
                 m_warning_manager->raise_warning(LexerWarningType::CAST, std::format("Unsigned constant '{}' exceeds unsigned int range [0, {}], automatically promoting to unsigned long:\n{}", lexeme, UINT_MAX, warn_line));
                 new_type = TokenType::UNSIGNED_LONG_CONSTANT;
-                new_literal = ulong_val;
+                constant_literal = ulong_val;
             }
         } catch (const std::exception& e) {
             auto err_line = m_source_manager->get_source_line(m_curr_location_tracker.current());
@@ -193,7 +202,7 @@ std::pair<TokenType, Token::LiteralType> Lexer::convert_constant(const std::stri
             // Remove 'L' or 'l' suffix before parsing
             std::string numeric_part = lexeme.substr(0, lexeme.size() - 1);
             long num = std::stol(numeric_part);
-            new_literal = num;
+            constant_literal = num;
         } catch (const std::exception& e) {
             auto err_line = m_source_manager->get_source_line(m_curr_location_tracker.current());
             throw LexerError(std::format("Error parsing long constant '{}' {} at:\n{}", lexeme, e.what(), err_line));
@@ -215,7 +224,7 @@ std::pair<TokenType, Token::LiteralType> Lexer::convert_constant(const std::stri
             }
 
             unsigned long num = std::stoul(numeric_part);
-            new_literal = num;
+            constant_literal = num;
         } catch (const std::exception& e) {
             auto err_line = m_source_manager->get_source_line(m_curr_location_tracker.current());
             throw LexerError(std::format("Error parsing unsigned long constant '{}' {} at:\n{}", lexeme, e.what(), err_line));
@@ -223,24 +232,129 @@ std::pair<TokenType, Token::LiteralType> Lexer::convert_constant(const std::stri
     } else if (type == TokenType::DOUBLE_CONSTANT) {
         try {
             double num = parse_double(lexeme);
-            new_literal = num;
+            constant_literal = num;
         } catch (const std::exception& e) {
             auto err_line = m_source_manager->get_source_line(m_curr_location_tracker.current());
             throw LexerError(std::format("Error parsing double constant '{}' {} at:\n{}", lexeme, e.what(), err_line));
         }
+    } else if (type == TokenType::CHAR_LITERAL) {
+        std::string unescaped_string = unescape(lexeme);
+        // empty character constants are not valid
+        if (unescaped_string.size() != 3) {
+            throw LexerError("Error while parsing char literal!");
+        }
+        if (unescaped_string[0] != '\'' || unescaped_string.back() != '\'') {
+            throw LexerError("Error while parsing char literal!");
+        }
+        int c = unescaped_string[1];
+        constant_literal = c;
+    } else if (type == TokenType::STRING_LITERAL) {
+        std::string unescaped_string = unescape(lexeme);
+        if (unescaped_string.size() < 2) {
+            throw LexerError("Error while parsing string literal!");
+        }
+        if (unescaped_string[0] != '\"' || unescaped_string.back() != '\"') {
+            throw LexerError("Error while parsing string literal!");
+        }
+        string_literal = unescaped_string.substr(1, unescaped_string.size() - 2);
     }
+
+    if (constant_literal.index() > 0) {
+        new_literal = constant_literal;
+    } else {
+        new_literal = string_literal;
+    }
+
     return { new_type, new_literal };
 }
 
-bool Lexer::is_constant(TokenType type)
+bool Lexer::is_literal(TokenType type)
 {
     switch (type) {
+    case TokenType::CHAR_LITERAL:
+    case TokenType::STRING_LITERAL:
     case TokenType::CONSTANT:
     case TokenType::LONG_CONSTANT:
     case TokenType::UNSIGNED_CONSTANT:
     case TokenType::UNSIGNED_LONG_CONSTANT:
     case TokenType::DOUBLE_CONSTANT:
         return true;
+    default:
+        return false;
+    }
+}
+
+std::string Lexer::unescape(const std::string& str)
+{
+    std::string new_string;
+    for (size_t i = 0; i < str.size(); ++i) {
+        char c = str[i];
+        if (c == '\\') {
+            size_t j = i + 1;
+            if (j >= str.size()) {
+                throw LexerError("Invalid escape sequence, expected character after backslash");
+            }
+            char escape_sequence;
+            bool res = is_valid_escape_sequence(str[j], escape_sequence);
+            if (!res) {
+                throw LexerError("Invalid escape sequence");
+            }
+            new_string.push_back(escape_sequence);
+            ++i;
+        } else {
+            new_string.push_back(c);
+        }
+    }
+    return new_string;
+}
+
+bool Lexer::is_valid_escape_sequence(char c, char& escape_sequence)
+{
+    switch (c) {
+    case '\'': {
+        escape_sequence = '\'';
+        return true;
+    }
+    case '"': {
+        escape_sequence = '\"';
+        return true;
+    }
+    case '?': {
+        escape_sequence = '\?';
+        return true;
+    }
+    case '\\': {
+        escape_sequence = '\\';
+        return true;
+    }
+    case 'a': {
+        escape_sequence = '\a';
+        return true;
+    }
+    case 'b': {
+        escape_sequence = '\b';
+        return true;
+    }
+    case 'f': {
+        escape_sequence = '\f';
+        return true;
+    }
+    case 'n': {
+        escape_sequence = '\n';
+        return true;
+    }
+    case 'r': {
+        escape_sequence = '\r';
+        return true;
+    }
+    case 't': {
+        escape_sequence = '\t';
+        return true;
+    }
+    case 'v': {
+        escape_sequence = '\v';
+        return true;
+    }
     default:
         return false;
     }

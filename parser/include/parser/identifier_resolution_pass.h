@@ -42,6 +42,7 @@ private:
     void visit(AddressOfExpression& node) override;
     void visit(ExpressionStatement& node) override;
     void visit(SubscriptExpression& node) override;
+    void visit(StringExpression& node) override { } // TODO: IMPLEMENT
     void visit(IfStatement& node) override;
     void visit(NullStatement& node) override;
     void visit(SingleInitializer& node) override;

@@ -117,7 +117,7 @@ TokenTable::TokenTable()
         { "signed", TokenType::SIGNED_KW },
         { "unsigned", TokenType::UNSIGNED_KW },
         { "double", TokenType::DOUBLE_KW },
-        {"char", TokenType::CHAR_KW}
+        { "char", TokenType::CHAR_KW }
     };
 
     // Initialize single-character tokens for optimization
@@ -155,24 +155,24 @@ TokenTable::TokenTable()
         { ">=", TokenType::GREATER_THAN_EQUAL }
     };
 
-    //REMEMBER: add ^ anchor at the beginning of the string
-    //The ^ anchor ensures that regex_search() matches from the beginning of the input
+    // REMEMBER: add ^ anchor at the beginning of the string
+    // The ^ anchor ensures that regex_search() matches from the beginning of the input
     m_literal_patterns = {
-        {std::regex(R"(^'([^'\\\n]|\\['"?\\abfnrtv])')"), TokenType::CHAR_LITERAL}, 
-        {std::regex(R"(^"([^"\\\n]|\\['"?\\abfnrtv])*")"), TokenType::STRING_LITERAL},
-    };
-    
-    std::vector<std::pair<std::string,TokenType>> base_patterns = { 
-        {"^([0-9]+)",TokenType::CONSTANT},
-        {"^([0-9]+[lL])",TokenType::LONG_CONSTANT},
-        {"^([0-9]+[uU])",TokenType::UNSIGNED_CONSTANT},
-        {"^([0-9]+([uU][lL]|[lL][uU]))",TokenType::UNSIGNED_LONG_CONSTANT},
-        {"^((([0-9]*\\.[0-9]+|[0-9]+\\.?)[Ee][+-]?[0-9]+|[0-9]*\\.[0-9]+|[0-9]+\\.))", TokenType::DOUBLE_CONSTANT},
+        { std::regex(R"(^'([^'\\\n]|\\['"?\\abfnrtv])')"), TokenType::CHAR_LITERAL },
+        { std::regex(R"(^"([^"\\\n]|\\['"?\\abfnrtv])*")"), TokenType::STRING_LITERAL },
     };
 
-    for(const auto& [base_pattern, type] : base_patterns){
-        m_constant_search_patterns.push_back({std::regex(base_pattern + "[^\\w.]"), type});
-        m_constant_match_patterns.push_back({std::regex(base_pattern + "$"), type});
+    std::vector<std::pair<std::string, TokenType>> base_patterns = {
+        { "^([0-9]+)", TokenType::CONSTANT },
+        { "^([0-9]+[lL])", TokenType::LONG_CONSTANT },
+        { "^([0-9]+[uU])", TokenType::UNSIGNED_CONSTANT },
+        { "^([0-9]+([uU][lL]|[lL][uU]))", TokenType::UNSIGNED_LONG_CONSTANT },
+        { "^((([0-9]*\\.[0-9]+|[0-9]+\\.?)[Ee][+-]?[0-9]+|[0-9]*\\.[0-9]+|[0-9]+\\.))", TokenType::DOUBLE_CONSTANT },
+    };
+
+    for (const auto& [base_pattern, type] : base_patterns) {
+        m_constant_search_patterns.push_back({ std::regex(base_pattern + "[^\\w.]"), type });
+        m_constant_match_patterns.push_back({ std::regex(base_pattern + "$"), type });
     }
 
     m_identifier_pattern = std::regex("^([a-zA-Z_]\\w*\\b)");

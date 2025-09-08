@@ -16,18 +16,34 @@ public:
 
 class Token {
 public:
-    using LiteralType = ConstantType;
+    using LiteralType = std::variant<std::monostate, ConstantType, std::string>;
     Token(TokenType type, const std::string& lexeme, LiteralType literal, const SourceLocation& source_location);
     std::string to_string() const;
     TokenType type() const { return m_type; }
 
+    // For std::string
     template<typename T>
+    requires std::is_same_v<T, std::string>
     T literal() const
     {
-        if (!std::holds_alternative<T>(m_literal)) {
-            throw TokenError("Bad Token" + to_string());
+        if (std::holds_alternative<std::string>(m_literal)) {
+            return std::get<std::string>(m_literal);
         }
-        return std::get<T>(m_literal);
+        throw TokenError("Token doesn't contain string literal: " + to_string());
+    }
+
+    // For ConstantType cases
+    template<typename T>
+    requires(!std::is_same_v<T, std::string>)
+    T literal() const
+    {
+        if (std::holds_alternative<ConstantType>(m_literal)) {
+            const auto& constant_literal = std::get<ConstantType>(m_literal);
+            if (std::holds_alternative<T>(constant_literal)) {
+                return std::get<T>(constant_literal);
+            }
+        }
+        throw TokenError("Token doesn't contain requested constant type: " + to_string());
     }
 
     const std::string& lexeme() const { return m_lexeme; }

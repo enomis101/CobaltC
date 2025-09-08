@@ -54,6 +54,7 @@ class AddressOfExpression;
 class SubscriptExpression;
 class SingleInitializer;
 class CompoundInitializer;
+class StringExpression;
 
 // ParserVisitor interface
 class ParserVisitor {
@@ -73,6 +74,7 @@ public:
     virtual void visit(DereferenceExpression& node) = 0;
     virtual void visit(AddressOfExpression& node) = 0;
     virtual void visit(SubscriptExpression& node) = 0;
+    virtual void visit(StringExpression& node) = 0;
     virtual void visit(ExpressionStatement& node) = 0;
     virtual void visit(IfStatement& node) = 0;
     virtual void visit(NullStatement& node) = 0;
@@ -195,6 +197,22 @@ public:
     }
 
     Identifier identifier;
+};
+
+class StringExpression : public Expression {
+public:
+    StringExpression(SourceLocationIndex loc, const std::string& value)
+        : Expression(loc)
+        , value { value }
+    {
+    }
+
+    void accept(ParserVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    std::string value;
 };
 
 class CastExpression : public Expression {

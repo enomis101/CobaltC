@@ -20,8 +20,7 @@ size_t TokenTable::search(std::string_view input) const
         return 1;
     }
 
-    for (const auto& p : m_constant_search_patterns) {
-        const std::regex& pattern = p.first;
+    for (const auto& [pattern, _] : m_constant_search_patterns) {
         std::match_results<std::string_view::const_iterator> matches;
         if (std::regex_search(input.begin(), input.end(), matches, pattern)) {
             // Return the length of the matched text
@@ -29,6 +28,14 @@ size_t TokenTable::search(std::string_view input) const
                 std::string_view first_group(matches[1].first, matches[1].second);
                 return first_group.size();
             }
+        }
+    }
+
+    for (const auto& [pattern, _] : m_literal_patterns) {
+        std::match_results<std::string_view::const_iterator> matches;
+        if (std::regex_search(input.begin(), input.end(), matches, pattern)) {
+            // Return the length of the matched text
+            return matches.length();
         }
     }
 
@@ -62,9 +69,15 @@ std::optional<TokenType> TokenTable::match(std::string_view lexeme) const
         }
     }
 
-    for (const auto& p : m_constant_match_patterns) {
-        const std::regex& pattern = p.first;
-        TokenType type = p.second;
+    for (const auto& [pattern, type] : m_constant_match_patterns) {
+        std::match_results<std::string_view::const_iterator> matches;
+        if (std::regex_match(lexeme.begin(), lexeme.end(), matches, pattern)) {
+            res = type;
+            return res;
+        }
+    }
+
+    for (const auto& [pattern, type] : m_literal_patterns) {
         std::match_results<std::string_view::const_iterator> matches;
         if (std::regex_match(lexeme.begin(), lexeme.end(), matches, pattern)) {
             res = type;
@@ -103,7 +116,8 @@ TokenTable::TokenTable()
         { "long", TokenType::LONG_KW },
         { "signed", TokenType::SIGNED_KW },
         { "unsigned", TokenType::UNSIGNED_KW },
-        { "double", TokenType::DOUBLE_KW }
+        { "double", TokenType::DOUBLE_KW },
+        {"char", TokenType::CHAR_KW}
     };
 
     // Initialize single-character tokens for optimization
@@ -141,23 +155,25 @@ TokenTable::TokenTable()
         { ">=", TokenType::GREATER_THAN_EQUAL }
     };
 
-    std::vector<std::string> base_patterns = { "^([0-9]+)", "^([0-9]+[lL])", "^([0-9]+[uU])", "^([0-9]+([uU][lL]|[lL][uU]))", "^((([0-9]*\\.[0-9]+|[0-9]+\\.?)[Ee][+-]?[0-9]+|[0-9]*\\.[0-9]+|[0-9]+\\.))" };
-    // Initialize regex patterns
-    m_constant_search_patterns = {
-        { std::regex(base_patterns[0] + "[^\\w.]"), TokenType::CONSTANT },
-        { std::regex(base_patterns[1] + "[^\\w.]"), TokenType::LONG_CONSTANT },
-        { std::regex(base_patterns[2] + "[^\\w.]"), TokenType::UNSIGNED_CONSTANT },
-        { std::regex(base_patterns[3] + "[^\\w.]"), TokenType::UNSIGNED_LONG_CONSTANT },
-        { std::regex(base_patterns[4] + "[^\\w.]"), TokenType::DOUBLE_CONSTANT }
+    //REMEMBER: add ^ anchor at the beginning of the string
+    //The ^ anchor ensures that regex_search() matches from the beginning of the input
+    m_literal_patterns = {
+        {std::regex(R"(^'([^'\\\n]|\\['"?\\abfnrtv])')"), TokenType::CHAR_LITERAL}, 
+        {std::regex(R"(^"([^"\\\n]|\\['"?\\abfnrtv])*")"), TokenType::STRING_LITERAL},
+    };
+    
+    std::vector<std::pair<std::string,TokenType>> base_patterns = { 
+        {"^([0-9]+)",TokenType::CONSTANT},
+        {"^([0-9]+[lL])",TokenType::LONG_CONSTANT},
+        {"^([0-9]+[uU])",TokenType::UNSIGNED_CONSTANT},
+        {"^([0-9]+([uU][lL]|[lL][uU]))",TokenType::UNSIGNED_LONG_CONSTANT},
+        {"^((([0-9]*\\.[0-9]+|[0-9]+\\.?)[Ee][+-]?[0-9]+|[0-9]*\\.[0-9]+|[0-9]+\\.))", TokenType::DOUBLE_CONSTANT},
     };
 
-    m_constant_match_patterns = {
-        { std::regex(base_patterns[0] + "$"), TokenType::CONSTANT },
-        { std::regex(base_patterns[1] + "$"), TokenType::LONG_CONSTANT },
-        { std::regex(base_patterns[2] + "$"), TokenType::UNSIGNED_CONSTANT },
-        { std::regex(base_patterns[3] + "$"), TokenType::UNSIGNED_LONG_CONSTANT },
-        { std::regex(base_patterns[4] + "$"), TokenType::DOUBLE_CONSTANT }
-    };
+    for(const auto& [base_pattern, type] : base_patterns){
+        m_constant_search_patterns.push_back({std::regex(base_pattern + "[^\\w.]"), type});
+        m_constant_match_patterns.push_back({std::regex(base_pattern + "$"), type});
+    }
 
     m_identifier_pattern = std::regex("^([a-zA-Z_]\\w*\\b)");
 }

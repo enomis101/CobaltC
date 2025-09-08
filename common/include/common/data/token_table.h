@@ -12,12 +12,15 @@ enum class TokenType {
     UNSIGNED_CONSTANT,
     UNSIGNED_LONG_CONSTANT,
     DOUBLE_CONSTANT,
+    CHAR_LITERAL,
+    STRING_LITERAL,
     INT_KW,
     LONG_KW,
     DOUBLE_KW,
     SIGNED_KW,
     UNSIGNED_KW,
     VOID_KW,
+    CHAR_KW,
     RETURN_KW,
     IF_KW,
     ELSE_KW,
@@ -86,6 +89,7 @@ private:
     std::unordered_map<std::string_view, TokenType> m_keywords;
     std::vector<std::pair<std::regex, TokenType>> m_constant_search_patterns;
     std::vector<std::pair<std::regex, TokenType>> m_constant_match_patterns;
+    std::vector<std::pair<std::regex, TokenType>> m_literal_patterns;
     std::unordered_map<char, TokenType> m_single_char_tokens;
     std::unordered_map<std::string_view, TokenType> m_double_char_tokens;
     std::regex m_identifier_pattern;

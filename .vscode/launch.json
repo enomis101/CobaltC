@@ -6,7 +6,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/compiler/cobaltc-compiler",
-            "args": ["/home/simone/compiler/writing-a-c-compiler-tests/tests/chapter_15/valid/subscripting/array_of_pointers_to_arrays.c", "-S"],
+            "args": ["/home/simone/compiler/writing-a-c-compiler-tests/tests/chapter_16/valid/strings_as_lvalues/strings_in_function_calls.c", "--lex"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/",
             "environment": [],

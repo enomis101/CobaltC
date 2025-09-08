@@ -2,6 +2,7 @@
 #include "common/data/source_location.h"
 #include "common/data/token_table.h"
 #include "common/data/warning_manager.h"
+#include "common/error/internal_compiler_error.h"
 #include <cassert>
 #include <filesystem>
 #include <format>
@@ -112,7 +113,10 @@ std::vector<Token> Lexer::tokenize()
         std::string lexeme = input.substr(i, search_res);
         std::optional<TokenType> result = m_token_table->match(lexeme);
 
-        assert(result.has_value() && "TokenTable::match failed after valid search!");
+        if(!result.has_value()){
+            auto err = m_source_manager->get_source_line(m_curr_location_tracker.current());
+            throw InternalCompilerError(std::format("TokenTable::match failed after valid search!\n{}", err));
+        }
 
         TokenType type = result.value();
         Token::LiteralType literal;

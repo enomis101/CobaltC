@@ -241,10 +241,10 @@ std::pair<TokenType, Token::LiteralType> Lexer::convert_literal_value(const std:
         std::string unescaped_string = unescape(lexeme);
         // empty character constants are not valid
         if (unescaped_string.size() != 3) {
-            throw LexerError("Error while parsing char literal!");
+            throw LexerError("Error while parsing char literal! A char literal can't be empty");
         }
         if (unescaped_string[0] != '\'' || unescaped_string.back() != '\'') {
-            throw LexerError("Error while parsing char literal!");
+            throw LexerError("Error while parsing char literal! A char literal must start and end with \'");
         }
         int c = unescaped_string[1];
         constant_literal = c;

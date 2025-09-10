@@ -99,27 +99,35 @@ void TypeCheckPass::typecheck_variable_expression(VariableExpression& node)
     node.type = type->clone();
 }
 
-void TypeCheckPass::typecheck_unary_expression(UnaryExpression& node)
+void TypeCheckPass::typecheck_unary_expression(UnaryExpression& unary_expression)
 {
-    typecheck_expression_and_convert(node.expression);
+    typecheck_expression_and_convert(unary_expression.expression);
 
-    if (node.unary_operator == UnaryOperator::NOT) {
+    if (unary_expression.unary_operator == UnaryOperator::NOT) {
         // The results of expressions that evaluate to 1 or 0 to indicate true or false have type int.
-        node.type = std::make_unique<IntType>();
+        unary_expression.type = std::make_unique<IntType>();
     } else {
-        node.type = node.expression->type->clone();
+        unary_expression.type = unary_expression.expression->type->clone();
     }
 
-    if (node.unary_operator == UnaryOperator::COMPLEMENT && is_type<DoubleType>(*node.expression->type)) {
-        throw TypeCheckPassError(std::format("Bitwise complement operator does not accept double operands at:\n{}", m_source_manager->get_source_line(node.source_location)));
+    if (unary_expression.unary_operator == UnaryOperator::COMPLEMENT && is_type<DoubleType>(*unary_expression.expression->type)) {
+        throw TypeCheckPassError(std::format("Bitwise complement operator does not accept double operands at:\n{}", m_source_manager->get_source_line(unary_expression.source_location)));
     }
 
-    if (node.unary_operator == UnaryOperator::NEGATE && is_type<PointerType>(*node.expression->type)) {
-        throw TypeCheckPassError(std::format("Cannot apply negate operator to pointers at:\n{}", m_source_manager->get_source_line(node.source_location)));
+    if (unary_expression.unary_operator == UnaryOperator::NEGATE && is_type<PointerType>(*unary_expression.expression->type)) {
+        throw TypeCheckPassError(std::format("Cannot apply negate operator to pointers at:\n{}", m_source_manager->get_source_line(unary_expression.source_location)));
     }
 
-    if (node.unary_operator == UnaryOperator::COMPLEMENT && is_type<PointerType>(*node.expression->type)) {
-        throw TypeCheckPassError(std::format("Cannot apply complement operator to pointers at:\n{}", m_source_manager->get_source_line(node.source_location)));
+    if (unary_expression.unary_operator == UnaryOperator::COMPLEMENT && is_type<PointerType>(*unary_expression.expression->type)) {
+        throw TypeCheckPassError(std::format("Cannot apply complement operator to pointers at:\n{}", m_source_manager->get_source_line(unary_expression.source_location)));
+    }
+
+    if(unary_expression.unary_operator == UnaryOperator::NEGATE || unary_expression.unary_operator == UnaryOperator::COMPLEMENT){
+        if(unary_expression.expression->type->is_char()){
+            //change both inner expression type and unary expression type
+            convert_expression_to<IntType>(unary_expression.expression);
+            unary_expression.type = std::make_unique<IntType>();
+        }
     }
 }
 
@@ -716,23 +724,38 @@ void TypeCheckPass::typecheck_local_variable_declaration(VariableDeclaration& va
     }
 }
 
-std::unique_ptr<Type> TypeCheckPass::get_common_type(const Type& t1, const Type& t2)
+std::unique_ptr<Type> TypeCheckPass::get_common_type(const Type& type1, const Type& type2)
 {
-    if (t1.equals(t2)) {
-        return t1.clone();
-    } else if (is_type<DoubleType>(t1) || is_type<DoubleType>(t2)) {
-        return std::make_unique<DoubleType>();
-    } else if (t1.size() == t2.size()) {
-        if (t1.is_signed()) {
-            return t2.clone();
-        } else {
-            return t1.clone();
-        }
-    } else if (t1.size() > t2.size()) {
-        return t1.clone();
-    } else {
-        return t2.clone();
+    auto t1 = type1.clone();
+    auto t2 = type2.clone();
+    if(t1->is_char()){
+        t1 = std::make_unique<IntType>();
     }
+    if(t2->is_char()){
+        t2 = std::make_unique<IntType>();
+    }
+
+    if (t1->equals(*t2)) {
+        return t1->clone();
+    }
+
+    if (is_type<DoubleType>(*t1) || is_type<DoubleType>(*t2)) {
+        return std::make_unique<DoubleType>();
+    } 
+
+    if (t1->size() == t2->size()) {
+        if (t1->is_signed()) {
+            return t2->clone();
+        }
+        
+        return t1->clone();
+    } 
+    
+    if (t1->size() > t2->size()) {
+        return t1->clone();
+    } 
+
+    return t2->clone();
 }
 
 std::unique_ptr<Type> TypeCheckPass::get_common_type(const Expression& expr1, const Expression& expr2)

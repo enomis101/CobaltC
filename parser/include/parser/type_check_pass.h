@@ -99,14 +99,16 @@ private:
     bool is_null_pointer_constant_expression(const Expression& expr);
 
     bool convert_expression_by_assignment(std::unique_ptr<Expression>& expr, const Type& target_type);
-    void convert_expression_to(std::unique_ptr<Expression>& expr, const Type& target_type);
 
     template<typename T>
+    requires std::derived_from<T, Type>
     void convert_expression_to(std::unique_ptr<Expression>& expr)
     {
         auto type = std::make_unique<T>();
-        convert_expression_to(expr, *type);
+        return convert_expression_to(expr, *type);
     }
+
+    void convert_expression_to(std::unique_ptr<Expression>& expr, const Type& target_type);
 
     StaticInitialValue convert_constant_type_by_assignment(const ConstantType& value, const Type& target_type, SourceLocationIndex loc, std::function<void(const std::string&)> warning_callback = nullptr);
 

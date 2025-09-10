@@ -35,6 +35,7 @@ public:
     virtual bool is_arithmetic() const { return false; }
     virtual bool is_integer() const { return false; }
     virtual bool is_scalar() const { return false; }
+    virtual bool is_char() const {return false;}
 
     // Default equality comparison
     virtual bool equals(const Type& other) const
@@ -148,9 +149,10 @@ public:
     size_t alignment() const override { return 1; }
     size_t size() const override { return TypeSizes::CHAR_SIZE; }
     bool is_scalar() const override { return true; }
+    bool is_char() const override {return true;}
 };
 
-class UnsignedCharType : public Type {
+class UnsignedCharType : public CharType {
 public:
     std::unique_ptr<Type> clone() const override
     {
@@ -161,13 +163,10 @@ public:
     {
         return "unsigned char";
     }
-    bool is_arithmetic() const override { return true; }
-    size_t alignment() const override { return 1; }
-    size_t size() const override { return TypeSizes::CHAR_SIZE; }
-    bool is_scalar() const override { return true; }
+
 };
 
-class SignedCharType : public Type {
+class SignedCharType : public CharType {
 public:
     std::unique_ptr<Type> clone() const override
     {
@@ -178,10 +177,6 @@ public:
     {
         return "signed char";
     }
-    bool is_arithmetic() const override { return true; }
-    size_t alignment() const override { return 1; }
-    size_t size() const override { return TypeSizes::CHAR_SIZE; }
-    bool is_scalar() const override { return true; }
 };
 
 class DoubleType : public Type {

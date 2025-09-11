@@ -424,6 +424,33 @@ std::unique_ptr<Initializer> TypeCheckPass::get_zero_initializer(SourceLocationI
 StaticInitialValue TypeCheckPass::convert_static_initializer(const Type& target_type, Initializer& init, std::function<void(const std::string&)> warning_callback)
 {
     if (auto single_init = dynamic_cast<SingleInitializer*>(&init)) {
+        if(auto string_expr = dynamic_cast<StringExpression*>(single_init->expression.get())){
+            if(auto arr_type = dynamic_cast<const ArrayType*>(&target_type)){
+                //We call typecheck_expression to at least assign a type to the inner expression
+                typecheck_expression(*single_init->expression);
+                if(!arr_type->element_type->is_char()){
+                    throw TypeCheckPassError(std::format("Cannot initialize a non character with a string literal:\n{}", m_source_manager->get_source_line(init.source_location)));
+                }
+                if(string_expr->value.size() > arr_type->size()){
+                    throw TypeCheckPassError(std::format("Too many characters in string literal:\n{}", m_source_manager->get_source_line(single_init->expression->source_location)));
+                }
+                int diff = arr_type->size() - string_expr->value.size();
+                //diff can't be < 0
+                bool is_null_terminated = diff > 0;
+                StaticInitialValue res;
+                res.values.push_back(StaticInitialValueType(StringInit(string_expr->value, is_null_terminated)));
+                //one space is consumed for the null terminated character
+                if(diff > 1){
+                    res.values.push_back(StaticInitialValueType(ZeroInit(diff - 1)));
+                }
+                single_init->type = target_type.clone();
+                return res;
+            } else if(auto ptr_type = dynamic_cast<const PointerType*>(&target_type)){
+                //Initializing a Static Pointer with a String Literal
+            }
+
+        } 
+
         typecheck_expression_and_convert(single_init->expression);
 
         auto const_expr = dynamic_cast<ConstantExpression*>(single_init->expression.get());

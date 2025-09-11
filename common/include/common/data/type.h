@@ -35,7 +35,7 @@ public:
     virtual bool is_arithmetic() const { return false; }
     virtual bool is_integer() const { return false; }
     virtual bool is_scalar() const { return false; }
-    virtual bool is_char() const {return false;}
+    virtual bool is_char() const { return false; }
 
     // Default equality comparison
     virtual bool equals(const Type& other) const
@@ -149,7 +149,7 @@ public:
     size_t alignment() const override { return 1; }
     size_t size() const override { return TypeSizes::CHAR_SIZE; }
     bool is_scalar() const override { return true; }
-    bool is_char() const override {return true;}
+    bool is_char() const override { return true; }
 };
 
 class UnsignedCharType : public CharType {
@@ -163,7 +163,6 @@ public:
     {
         return "unsigned char";
     }
-
 };
 
 class SignedCharType : public CharType {

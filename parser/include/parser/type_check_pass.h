@@ -48,6 +48,7 @@ private:
     void typecheck_dereference_expression(DereferenceExpression& node);
     void typecheck_address_of_expression(AddressOfExpression& node);
     void typecheck_subscript_expression(SubscriptExpression& node);
+    void typecheck_string_expression(StringExpression& node);
 
     void typecheck_initializer(const Type& target_type, Initializer& init);
     std::unique_ptr<Initializer> get_zero_initializer(SourceLocationIndex loc, const Type& type);
@@ -88,7 +89,7 @@ private:
     void visit(DereferenceExpression& node) override { throw InternalCompilerError("visit(Expression&) should not be called - use typecheck_expression_and_convert instead"); }
     void visit(AddressOfExpression& node) override { throw InternalCompilerError("visit(Expression&) should not be called - use typecheck_expression_and_convert instead"); }
     void visit(SubscriptExpression& node) override { throw InternalCompilerError("visit(Expression&) should not be called - use typecheck_expression_and_convert instead"); }
-    void visit(StringExpression& node) override { } // TODO: IMPLEMENT
+    void visit(StringExpression& node) override { throw InternalCompilerError("visit(Expression&) should not be called - use typecheck_expression_and_convert instead"); }
 
     void typecheck_file_scope_variable_declaration(VariableDeclaration& variable_declaration);
     void typecheck_local_variable_declaration(VariableDeclaration& variable_declaration);

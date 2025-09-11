@@ -62,6 +62,8 @@ void TypeCheckPass::typecheck_expression(Expression& expr)
         typecheck_address_of_expression(*addr_of);
     } else if (auto* subscript = dynamic_cast<SubscriptExpression*>(&expr)) {
         typecheck_subscript_expression(*subscript);
+    }else if (auto* string_expression = dynamic_cast<StringExpression*>(&expr)) {
+        typecheck_string_expression(*string_expression);
     } else {
         throw InternalCompilerError("Unknown expression type in typecheck_expression");
     }
@@ -122,9 +124,9 @@ void TypeCheckPass::typecheck_unary_expression(UnaryExpression& unary_expression
         throw TypeCheckPassError(std::format("Cannot apply complement operator to pointers at:\n{}", m_source_manager->get_source_line(unary_expression.source_location)));
     }
 
-    if(unary_expression.unary_operator == UnaryOperator::NEGATE || unary_expression.unary_operator == UnaryOperator::COMPLEMENT){
-        if(unary_expression.expression->type->is_char()){
-            //change both inner expression type and unary expression type
+    if (unary_expression.unary_operator == UnaryOperator::NEGATE || unary_expression.unary_operator == UnaryOperator::COMPLEMENT) {
+        if (unary_expression.expression->type->is_char()) {
+            // change both inner expression type and unary expression type
             convert_expression_to<IntType>(unary_expression.expression);
             unary_expression.type = std::make_unique<IntType>();
         }
@@ -342,15 +344,39 @@ void TypeCheckPass::typecheck_subscript_expression(SubscriptExpression& node)
     node.type = ptr_type->referenced_type->clone();
 }
 
+void TypeCheckPass::typecheck_string_expression(StringExpression& node)
+{
+    node.type = std::make_unique<ArrayType>(std::make_unique<CharType>(), node.value.size());
+}
+
 void TypeCheckPass::typecheck_initializer(const Type& target_type, Initializer& init)
 {
     if (auto single_init = dynamic_cast<SingleInitializer*>(&init)) {
+        //Handle SingleInitializers containing string expression initializing an array differently
+        if(is_type<ArrayType>(target_type) && dynamic_cast<StringExpression*>(single_init->expression.get())){
+            auto arr_type = dynamic_cast<const ArrayType*>(&target_type);
+            auto string_expr = dynamic_cast<StringExpression*>(single_init->expression.get());
+            //We call typecheck_expression to at least assign a type to the inner expression
+            typecheck_expression(*single_init->expression);
+            if(!arr_type->element_type->is_char()){
+                throw TypeCheckPassError(std::format("In typecheck_initializer cannot initialize a non character with a string literal:\n{}", m_source_manager->get_source_line(init.source_location)));
+            }
+            if(string_expr->value.size() > arr_type->size()){
+                throw TypeCheckPassError(std::format("In typecheck_initializer too many characters in string literal:\n{}", m_source_manager->get_source_line(single_init->expression->source_location)));
+            }
+            single_init->type = target_type.clone();
+            return;
+        }
+
         typecheck_expression_and_convert(single_init->expression);
         if (!convert_expression_by_assignment(single_init->expression, target_type)) {
             throw TypeCheckPassError(std::format("In typecheck_initializer cannot convert type for assignment at:\n{}", m_source_manager->get_source_line(init.source_location)));
         }
         single_init->type = target_type.clone();
-    } else if (auto compound_init = dynamic_cast<CompoundInitializer*>(&init)) {
+        return;
+    }
+
+    if (auto compound_init = dynamic_cast<CompoundInitializer*>(&init)) {
         if (auto arr_type = dynamic_cast<const ArrayType*>(&target_type)) {
             if (compound_init->initializer_list.size() > arr_type->array_size) {
                 throw TypeCheckPassError(std::format("Too many initializers at:\n{}", m_source_manager->get_source_line(init.source_location)));
@@ -363,12 +389,13 @@ void TypeCheckPass::typecheck_initializer(const Type& target_type, Initializer& 
                 compound_init->initializer_list.emplace_back(get_zero_initializer(init.source_location, *arr_type->element_type));
             }
             compound_init->type = target_type.clone();
-        } else {
-            throw TypeCheckPassError(std::format("Can't initialize scalar object with a compound initializer at:\n{}", m_source_manager->get_source_line(init.source_location)));
+            return;
         }
-    } else {
-        throw InternalCompilerError("Unsupported type in typecheck_initializer");
+
+        throw TypeCheckPassError(std::format("Can't initialize scalar object with a compound initializer at:\n{}", m_source_manager->get_source_line(init.source_location)));
     }
+
+    throw InternalCompilerError("Unsupported type in typecheck_initializer");
 }
 
 std::unique_ptr<Initializer> TypeCheckPass::get_zero_initializer(SourceLocationIndex loc, const Type& type)
@@ -379,17 +406,19 @@ std::unique_ptr<Initializer> TypeCheckPass::get_zero_initializer(SourceLocationI
             initializer_list.emplace_back(get_zero_initializer(loc, *arr_type->element_type));
         }
         return std::make_unique<CompoundInitializer>(loc, std::move(initializer_list), type.clone());
-    } else if (type.is_scalar()) {
+    }
+
+    if (type.is_scalar()) {
         auto res = SymbolTable::convert_constant_type(0, type);
         if (!res.has_value()) {
-            throw InternalCompilerError("Something went wrong with convert_constant_type in get_zero_initializer");
+            throw InternalCompilerError("Something went wrong with convert_constant_type in get_zero_initializer: " + res.error());
         }
         auto const_expr = std::make_unique<ConstantExpression>(loc, res.value());
         const_expr->type = type.clone();
         return std::make_unique<SingleInitializer>(loc, std::move(const_expr), type.clone());
-    } else {
-        throw InternalCompilerError("Unsupported type in get_zero_initializer");
     }
+
+    throw InternalCompilerError("Unsupported type in get_zero_initializer");
 }
 
 StaticInitialValue TypeCheckPass::convert_static_initializer(const Type& target_type, Initializer& init, std::function<void(const std::string&)> warning_callback)
@@ -404,11 +433,14 @@ StaticInitialValue TypeCheckPass::convert_static_initializer(const Type& target_
         }
         single_init->type = target_type.clone();
         return convert_constant_type_by_assignment(const_expr->value, target_type, init.source_location, warning_callback);
-    } else if (auto compound_init = dynamic_cast<CompoundInitializer*>(&init)) {
+    } 
+    
+    if (auto compound_init = dynamic_cast<CompoundInitializer*>(&init)) {
         if (auto arr_type = dynamic_cast<const ArrayType*>(&target_type)) {
             if (compound_init->initializer_list.size() > arr_type->array_size) {
                 throw TypeCheckPassError(std::format("Too many initializers at:\n{}", m_source_manager->get_source_line(init.source_location)));
             }
+
             std::vector<StaticInitialValueType> initial_values;
             for (auto& inner_init : compound_init->initializer_list) {
                 for (auto& elem : convert_static_initializer(*arr_type->element_type, *inner_init, warning_callback).values) {
@@ -434,23 +466,25 @@ StaticInitialValue TypeCheckPass::convert_static_initializer(const Type& target_
             }
             compound_init->type = target_type.clone();
             return res;
-        } else {
-            throw TypeCheckPassError(std::format("Can't initialize scalar object with a compound initializer at:\n{}", m_source_manager->get_source_line(init.source_location)));
         }
-    } else {
-        throw InternalCompilerError("Unsupported type in typecheck_initializer");
+            
+        throw TypeCheckPassError(std::format("Can't initialize scalar object with a compound initializer at:\n{}", m_source_manager->get_source_line(init.source_location)));
     }
+
+    throw InternalCompilerError("Unsupported type in typecheck_initializer"); 
 }
 
 size_t TypeCheckPass::get_static_zero_initializer(const Type& type)
 {
     if (auto arr_type = dynamic_cast<const ArrayType*>(&type)) {
         return get_static_zero_initializer(*arr_type->element_type) * arr_type->array_size;
-    } else if (type.is_scalar()) {
+    } 
+
+    if (type.is_scalar()) {
         return type.size();
-    } else {
-        throw InternalCompilerError("Unsupported type in get_static_zero_initializer");
     }
+
+    throw InternalCompilerError("Unsupported type in get_static_zero_initializer");
 }
 
 // ============================================================================
@@ -728,10 +762,10 @@ std::unique_ptr<Type> TypeCheckPass::get_common_type(const Type& type1, const Ty
 {
     auto t1 = type1.clone();
     auto t2 = type2.clone();
-    if(t1->is_char()){
+    if (t1->is_char()) {
         t1 = std::make_unique<IntType>();
     }
-    if(t2->is_char()){
+    if (t2->is_char()) {
         t2 = std::make_unique<IntType>();
     }
 
@@ -741,19 +775,19 @@ std::unique_ptr<Type> TypeCheckPass::get_common_type(const Type& type1, const Ty
 
     if (is_type<DoubleType>(*t1) || is_type<DoubleType>(*t2)) {
         return std::make_unique<DoubleType>();
-    } 
+    }
 
     if (t1->size() == t2->size()) {
         if (t1->is_signed()) {
             return t2->clone();
         }
-        
+
         return t1->clone();
-    } 
-    
+    }
+
     if (t1->size() > t2->size()) {
         return t1->clone();
-    } 
+    }
 
     return t2->clone();
 }
@@ -834,5 +868,9 @@ StaticInitialValue TypeCheckPass::convert_constant_type_by_assignment(const Cons
 
 bool TypeCheckPass::is_lvalue(const Expression& expr)
 {
-    return dynamic_cast<const VariableExpression*>(&expr) || dynamic_cast<const DereferenceExpression*>(&expr) || dynamic_cast<const SubscriptExpression*>(&expr);
+    return dynamic_cast<const VariableExpression*>(&expr) 
+    || dynamic_cast<const DereferenceExpression*>(&expr) 
+    || dynamic_cast<const SubscriptExpression*>(&expr)
+    // string literals are lvalues
+    || dynamic_cast<const StringExpression*>(&expr);
 }

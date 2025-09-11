@@ -189,6 +189,42 @@ std::expected<ConstantType, std::string> SymbolTable::convert_constant_type(cons
         } else if (std::holds_alternative<double>(value)) {
             return std::get<double>(value);
         }
+    } else if (is_type<CharType>(target_type)) { // char types does not have a constant value (they are promoted to int)
+        if (std::holds_alternative<int>(value)) {
+            return static_cast<char>(std::get<int>(value));
+        } else if (std::holds_alternative<long>(value)) {
+            return static_cast<char>(std::get<long>(value));
+        } else if (std::holds_alternative<unsigned int>(value)) {
+            return static_cast<char>(std::get<unsigned int>(value));
+        } else if (std::holds_alternative<unsigned long>(value)) {
+            return static_cast<char>(std::get<unsigned long>(value));
+        } else if (std::holds_alternative<double>(value)) {
+            return static_cast<char>(std::get<double>(value));
+        }
+    } else if (is_type<SignedCharType>(target_type)) { // char types does not have a constant value (they are promoted to int)
+        if (std::holds_alternative<int>(value)) {
+            return static_cast<signed char>(std::get<int>(value));
+        } else if (std::holds_alternative<long>(value)) {
+            return static_cast<signed char>(std::get<long>(value));
+        } else if (std::holds_alternative<unsigned int>(value)) {
+            return static_cast<signed char>(std::get<unsigned int>(value));
+        } else if (std::holds_alternative<unsigned long>(value)) {
+            return static_cast<signed char>(std::get<unsigned long>(value));
+        } else if (std::holds_alternative<double>(value)) {
+            return static_cast<signed char>(std::get<double>(value));
+        }
+    } else if (is_type<UnsignedCharType>(target_type)) { // char types does not have a constant value (they are promoted to int)
+        if (std::holds_alternative<int>(value)) {
+            return static_cast<unsigned char>(std::get<int>(value));
+        } else if (std::holds_alternative<long>(value)) {
+            return static_cast<unsigned char>(std::get<long>(value));
+        } else if (std::holds_alternative<unsigned int>(value)) {
+            return static_cast<unsigned char>(std::get<unsigned int>(value));
+        } else if (std::holds_alternative<unsigned long>(value)) {
+            return static_cast<unsigned char>(std::get<unsigned long>(value));
+        } else if (std::holds_alternative<double>(value)) {
+            return static_cast<unsigned char>(std::get<double>(value));
+        }
     }
 
     return std::unexpected("Unsupported target type");

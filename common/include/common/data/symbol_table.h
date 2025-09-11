@@ -17,6 +17,19 @@ public:
     size_t size;
 };
 
+class StringInit
+{
+public:
+    std::string value;
+    bool null_terminated;
+};
+
+class PointerInit
+{
+public:
+    std::string name;
+};
+
 class StaticInitialValueType {
 public:
     explicit StaticInitialValueType(ConstantType constant_value);
@@ -26,9 +39,34 @@ public:
     {
     }
 
+    explicit StaticInitialValueType(StringInit string_init)
+        : m_value { string_init }
+    {
+    }
+
+    explicit StaticInitialValueType(PointerInit pointer_init)
+        : m_value { pointer_init }
+    {
+    }
+
     bool is_zero() const
     {
         return std::holds_alternative<ZeroInit>(m_value);
+    }
+
+    bool is_string() const
+    {
+        return std::holds_alternative<StringInit>(m_value);
+    }
+
+    bool is_pointer() const
+    {
+        return std::holds_alternative<PointerInit>(m_value);
+    }
+
+    bool is_constant() const
+    {
+        return std::holds_alternative<ConstantType>(m_value);
     }
 
     ConstantType constant_value() const
@@ -46,9 +84,30 @@ public:
         std::get<ZeroInit>(m_value).size = new_zero_size;
     }
 
+    const StringInit& string_init() const
+    {
+        return std::get<StringInit>(m_value);
+    }
+
+    StringInit& string_init()
+    {
+        return std::get<StringInit>(m_value);
+    }
+
+    const PointerInit& pointer_init() const
+    {
+        return std::get<PointerInit>(m_value);
+    }
+
+    PointerInit& pointer_init()
+    {
+        return std::get<PointerInit>(m_value);
+    }
+
 private:
-    std::variant<ConstantType, ZeroInit> m_value;
+    std::variant<ConstantType, ZeroInit, StringInit, PointerInit> m_value;
 };
+
 
 struct TentativeInit { };
 
@@ -70,9 +129,14 @@ struct StaticAttribute {
     bool global = false;
 };
 
+//A constant is initialized with a single value
+struct ConstantAttribute{
+    StaticInitialValueType init;
+};
+
 struct LocalAttribute { };
 
-using IdentifierAttribute = std::variant<FunctionAttribute, StaticAttribute, LocalAttribute>;
+using IdentifierAttribute = std::variant<FunctionAttribute, StaticAttribute, ConstantAttribute, LocalAttribute>;
 
 class SymbolTable {
 public:

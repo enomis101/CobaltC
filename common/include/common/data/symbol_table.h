@@ -189,10 +189,23 @@ public:
         return m_symbols.contains(name);
     }
 
+    std::string add_constant_string(const std::string& constant_string){
+        if(!m_constant_string_labels.contains(constant_string)){
+            std::string new_label = "consatnt.string." + std::to_string(m_constant_string_labels.size());
+            m_constant_string_labels.insert({constant_string,new_label});
+            //account for null termination
+            auto type = std::make_unique<ArrayType>(std::make_unique<CharType>(), constant_string.size() + 1);
+            IdentifierAttribute attr = ConstantAttribute(StaticInitialValueType(StringInit(constant_string, true)));
+            insert_symbol(new_label, std::move(type), attr);
+        }
+        return m_constant_string_labels[constant_string];
+    }
+
     static std::expected<ConstantType, std::string> convert_constant_type(const ConstantType& value, const Type& target_type, std::function<void(const std::string&)> warning_callback = nullptr);
 
     static bool is_null_pointer_constant(const ConstantType& constant);
 
 private:
     std::unordered_map<std::string, SymbolEntry> m_symbols;
+    std::unordered_map<std::string, std::string> m_constant_string_labels;
 };

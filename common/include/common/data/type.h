@@ -150,9 +150,10 @@ public:
     size_t size() const override { return TypeSizes::CHAR_SIZE; }
     bool is_scalar() const override { return true; }
     bool is_char() const override { return true; }
+    bool is_integer() const override {return true;}
 };
 
-class UnsignedCharType : public CharType {
+class UnsignedCharType : public Type {
 public:
     std::unique_ptr<Type> clone() const override
     {
@@ -163,9 +164,17 @@ public:
     {
         return "unsigned char";
     }
+
+    bool is_signed() const override { return true; }
+    bool is_arithmetic() const override { return true; }
+    size_t alignment() const override { return 1; }
+    size_t size() const override { return TypeSizes::CHAR_SIZE; }
+    bool is_scalar() const override { return true; }
+    bool is_char() const override { return true; }
+    bool is_integer() const override {return true;}
 };
 
-class SignedCharType : public CharType {
+class SignedCharType : public Type {
 public:
     std::unique_ptr<Type> clone() const override
     {
@@ -176,6 +185,14 @@ public:
     {
         return "signed char";
     }
+
+    bool is_signed() const override { return true; }
+    bool is_arithmetic() const override { return true; }
+    size_t alignment() const override { return 1; }
+    size_t size() const override { return TypeSizes::CHAR_SIZE; }
+    bool is_scalar() const override { return true; }
+    bool is_char() const override { return true; }
+    bool is_integer() const override {return true;}
 };
 
 class DoubleType : public Type {

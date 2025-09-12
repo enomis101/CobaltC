@@ -1,12 +1,13 @@
 #pragma once
-#include <stdexcept>
+#include "parser/context_stack_provider.h"
 
 namespace parser {
 
-class SemanticAnalyzerError : public std::runtime_error {
+
+class SemanticAnalyzerError : public ContextStackError {
 public:
-    explicit SemanticAnalyzerError(const std::string& message)
-        : std::runtime_error(message)
+    explicit SemanticAnalyzerError(ContextStackProvider* context_provider, const std::string& message)
+        : ContextStackError(context_provider, message)
     {
     }
 };

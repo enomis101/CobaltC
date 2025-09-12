@@ -1,21 +1,15 @@
 #pragma once
 #include "common/data/name_generator.h"
+#include "parser/context_stack_provider.h"
 #include "parser/parser_ast.h"
-#include "parser/semantic_analyzer_error.h"
+
 #include <stack>
 #include <string>
 
 namespace parser {
 
-class LoopLabelingPassError : public SemanticAnalyzerError {
-public:
-    explicit LoopLabelingPassError(const std::string& message)
-        : SemanticAnalyzerError(message)
-    {
-    }
-};
 
-class LoopLabelingPass : public ParserVisitor {
+class LoopLabelingPass : public ParserVisitor, public ContextStackProvider {
 public:
     LoopLabelingPass(std::shared_ptr<ParserAST> ast, std::shared_ptr<NameGenerator> name_generator)
         : m_ast { ast }
@@ -39,13 +33,13 @@ private:
     void visit(FunctionCallExpression& node) override { }
     void visit(DereferenceExpression& node) override { }
     void visit(AddressOfExpression& node) override { }
-    void visit(SubscriptExpression& node) override { } // TODO: IMPLEMENT
+    void visit(SubscriptExpression& node) override { }
     void visit(ExpressionStatement& node) override;
     void visit(IfStatement& node) override;
     void visit(NullStatement& node) override;
-    void visit(SingleInitializer& node) override { }   // TODO: IMPLEMENT
-    void visit(CompoundInitializer& node) override { } // TODO: IMPLEMENT
-    void visit(StringExpression& node) override { }    // TODO: IMPLEMENT
+    void visit(SingleInitializer& node) override { }
+    void visit(CompoundInitializer& node) override { }
+    void visit(StringExpression& node) override { }
     void visit(VariableDeclaration& node) override;
     void visit(Block& node) override;
     void visit(CompoundStatement& node) override;

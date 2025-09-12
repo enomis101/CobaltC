@@ -3,7 +3,9 @@
 #include "common/data/type.h"
 #include "common/data/warning_manager.h"
 #include "common/error/internal_compiler_error.h"
+#include "parser/context_stack_provider.h"
 #include "parser/parser_ast.h"
+#include "parser/semantic_analyzer_error.h"
 #include <cmath>
 #include <expected>
 #include <format>
@@ -15,6 +17,7 @@ using namespace parser;
 
 void TypeCheckPass::run()
 {
+    ENTER_CONTEXT("run");
     m_ast->accept(*this);
 }
 
@@ -24,6 +27,8 @@ void TypeCheckPass::run()
 
 void TypeCheckPass::typecheck_expression_and_convert(std::unique_ptr<Expression>& expr)
 {
+    ENTER_CONTEXT("typecheck_expression_and_convert");
+
     // First typecheck the expression
     typecheck_expression(*expr);
 
@@ -39,6 +44,8 @@ void TypeCheckPass::typecheck_expression_and_convert(std::unique_ptr<Expression>
 
 void TypeCheckPass::typecheck_expression(Expression& expr)
 {
+    ENTER_CONTEXT("typecheck_expression");
+
     // Dispatch to appropriate typecheck method based on expression type
     if (auto* constant = dynamic_cast<ConstantExpression*>(&expr)) {
         typecheck_constant_expression(*constant);
@@ -75,6 +82,8 @@ void TypeCheckPass::typecheck_expression(Expression& expr)
 
 void TypeCheckPass::typecheck_constant_expression(ConstantExpression& node)
 {
+    ENTER_CONTEXT("typecheck_constant_expression");
+
     if (std::holds_alternative<int>(node.value)) {
         node.type = std::make_unique<IntType>();
     } else if (std::holds_alternative<unsigned int>(node.value)) {
@@ -86,16 +95,18 @@ void TypeCheckPass::typecheck_constant_expression(ConstantExpression& node)
     } else if (std::holds_alternative<double>(node.value)) {
         node.type = std::make_unique<DoubleType>();
     } else {
-        throw TypeCheckPassError(std::format("Unsupported ConstantExpression at:\n{}", m_source_manager->get_source_line(node.source_location)));
+        throw SemanticAnalyzerError(this, std::format("Unsupported ConstantExpression at:\n{}", m_source_manager->get_source_line(node.source_location)));
     }
 }
 
 void TypeCheckPass::typecheck_variable_expression(VariableExpression& node)
 {
+    ENTER_CONTEXT("typecheck_variable_expression");
+
     std::string& variable_name = node.identifier.name;
     auto& type = m_symbol_table->symbol_at(variable_name).type;
     if (dynamic_cast<FunctionType*>(type.get())) {
-        throw TypeCheckPassError(std::format("Function name {} used as variable at:\n{}", variable_name, m_source_manager->get_source_line(node.source_location)));
+        throw SemanticAnalyzerError(this, std::format("Function name {} used as variable at:\n{}", variable_name, m_source_manager->get_source_line(node.source_location)));
     }
 
     node.type = type->clone();
@@ -103,6 +114,8 @@ void TypeCheckPass::typecheck_variable_expression(VariableExpression& node)
 
 void TypeCheckPass::typecheck_unary_expression(UnaryExpression& unary_expression)
 {
+    ENTER_CONTEXT("typecheck_unary_expression");
+
     typecheck_expression_and_convert(unary_expression.expression);
 
     if (unary_expression.unary_operator == UnaryOperator::NOT) {
@@ -113,15 +126,15 @@ void TypeCheckPass::typecheck_unary_expression(UnaryExpression& unary_expression
     }
 
     if (unary_expression.unary_operator == UnaryOperator::COMPLEMENT && is_type<DoubleType>(*unary_expression.expression->type)) {
-        throw TypeCheckPassError(std::format("Bitwise complement operator does not accept double operands at:\n{}", m_source_manager->get_source_line(unary_expression.source_location)));
+        throw SemanticAnalyzerError(this, std::format("Bitwise complement operator does not accept double operands at:\n{}", m_source_manager->get_source_line(unary_expression.source_location)));
     }
 
     if (unary_expression.unary_operator == UnaryOperator::NEGATE && is_type<PointerType>(*unary_expression.expression->type)) {
-        throw TypeCheckPassError(std::format("Cannot apply negate operator to pointers at:\n{}", m_source_manager->get_source_line(unary_expression.source_location)));
+        throw SemanticAnalyzerError(this, std::format("Cannot apply negate operator to pointers at:\n{}", m_source_manager->get_source_line(unary_expression.source_location)));
     }
 
     if (unary_expression.unary_operator == UnaryOperator::COMPLEMENT && is_type<PointerType>(*unary_expression.expression->type)) {
-        throw TypeCheckPassError(std::format("Cannot apply complement operator to pointers at:\n{}", m_source_manager->get_source_line(unary_expression.source_location)));
+        throw SemanticAnalyzerError(this, std::format("Cannot apply complement operator to pointers at:\n{}", m_source_manager->get_source_line(unary_expression.source_location)));
     }
 
     if (unary_expression.unary_operator == UnaryOperator::NEGATE || unary_expression.unary_operator == UnaryOperator::COMPLEMENT) {
@@ -135,6 +148,8 @@ void TypeCheckPass::typecheck_unary_expression(UnaryExpression& unary_expression
 
 void TypeCheckPass::typecheck_binary_expression(BinaryExpression& node)
 {
+    ENTER_CONTEXT("typecheck_binary_expression");
+
     typecheck_expression_and_convert(node.left_expression);
     typecheck_expression_and_convert(node.right_expression);
 
@@ -158,7 +173,7 @@ void TypeCheckPass::typecheck_binary_expression(BinaryExpression& node)
                 convert_expression_to<LongType>(node.left_expression);
                 node.type = right_type->clone();
             } else {
-                throw TypeCheckPassError(std::format("Invalid operands for pointer addition at:\n{}", m_source_manager->get_source_line(node.source_location)));
+                throw SemanticAnalyzerError(this, std::format("Invalid operands for pointer addition at:\n{}", m_source_manager->get_source_line(node.source_location)));
             }
             return;
         }
@@ -171,7 +186,7 @@ void TypeCheckPass::typecheck_binary_expression(BinaryExpression& node)
                 // when subtracting two pointers both openrds must have the same type
                 node.type = std::make_unique<LongType>();
             } else {
-                throw TypeCheckPassError(std::format("Invalid operands for pointer subtraction at:\n{}", m_source_manager->get_source_line(node.source_location)));
+                throw SemanticAnalyzerError(this, std::format("Invalid operands for pointer subtraction at:\n{}", m_source_manager->get_source_line(node.source_location)));
             }
             return;
         }
@@ -181,17 +196,17 @@ void TypeCheckPass::typecheck_binary_expression(BinaryExpression& node)
         case BinaryOperator::LESS_OR_EQUAL: {
             // Pointer relational operators must have same type and return an int,
             if (!left_type->equals(*right_type)) {
-                throw TypeCheckPassError(std::format("Invalid operands for pointer relational operator at:\n{}", m_source_manager->get_source_line(node.source_location)));
+                throw SemanticAnalyzerError(this, std::format("Invalid operands for pointer relational operator at:\n{}", m_source_manager->get_source_line(node.source_location)));
             }
             node.type = std::make_unique<IntType>();
             return;
         }
         case BinaryOperator::MULTIPLY:
-            throw TypeCheckPassError(std::format("Multiply operator does not accept pointer operands at:\n{}", m_source_manager->get_source_line(node.source_location)));
+            throw SemanticAnalyzerError(this, std::format("Multiply operator does not accept pointer operands at:\n{}", m_source_manager->get_source_line(node.source_location)));
         case BinaryOperator::DIVIDE:
-            throw TypeCheckPassError(std::format("Divide operator does not accept pointer operands at:\n{}", m_source_manager->get_source_line(node.source_location)));
+            throw SemanticAnalyzerError(this, std::format("Divide operator does not accept pointer operands at:\n{}", m_source_manager->get_source_line(node.source_location)));
         case BinaryOperator::REMAINDER:
-            throw TypeCheckPassError(std::format("Remainder operator does not accept pointer operands at:\n{}", m_source_manager->get_source_line(node.source_location)));
+            throw SemanticAnalyzerError(this, std::format("Remainder operator does not accept pointer operands at:\n{}", m_source_manager->get_source_line(node.source_location)));
         default:
             break;
         }
@@ -216,29 +231,33 @@ void TypeCheckPass::typecheck_binary_expression(BinaryExpression& node)
     }
 
     if (node.binary_operator == BinaryOperator::REMAINDER && is_type<DoubleType>(*node.type)) {
-        throw TypeCheckPassError(std::format("Remainder operator does not accept double operands at:\n{}", m_source_manager->get_source_line(node.source_location)));
+        throw SemanticAnalyzerError(this, std::format("Remainder operator does not accept double operands at:\n{}", m_source_manager->get_source_line(node.source_location)));
     }
 }
 
 void TypeCheckPass::typecheck_assignment_expression(AssignmentExpression& node)
 {
+    ENTER_CONTEXT("typecheck_assignment_expression");
+
     // Process the left operand before checking if it's an value, to detect if we are tryin to assign to an array, as typecheck_expression_and_convert will wrap it in an AddressOfExpression
     typecheck_expression_and_convert(node.left_expression);
     if (!is_lvalue(*node.left_expression)) {
-        throw TypeCheckPassError(std::format("In AssignmentExpression left expression is not an lvalue at:\n{}", m_source_manager->get_source_line(node.left_expression->source_location)));
+        throw SemanticAnalyzerError(this, std::format("In AssignmentExpression left expression is not an lvalue at:\n{}", m_source_manager->get_source_line(node.left_expression->source_location)));
     }
 
     typecheck_expression_and_convert(node.right_expression);
 
     auto left_type = node.left_expression->type->clone();
     if (!convert_expression_by_assignment(node.right_expression, *left_type)) {
-        throw TypeCheckPassError(std::format("In AssignmentExpression cannot convert type for assignment at:\n{}", m_source_manager->get_source_line(node.source_location)));
+        throw SemanticAnalyzerError(this, std::format("In AssignmentExpression cannot convert type for assignment at:\n{}", m_source_manager->get_source_line(node.source_location)));
     }
     node.type = std::move(left_type);
 }
 
 void TypeCheckPass::typecheck_conditional_expression(ConditionalExpression& node)
 {
+    ENTER_CONTEXT("typecheck_conditional_expression");
+
     typecheck_expression_and_convert(node.condition);
     typecheck_expression_and_convert(node.true_expression);
     typecheck_expression_and_convert(node.false_expression);
@@ -257,15 +276,17 @@ void TypeCheckPass::typecheck_conditional_expression(ConditionalExpression& node
 
 void TypeCheckPass::typecheck_function_call_expression(FunctionCallExpression& node)
 {
+    ENTER_CONTEXT("typecheck_function_call_expression");
+
     std::string& function_name = node.name.name;
     auto& type = m_symbol_table->symbol_at(function_name).type;
     if (!dynamic_cast<FunctionType*>(type.get())) {
-        throw TypeCheckPassError(std::format("Variable {} used as function name at:\n{}", function_name, m_source_manager->get_source_line(node.source_location)));
+        throw SemanticAnalyzerError(this, std::format("Variable {} used as function name at:\n{}", function_name, m_source_manager->get_source_line(node.source_location)));
     }
 
     FunctionType* fun_type = dynamic_cast<FunctionType*>(type.get());
     if (fun_type->parameters_type.size() != node.arguments.size()) {
-        throw TypeCheckPassError(std::format("Function {} called with the wrong number of arguments {} expected {} at:\n{}", function_name, node.arguments.size(), fun_type->parameters_type.size(), m_source_manager->get_source_line(node.source_location)));
+        throw SemanticAnalyzerError(this, std::format("Function {} called with the wrong number of arguments {} expected {} at:\n{}", function_name, node.arguments.size(), fun_type->parameters_type.size(), m_source_manager->get_source_line(node.source_location)));
     }
 
     // Visit arguments
@@ -274,7 +295,7 @@ void TypeCheckPass::typecheck_function_call_expression(FunctionCallExpression& n
         auto& arg_type = fun_type->parameters_type[i];
         typecheck_expression_and_convert(arg);
         if (!convert_expression_by_assignment(arg, *arg_type)) {
-            throw TypeCheckPassError(std::format("In function call cannot convert type for assignment at:\n{}", m_source_manager->get_source_line(node.source_location)));
+            throw SemanticAnalyzerError(this, std::format("In function call cannot convert type for assignment at:\n{}", m_source_manager->get_source_line(node.source_location)));
         }
     }
     node.type = fun_type->return_type->clone();
@@ -282,46 +303,53 @@ void TypeCheckPass::typecheck_function_call_expression(FunctionCallExpression& n
 
 void TypeCheckPass::typecheck_cast_expression(CastExpression& node)
 {
+    ENTER_CONTEXT("typecheck_cast_expression");
+
     typecheck_expression_and_convert(node.expression);
 
     node.type = node.target_type->clone();
 
     if (is_type<PointerType>(*node.target_type) && is_type<DoubleType>(*node.expression->type)) {
-        throw TypeCheckPassError(std::format("Cannot convert double to pointer at:\n{}", m_source_manager->get_source_line(node.source_location)));
+        throw SemanticAnalyzerError(this, std::format("Cannot convert double to pointer at:\n{}", m_source_manager->get_source_line(node.source_location)));
     }
 
     if (is_type<DoubleType>(*node.target_type) && is_type<PointerType>(*node.expression->type)) {
-        throw TypeCheckPassError(std::format("Cannot convert pointer to double at:\n{}", m_source_manager->get_source_line(node.source_location)));
+        throw SemanticAnalyzerError(this, std::format("Cannot convert pointer to double at:\n{}", m_source_manager->get_source_line(node.source_location)));
     }
 
     if (is_type<ArrayType>(*node.target_type)) {
-        throw TypeCheckPassError(std::format("Cannot cast to array at:\n{}", m_source_manager->get_source_line(node.source_location)));
+        throw SemanticAnalyzerError(this, std::format("Cannot cast to array at:\n{}", m_source_manager->get_source_line(node.source_location)));
     }
 }
 
 void TypeCheckPass::typecheck_dereference_expression(DereferenceExpression& node)
 {
+    ENTER_CONTEXT("typecheck_dereference_expression");
+
     typecheck_expression_and_convert(node.expression);
 
     if (auto ptr_type = dynamic_cast<PointerType*>(node.expression->type.get())) {
         node.type = ptr_type->referenced_type->clone();
     } else {
-        throw TypeCheckPassError(std::format("Cannot deference non-pointer type at:\n{}", m_source_manager->get_source_line(node.source_location)));
+        throw SemanticAnalyzerError(this, std::format("Cannot deference non-pointer type at:\n{}", m_source_manager->get_source_line(node.source_location)));
     }
 }
 
 void TypeCheckPass::typecheck_address_of_expression(AddressOfExpression& node)
 {
+    ENTER_CONTEXT("typecheck_address_of_expression");
     if (is_lvalue(*node.expression)) {
         typecheck_expression(*node.expression);
         node.type = std::make_unique<PointerType>(node.expression->type->clone());
     } else {
-        throw TypeCheckPassError(std::format("Can't take the address of a non-lvalue at:\n{}", m_source_manager->get_source_line(node.source_location)));
+        throw SemanticAnalyzerError(this, std::format("Can't take the address of a non-lvalue at:\n{}", m_source_manager->get_source_line(node.source_location)));
     }
 }
 
 void TypeCheckPass::typecheck_subscript_expression(SubscriptExpression& node)
 {
+    ENTER_CONTEXT("typecheck_subscript_expression");
+
     typecheck_expression_and_convert(node.expression1);
     typecheck_expression_and_convert(node.expression2);
 
@@ -333,7 +361,7 @@ void TypeCheckPass::typecheck_subscript_expression(SubscriptExpression& node)
     } else if (t1->is_integer() && is_type<PointerType>(*t2)) {
         convert_expression_to<LongType>(node.expression1);
     } else {
-        throw TypeCheckPassError(std::format("Invalid operands for SubscriptExpression at:\n{}", m_source_manager->get_source_line(node.source_location)));
+        throw SemanticAnalyzerError(this, std::format("Invalid operands for SubscriptExpression at:\n{}", m_source_manager->get_source_line(node.source_location)));
     }
 
     auto ptr_type = dynamic_cast<PointerType*>(ptr_type_ref.get());
@@ -346,11 +374,15 @@ void TypeCheckPass::typecheck_subscript_expression(SubscriptExpression& node)
 
 void TypeCheckPass::typecheck_string_expression(StringExpression& node)
 {
-    node.type = std::make_unique<ArrayType>(std::make_unique<CharType>(), node.value.size());
+    ENTER_CONTEXT("typecheck_string_expression");
+
+    node.type = std::make_unique<ArrayType>(std::make_unique<CharType>(), node.value.size() + 1);
 }
 
 void TypeCheckPass::typecheck_initializer(const Type& target_type, Initializer& init)
 {
+    ENTER_CONTEXT("typecheck_initializer");
+
     if (auto single_init = dynamic_cast<SingleInitializer*>(&init)) {
         //Handle SingleInitializers containing string expression initializing an array differently
         if(is_type<ArrayType>(target_type) && dynamic_cast<StringExpression*>(single_init->expression.get())){
@@ -359,10 +391,10 @@ void TypeCheckPass::typecheck_initializer(const Type& target_type, Initializer& 
             //We call typecheck_expression to at least assign a type to the inner expression
             typecheck_expression(*single_init->expression);
             if(!arr_type->element_type->is_char()){
-                throw TypeCheckPassError(std::format("In typecheck_initializer cannot initialize a non character with a string literal:\n{}", m_source_manager->get_source_line(init.source_location)));
+                throw SemanticAnalyzerError(this, std::format("Cannot initialize a non character with a string literal:\n{}", m_source_manager->get_source_line(init.source_location)));
             }
             if(string_expr->value.size() > arr_type->size()){
-                throw TypeCheckPassError(std::format("In typecheck_initializer too many characters in string literal:\n{}", m_source_manager->get_source_line(single_init->expression->source_location)));
+                throw SemanticAnalyzerError(this, std::format("Too many characters in string literal:\n{}", m_source_manager->get_source_line(single_init->expression->source_location)));
             }
             single_init->type = target_type.clone();
             return;
@@ -370,7 +402,7 @@ void TypeCheckPass::typecheck_initializer(const Type& target_type, Initializer& 
 
         typecheck_expression_and_convert(single_init->expression);
         if (!convert_expression_by_assignment(single_init->expression, target_type)) {
-            throw TypeCheckPassError(std::format("In typecheck_initializer cannot convert type for assignment at:\n{}", m_source_manager->get_source_line(init.source_location)));
+            throw SemanticAnalyzerError(this, std::format("Cannot convert type for assignment at:\n{}", m_source_manager->get_source_line(init.source_location)));
         }
         single_init->type = target_type.clone();
         return;
@@ -379,7 +411,7 @@ void TypeCheckPass::typecheck_initializer(const Type& target_type, Initializer& 
     if (auto compound_init = dynamic_cast<CompoundInitializer*>(&init)) {
         if (auto arr_type = dynamic_cast<const ArrayType*>(&target_type)) {
             if (compound_init->initializer_list.size() > arr_type->array_size) {
-                throw TypeCheckPassError(std::format("Too many initializers at:\n{}", m_source_manager->get_source_line(init.source_location)));
+                throw SemanticAnalyzerError(this, std::format("Too many initializers at:\n{}", m_source_manager->get_source_line(init.source_location)));
             }
             for (auto& inner_init : compound_init->initializer_list) {
                 typecheck_initializer(*arr_type->element_type, *inner_init);
@@ -392,7 +424,7 @@ void TypeCheckPass::typecheck_initializer(const Type& target_type, Initializer& 
             return;
         }
 
-        throw TypeCheckPassError(std::format("Can't initialize scalar object with a compound initializer at:\n{}", m_source_manager->get_source_line(init.source_location)));
+        throw SemanticAnalyzerError(this, std::format("Can't initialize scalar object with a compound initializer at:\n{}", m_source_manager->get_source_line(init.source_location)));
     }
 
     throw InternalCompilerError("Unsupported type in typecheck_initializer");
@@ -400,6 +432,7 @@ void TypeCheckPass::typecheck_initializer(const Type& target_type, Initializer& 
 
 std::unique_ptr<Initializer> TypeCheckPass::get_zero_initializer(SourceLocationIndex loc, const Type& type)
 {
+    ENTER_CONTEXT("get_zero_initializer");
     if (auto arr_type = dynamic_cast<const ArrayType*>(&type)) {
         std::vector<std::unique_ptr<Initializer>> initializer_list;
         for (size_t i = 0; i < arr_type->array_size; ++i) {
@@ -423,16 +456,17 @@ std::unique_ptr<Initializer> TypeCheckPass::get_zero_initializer(SourceLocationI
 
 StaticInitialValue TypeCheckPass::convert_static_initializer(const Type& target_type, Initializer& init, std::function<void(const std::string&)> warning_callback)
 {
+    ENTER_CONTEXT("convert_static_initializer");
     if (auto single_init = dynamic_cast<SingleInitializer*>(&init)) {
         if(auto string_expr = dynamic_cast<StringExpression*>(single_init->expression.get())){
             if(auto arr_type = dynamic_cast<const ArrayType*>(&target_type)){
                 //We call typecheck_expression to at least assign a type to the inner expression
                 typecheck_expression(*single_init->expression);
                 if(!arr_type->element_type->is_char()){
-                    throw TypeCheckPassError(std::format("Cannot initialize a non character with a string literal:\n{}", m_source_manager->get_source_line(init.source_location)));
+                    throw SemanticAnalyzerError(this, std::format("Cannot initialize a non character with a string literal:\n{}", m_source_manager->get_source_line(init.source_location)));
                 }
                 if(string_expr->value.size() > arr_type->size()){
-                    throw TypeCheckPassError(std::format("Too many characters in string literal:\n{}", m_source_manager->get_source_line(single_init->expression->source_location)));
+                    throw SemanticAnalyzerError(this, std::format("Too many characters in string literal:\n{}", m_source_manager->get_source_line(single_init->expression->source_location)));
                 }
                 int diff = arr_type->size() - string_expr->value.size();
                 //diff can't be < 0
@@ -447,6 +481,16 @@ StaticInitialValue TypeCheckPass::convert_static_initializer(const Type& target_
                 return res;
             } else if(auto ptr_type = dynamic_cast<const PointerType*>(&target_type)){
                 //Initializing a Static Pointer with a String Literal
+                typecheck_expression(*single_init->expression);
+                if(!is_type<CharType>(*ptr_type->referenced_type)){
+                    //this is consistent with pointer conversion
+                    throw SemanticAnalyzerError(this, std::format("A string literal can only initialize a char pointer:\n{}", m_source_manager->get_source_line(init.source_location)));
+                }
+                auto label = m_symbol_table->add_constant_string(string_expr->value);
+                single_init->type = target_type.clone();
+                StaticInitialValue res;
+                res.values.push_back(StaticInitialValueType{PointerInit(label)});
+                return res;
             }
 
         } 
@@ -455,7 +499,7 @@ StaticInitialValue TypeCheckPass::convert_static_initializer(const Type& target_
 
         auto const_expr = dynamic_cast<ConstantExpression*>(single_init->expression.get());
         if (!const_expr) {
-            throw TypeCheckPassError(std::format("Static variable declaration has non-constant initializer! at:\n{}",
+            throw SemanticAnalyzerError(this, std::format("Static variable declaration has non-constant initializer! at:\n{}",
                 m_source_manager->get_source_line(init.source_location)));
         }
         single_init->type = target_type.clone();
@@ -465,7 +509,7 @@ StaticInitialValue TypeCheckPass::convert_static_initializer(const Type& target_
     if (auto compound_init = dynamic_cast<CompoundInitializer*>(&init)) {
         if (auto arr_type = dynamic_cast<const ArrayType*>(&target_type)) {
             if (compound_init->initializer_list.size() > arr_type->array_size) {
-                throw TypeCheckPassError(std::format("Too many initializers at:\n{}", m_source_manager->get_source_line(init.source_location)));
+                throw SemanticAnalyzerError(this, std::format("Too many initializers at:\n{}", m_source_manager->get_source_line(init.source_location)));
             }
 
             std::vector<StaticInitialValueType> initial_values;
@@ -495,7 +539,7 @@ StaticInitialValue TypeCheckPass::convert_static_initializer(const Type& target_
             return res;
         }
             
-        throw TypeCheckPassError(std::format("Can't initialize scalar object with a compound initializer at:\n{}", m_source_manager->get_source_line(init.source_location)));
+        throw SemanticAnalyzerError(this, std::format("Can't initialize scalar object with a compound initializer at:\n{}", m_source_manager->get_source_line(init.source_location)));
     }
 
     throw InternalCompilerError("Unsupported type in typecheck_initializer"); 
@@ -503,6 +547,7 @@ StaticInitialValue TypeCheckPass::convert_static_initializer(const Type& target_
 
 size_t TypeCheckPass::get_static_zero_initializer(const Type& type)
 {
+    ENTER_CONTEXT("get_static_zero_initializer");
     if (auto arr_type = dynamic_cast<const ArrayType*>(&type)) {
         return get_static_zero_initializer(*arr_type->element_type) * arr_type->array_size;
     } 
@@ -520,11 +565,13 @@ size_t TypeCheckPass::get_static_zero_initializer(const Type& type)
 
 void TypeCheckPass::visit(Identifier& node)
 {
+    ENTER_CONTEXT("visit(Identifier& node)");
     // Empty method
 }
 
 void TypeCheckPass::visit(ReturnStatement& node)
 {
+    ENTER_CONTEXT("visit(ReturnStatement& node)");
     typecheck_expression_and_convert(node.expression);
 
     if (!m_current_function_declaration) {
@@ -535,7 +582,7 @@ void TypeCheckPass::visit(ReturnStatement& node)
     auto& type = m_symbol_table->symbol_at(function_name).type;
     if (FunctionType* fun_type = dynamic_cast<FunctionType*>(type.get())) {
         if (!convert_expression_by_assignment(node.expression, *fun_type->return_type)) {
-            throw TypeCheckPassError(std::format("In return statement cannot convert type for assignment at:\n{}", m_source_manager->get_source_line(node.source_location)));
+            throw SemanticAnalyzerError(this, std::format("In return statement cannot convert type for assignment at:\n{}", m_source_manager->get_source_line(node.source_location)));
         }
     } else {
         throw InternalCompilerError("m_current_function_declaration is not a function pointer");
@@ -544,10 +591,11 @@ void TypeCheckPass::visit(ReturnStatement& node)
 
 void TypeCheckPass::visit(FunctionDeclaration& function_declaration)
 {
+    ENTER_CONTEXT("visit(FunctionDeclaration& function_declaration)");
     const auto& function_type = dynamic_cast<FunctionType*>(function_declaration.type.get());
     const std::string& function_name = function_declaration.name.name;
     if (is_type<ArrayType>(*function_type->return_type)) {
-        throw TypeCheckPassError(std::format("Function {} cant return an array at:\n{}", function_name, m_source_manager->get_source_line(function_declaration.source_location)));
+        throw SemanticAnalyzerError(this, std::format("Function {} cant return an array at:\n{}", function_name, m_source_manager->get_source_line(function_declaration.source_location)));
     }
 
     for (auto& param : function_type->parameters_type) {
@@ -567,15 +615,15 @@ void TypeCheckPass::visit(FunctionDeclaration& function_declaration)
         FunctionType* prev_function_type = dynamic_cast<FunctionType*>(prev_decl.type.get());
 
         if (!prev_function_type || !function_type->equals(*prev_function_type)) {
-            throw TypeCheckPassError(std::format("Incompatible function declaration of {} at:\n{}", function_name, m_source_manager->get_source_line(function_declaration.source_location)));
+            throw SemanticAnalyzerError(this, std::format("Incompatible function declaration of {} at:\n{}", function_name, m_source_manager->get_source_line(function_declaration.source_location)));
         }
         already_defined = std::get<FunctionAttribute>(prev_decl.attribute).defined;
         if (already_defined && has_body) {
-            throw TypeCheckPassError(std::format("Function {} defined more than once at:\n{}", function_name, m_source_manager->get_source_line(function_declaration.source_location)));
+            throw SemanticAnalyzerError(this, std::format("Function {} defined more than once at:\n{}", function_name, m_source_manager->get_source_line(function_declaration.source_location)));
         }
 
         if (std::get<FunctionAttribute>(prev_decl.attribute).global && !global) {
-            throw TypeCheckPassError(std::format("Function {} declared as static follows a non-static declaration at:\n{}", function_name, m_source_manager->get_source_line(function_declaration.source_location)));
+            throw SemanticAnalyzerError(this, std::format("Function {} declared as static follows a non-static declaration at:\n{}", function_name, m_source_manager->get_source_line(function_declaration.source_location)));
         }
         global = std::get<FunctionAttribute>(prev_decl.attribute).global;
     }
@@ -601,6 +649,7 @@ void TypeCheckPass::visit(FunctionDeclaration& function_declaration)
 
 void TypeCheckPass::visit(Program& node)
 {
+    ENTER_CONTEXT("visit(Program& node)");
     for (auto& decl : node.declarations) {
         decl->accept(*this);
     }
@@ -608,11 +657,13 @@ void TypeCheckPass::visit(Program& node)
 
 void TypeCheckPass::visit(ExpressionStatement& node)
 {
+    ENTER_CONTEXT("visit(ExpressionStatement& node)");
     typecheck_expression_and_convert(node.expression);
 }
 
 void TypeCheckPass::visit(IfStatement& node)
 {
+    ENTER_CONTEXT("visit(IfStatement& node)");
     typecheck_expression_and_convert(node.condition);
     node.then_statement->accept(*this);
 
@@ -623,11 +674,13 @@ void TypeCheckPass::visit(IfStatement& node)
 
 void TypeCheckPass::visit(NullStatement& node)
 {
+    ENTER_CONTEXT("visit(NullStatement& node)");
     // Empty method
 }
 
 void TypeCheckPass::visit(VariableDeclaration& node)
 {
+    ENTER_CONTEXT("visit(VariableDeclaration& node)");
     if (node.scope == DeclarationScope::File) {
         typecheck_file_scope_variable_declaration(node);
     } else {
@@ -637,6 +690,7 @@ void TypeCheckPass::visit(VariableDeclaration& node)
 
 void TypeCheckPass::visit(Block& node)
 {
+    ENTER_CONTEXT(":visit(Block& node)");
     for (auto& item : node.items) {
         item->accept(*this);
     }
@@ -644,23 +698,28 @@ void TypeCheckPass::visit(Block& node)
 
 void TypeCheckPass::visit(CompoundStatement& node)
 {
+    ENTER_CONTEXT("visit(CompoundStatement& node)");
     node.block->accept(*this);
 }
 
 void TypeCheckPass::visit(WhileStatement& node)
 {
+    ENTER_CONTEXT("visit(WhileStatement& node)");
+    
     typecheck_expression_and_convert(node.condition);
     node.body->accept(*this);
 }
 
 void TypeCheckPass::visit(DoWhileStatement& node)
 {
+    ENTER_CONTEXT("visit(DoWhileStatement& node)");
     typecheck_expression_and_convert(node.condition);
     node.body->accept(*this);
 }
 
 void TypeCheckPass::visit(ForStatement& node)
 {
+    ENTER_CONTEXT("visit(ForStatement& node)");
     node.init->accept(*this);
 
     if (node.condition.has_value()) {
@@ -676,14 +735,17 @@ void TypeCheckPass::visit(ForStatement& node)
 
 void TypeCheckPass::visit(ForInitDeclaration& node)
 {
+    ENTER_CONTEXT("visit(ForInitDeclaration& node)");
+
     if (node.declaration->storage_class != StorageClass::NONE) {
-        throw TypeCheckPassError("In TypeCheckPass: a variable declaration in a for loop cannot have a storage class");
+        throw SemanticAnalyzerError(this, "In TypeCheckPass: a variable declaration in a for loop cannot have a storage class");
     }
     node.declaration->accept(*this);
 }
 
 void TypeCheckPass::visit(ForInitExpression& node)
 {
+    ENTER_CONTEXT("visit(ForInitExpression& node)");
     if (node.expression.has_value()) {
         typecheck_expression_and_convert(node.expression.value());
     }
@@ -695,6 +757,7 @@ void TypeCheckPass::visit(ForInitExpression& node)
 
 void TypeCheckPass::typecheck_file_scope_variable_declaration(VariableDeclaration& variable_declaration)
 {
+    ENTER_CONTEXT("typecheck_file_scope_variable_declaration");
     const std::string& variable_name = variable_declaration.identifier.name;
     StaticInitializer initial_value;
     if (!variable_declaration.expression.has_value()) {
@@ -715,24 +778,24 @@ void TypeCheckPass::typecheck_file_scope_variable_declaration(VariableDeclaratio
 
         auto& old_decl = m_symbol_table->symbol_at(variable_name);
         if (!std::holds_alternative<StaticAttribute>(old_decl.attribute)) {
-            throw TypeCheckPassError(std::format("Prev. file scope variable declaration of {} does not have a StaticAttribute! at:\n{}", variable_name, m_source_manager->get_source_line(variable_declaration.source_location)));
+            throw SemanticAnalyzerError(this, std::format("Prev. file scope variable declaration of {} does not have a StaticAttribute! at:\n{}", variable_name, m_source_manager->get_source_line(variable_declaration.source_location)));
         }
 
         if (!variable_declaration.type->equals(*old_decl.type)) {
-            throw TypeCheckPassError(std::format("Conflicting variable declaration at:\n{}", m_source_manager->get_source_line(variable_declaration.source_location)));
+            throw SemanticAnalyzerError(this, std::format("Conflicting variable declaration at:\n{}", m_source_manager->get_source_line(variable_declaration.source_location)));
         }
 
         StaticAttribute& old_attr = std::get<StaticAttribute>(old_decl.attribute);
         if (variable_declaration.storage_class == StorageClass::EXTERN) {
             global = old_attr.global;
         } else if (old_attr.global != global) {
-            throw TypeCheckPassError(std::format("Conflicting variable linkage for {} at:\n{}", variable_name, m_source_manager->get_source_line(variable_declaration.source_location)));
+            throw SemanticAnalyzerError(this, std::format("Conflicting variable linkage for {} at:\n{}", variable_name, m_source_manager->get_source_line(variable_declaration.source_location)));
         }
 
         // Check prev initialization
         if (std::holds_alternative<StaticInitialValue>(old_attr.init)) {
             if (std::holds_alternative<StaticInitialValue>(initial_value)) {
-                throw TypeCheckPassError(std::format("Conflicting file scope variable definitions for {} at:\n{}", variable_name, m_source_manager->get_source_line(variable_declaration.source_location)));
+                throw SemanticAnalyzerError(this, std::format("Conflicting file scope variable definitions for {} at:\n{}", variable_name, m_source_manager->get_source_line(variable_declaration.source_location)));
             } else {
                 initial_value = old_attr.init;
             }
@@ -746,6 +809,7 @@ void TypeCheckPass::typecheck_file_scope_variable_declaration(VariableDeclaratio
 
 void TypeCheckPass::typecheck_local_variable_declaration(VariableDeclaration& variable_declaration)
 {
+    ENTER_CONTEXT("typecheck_local_variable_declaration");
     const std::string& variable_name = variable_declaration.identifier.name;
     std::function<void(const std::string&)> warning_callback = [&](const std::string& message) {
         m_warning_manager->raise_warning(ParserWarningType::CAST,
@@ -754,13 +818,13 @@ void TypeCheckPass::typecheck_local_variable_declaration(VariableDeclaration& va
 
     if (variable_declaration.storage_class == StorageClass::EXTERN) {
         if (variable_declaration.expression.has_value()) {
-            throw TypeCheckPassError(std::format("StaticInitializer on local extern variable declaration for {} at:\n{}", variable_name, m_source_manager->get_source_line(variable_declaration.source_location)));
+            throw SemanticAnalyzerError(this, std::format("StaticInitializer on local extern variable declaration for {} at:\n{}", variable_name, m_source_manager->get_source_line(variable_declaration.source_location)));
         }
         if (m_symbol_table->contains_symbol(variable_name)) {
             auto& old_decl = m_symbol_table->symbol_at(variable_name);
 
             if (!variable_declaration.type->equals(*old_decl.type)) {
-                throw TypeCheckPassError(std::format("Conflicting variable declaration at:\n{}", m_source_manager->get_source_line(variable_declaration.source_location)));
+                throw SemanticAnalyzerError(this, std::format("Conflicting variable declaration at:\n{}", m_source_manager->get_source_line(variable_declaration.source_location)));
             }
             // a local extern declaration will never change the initial value or linkage we have already recorded
         } else {
@@ -787,6 +851,7 @@ void TypeCheckPass::typecheck_local_variable_declaration(VariableDeclaration& va
 
 std::unique_ptr<Type> TypeCheckPass::get_common_type(const Type& type1, const Type& type2)
 {
+    ENTER_CONTEXT("get_common_type");
     auto t1 = type1.clone();
     auto t2 = type2.clone();
     if (t1->is_char()) {
@@ -821,6 +886,7 @@ std::unique_ptr<Type> TypeCheckPass::get_common_type(const Type& type1, const Ty
 
 std::unique_ptr<Type> TypeCheckPass::get_common_type(const Expression& expr1, const Expression& expr2)
 {
+    ENTER_CONTEXT("get_common_type");
     if (is_type<PointerType>(*expr1.type) || is_type<PointerType>(*expr2.type)) {
         return get_common_pointer_type(expr1, expr2);
     } else {
@@ -830,6 +896,7 @@ std::unique_ptr<Type> TypeCheckPass::get_common_type(const Expression& expr1, co
 
 std::unique_ptr<Type> TypeCheckPass::get_common_pointer_type(const Expression& expr1, const Expression& expr2)
 {
+    ENTER_CONTEXT("get_common_pointer_type");
     const Type& t1 = *expr1.type;
     const Type& t2 = *expr2.type;
     if (t1.equals(t2)) {
@@ -845,6 +912,7 @@ std::unique_ptr<Type> TypeCheckPass::get_common_pointer_type(const Expression& e
 
 bool TypeCheckPass::is_null_pointer_constant_expression(const Expression& expr)
 {
+    ENTER_CONTEXT("is_null_pointer_constant_expression");
     if (auto constant = dynamic_cast<const ConstantExpression*>(&expr)) {
         return SymbolTable::is_null_pointer_constant(constant->value);
     }
@@ -853,6 +921,7 @@ bool TypeCheckPass::is_null_pointer_constant_expression(const Expression& expr)
 
 bool TypeCheckPass::convert_expression_by_assignment(std::unique_ptr<Expression>& expr, const Type& target_type)
 {
+    ENTER_CONTEXT("convert_expression_by_assignment");
     const Type& expr_type = *expr->type;
     if (expr_type.equals(target_type)) {
         return true;
@@ -871,6 +940,7 @@ bool TypeCheckPass::convert_expression_by_assignment(std::unique_ptr<Expression>
 
 void TypeCheckPass::convert_expression_to(std::unique_ptr<Expression>& expr, const Type& target_type)
 {
+    ENTER_CONTEXT("convert_expression_to");
     if (expr->type->equals(target_type)) {
         return; // do nothing
     }
@@ -882,10 +952,11 @@ void TypeCheckPass::convert_expression_to(std::unique_ptr<Expression>& expr, con
 
 StaticInitialValue TypeCheckPass::convert_constant_type_by_assignment(const ConstantType& value, const Type& target_type, SourceLocationIndex loc, std::function<void(const std::string&)> warning_callback)
 {
+    ENTER_CONTEXT("convert_constant_type_by_assignment");
     StaticInitialValue static_init;
     auto res = SymbolTable::convert_constant_type(value, target_type, warning_callback);
     if (!res) {
-        throw TypeCheckPassError(std::format("Failed convert_constant_type {}  at:\n{}",
+        throw SemanticAnalyzerError(this, std::format("Failed convert_constant_type {}  at:\n{}",
             res.error(), m_source_manager->get_source_line(loc)));
     }
 
@@ -895,6 +966,7 @@ StaticInitialValue TypeCheckPass::convert_constant_type_by_assignment(const Cons
 
 bool TypeCheckPass::is_lvalue(const Expression& expr)
 {
+    ENTER_CONTEXT("is_lvalue");
     return dynamic_cast<const VariableExpression*>(&expr) 
     || dynamic_cast<const DereferenceExpression*>(&expr) 
     || dynamic_cast<const SubscriptExpression*>(&expr)

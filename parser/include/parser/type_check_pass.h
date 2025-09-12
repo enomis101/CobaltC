@@ -5,21 +5,15 @@
 #include "common/data/warning_manager.h"
 #include "common/error/internal_compiler_error.h"
 #include "parser/parser_ast.h"
-#include "parser/semantic_analyzer_error.h"
 #include <memory>
 #include <string>
+#include "parser/context_stack_provider.h"
 
 namespace parser {
 
-class TypeCheckPassError : public SemanticAnalyzerError {
-public:
-    explicit TypeCheckPassError(const std::string& message)
-        : SemanticAnalyzerError("TypeCheckPassError: " + message)
-    {
-    }
-};
 
-class TypeCheckPass : public ParserVisitor {
+
+class TypeCheckPass : public ParserVisitor, public ContextStackProvider {
 public:
     TypeCheckPass(std::shared_ptr<ParserAST> ast, std::shared_ptr<SymbolTable> symbol_table, std::shared_ptr<SourceManager> source_manager, std::shared_ptr<WarningManager> warning_manager)
         : m_ast { ast }

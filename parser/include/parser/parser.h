@@ -3,6 +3,7 @@
 #include "common/data/source_manager.h"
 #include "common/data/token.h"
 #include "common/data/type.h"
+#include "parser/context_stack_provider.h"
 #include "parser/parser_ast.h"
 #include <memory>
 #include <stdexcept>
@@ -104,14 +105,14 @@ public:
     std::unique_ptr<Declarator> declarator;
 };
 
-class Parser {
+class Parser : public ContextStackProvider {
 public:
-    class ParserError : public std::runtime_error {
+    class ParserError : public ContextStackError{
     public:
-        explicit ParserError(const Parser& parser, const std::string& message)
-            : std::runtime_error(message + parser.context_stack_to_string())
+        explicit ParserError(ContextStackProvider* context_provider, const std::string& message)
+            : ContextStackError(context_provider, message)
         {
-        }
+        }  
     };
 
     Parser(const std::vector<Token>& tokens, std::shared_ptr<SourceManager> source_manager)
@@ -121,7 +122,6 @@ public:
     }
 
     std::shared_ptr<Program> parse_program();
-    std::string context_stack_to_string() const;
 
 private:
     const std::vector<Token>& m_tokens;
@@ -186,18 +186,6 @@ private:
     size_t i = 0;
     DeclarationScope m_current_declaration_scope;
 
-    using ContextStack = std::vector<std::string>;
 
-    ContextStack m_context_stack;
-
-    class ContextGuard {
-    public:
-        ContextGuard(ContextStack& context_stack, const std::string& context, std::optional<SourceLocation> source_location);
-
-        ~ContextGuard();
-
-    private:
-        ContextStack& m_context_stack;
-    };
 };
 }

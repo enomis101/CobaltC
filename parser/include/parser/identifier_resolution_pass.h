@@ -1,21 +1,13 @@
 #pragma once
 #include "common/data/name_generator.h"
+#include "parser/context_stack_provider.h"
 #include "parser/parser_ast.h"
-#include "parser/semantic_analyzer_error.h"
 #include <string>
 #include <unordered_map>
 
 namespace parser {
 
-class IdentifierResolutionPassError : public SemanticAnalyzerError {
-public:
-    explicit IdentifierResolutionPassError(const std::string& message)
-        : SemanticAnalyzerError(message)
-    {
-    }
-};
-
-class IdentifierResolutionPass : public ParserVisitor {
+class IdentifierResolutionPass : public ParserVisitor, public ContextStackProvider {
 public:
     IdentifierResolutionPass(std::shared_ptr<ParserAST> ast, std::shared_ptr<NameGenerator> name_generator)
         : m_ast { ast }
@@ -42,7 +34,7 @@ private:
     void visit(AddressOfExpression& node) override;
     void visit(ExpressionStatement& node) override;
     void visit(SubscriptExpression& node) override;
-    void visit(StringExpression& node) override { } // TODO: IMPLEMENT
+    void visit(StringExpression& node) override { }
     void visit(IfStatement& node) override;
     void visit(NullStatement& node) override;
     void visit(SingleInitializer& node) override;

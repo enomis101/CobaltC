@@ -1,4 +1,5 @@
 #include "parser/loop_labeling_pass.h"
+#include "parser/semantic_analyzer_error.h"
 
 using namespace parser;
 
@@ -116,7 +117,7 @@ void LoopLabelingPass::visit(CompoundStatement& node)
 void LoopLabelingPass::visit(BreakStatement& node)
 {
     if (m_label_stack.empty()) {
-        throw LoopLabelingPassError("In BreakStatement: found break statement with no parent loop");
+        throw SemanticAnalyzerError(this, "In BreakStatement: found break statement with no parent loop");
     }
     node.label.name = m_label_stack.top();
 }
@@ -124,7 +125,7 @@ void LoopLabelingPass::visit(BreakStatement& node)
 void LoopLabelingPass::visit(ContinueStatement& node)
 {
     if (m_label_stack.empty()) {
-        throw LoopLabelingPassError("In ContinueStatement: found continue statement with no parent loop");
+        throw SemanticAnalyzerError(this, "In ContinueStatement: found continue statement with no parent loop");
     }
     node.label.name = m_label_stack.top();
 }

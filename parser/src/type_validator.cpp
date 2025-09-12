@@ -145,6 +145,11 @@ void TypeValidator::visit(SubscriptExpression& node)
     }
 }
 
+void TypeValidator::visit(StringExpression& node)
+{
+    validate_type(node.type, "StringExpression");
+}
+
 void TypeValidator::visit(ExpressionStatement& node)
 {
     if (node.expression) {

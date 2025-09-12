@@ -1,6 +1,7 @@
 #include "parser/identifier_resolution_pass.h"
 #include "parser/parser_ast.h"
 #include <format>
+#include "parser/semantic_analyzer_error.h"
 
 using namespace parser;
 
@@ -42,7 +43,7 @@ void IdentifierResolutionPass::visit(FunctionDeclaration& node)
     if (m_identifier_map.contains(function_name)) {
         auto& prev_entry = m_identifier_map.at(function_name);
         if (prev_entry.from_current_scope && !prev_entry.has_linkage) {
-            throw IdentifierResolutionPassError(std::format("Function declaration {} already declared with no linkage (local variable)", function_name));
+            throw SemanticAnalyzerError(this, std::format("Function declaration {} already declared with no linkage (local variable)", function_name));
         }
     }
     m_identifier_map.insert_or_assign(function_name, MapEntry(function_name, true, true));
@@ -53,13 +54,13 @@ void IdentifierResolutionPass::visit(FunctionDeclaration& node)
 
     if (node.scope == DeclarationScope::Block) {
         if (node.storage_class == StorageClass::STATIC) {
-            throw IdentifierResolutionPassError(std::format("Function {} at local scope has static specifier", function_name));
+            throw SemanticAnalyzerError(this, std::format("Function {} at local scope has static specifier", function_name));
         }
     }
 
     if (node.body.has_value()) {
         if (node.scope == DeclarationScope::Block) {
-            throw IdentifierResolutionPassError(std::format("Definining function {} at local scope", function_name));
+            throw SemanticAnalyzerError(this, std::format("Definining function {} at local scope", function_name));
         }
         node.body.value()->accept(*this);
     }
@@ -76,7 +77,7 @@ void IdentifierResolutionPass::visit(VariableExpression& node)
 {
     std::string& variable_name = node.identifier.name;
     if (!m_identifier_map.contains(variable_name)) {
-        throw IdentifierResolutionPassError(std::format("Use of undeclared variable {}", variable_name));
+        throw SemanticAnalyzerError(this, std::format("Use of undeclared variable {}", variable_name));
     }
     variable_name = m_identifier_map.at(variable_name).new_name;
 }
@@ -104,7 +105,7 @@ void IdentifierResolutionPass::visit(FunctionCallExpression& node)
 {
     std::string& function_name = node.name.name;
     if (!m_identifier_map.contains(function_name)) {
-        throw IdentifierResolutionPassError(std::format("Use of undeclared function {}", function_name));
+        throw SemanticAnalyzerError(this, std::format("Use of undeclared function {}", function_name));
     }
 
     function_name = m_identifier_map.at(function_name).new_name;
@@ -224,7 +225,7 @@ void IdentifierResolutionPass::resolve_variable_identifier(Identifier& identifie
 {
     const std::string& variable_name = identifier.name;
     if (m_identifier_map.contains(variable_name) && m_identifier_map.at(variable_name).from_current_scope) { // throw error only if the other declaration is from the same block
-        throw IdentifierResolutionPassError(std::format("Duplicate variable declaration: {}", variable_name));
+        throw SemanticAnalyzerError(this, std::format("Duplicate variable declaration: {}", variable_name));
     }
 
     std::string new_name = m_name_generator->make_temporary(variable_name);
@@ -246,7 +247,7 @@ void IdentifierResolutionPass::resolve_local_variable_declaration(VariableDeclar
         const auto& prev_decl = m_identifier_map.at(variable_name);
         if (prev_decl.from_current_scope) {
             if (!(prev_decl.has_linkage && var_decl.storage_class == StorageClass::EXTERN)) {
-                throw IdentifierResolutionPassError(std::format("Conflicting local declaration of: {}", variable_name));
+                throw SemanticAnalyzerError(this, std::format("Conflicting local declaration of: {}", variable_name));
             }
         }
     }

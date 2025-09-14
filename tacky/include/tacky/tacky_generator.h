@@ -69,6 +69,7 @@ private:
     std::unique_ptr<ExpressionResult> transform_dereference_expression(parser::DereferenceExpression& dereference_expression, std::vector<std::unique_ptr<Instruction>>& instructions);
     std::unique_ptr<ExpressionResult> transform_address_of_expression(parser::AddressOfExpression& address_of_expression, std::vector<std::unique_ptr<Instruction>>& instructions);
     std::unique_ptr<ExpressionResult> transform_subscript_expression(parser::SubscriptExpression& subscript_expression, std::vector<std::unique_ptr<Instruction>>& instructions);
+    std::unique_ptr<ExpressionResult> transform_string_expression(parser::StringExpression& string_expression, std::vector<std::unique_ptr<Instruction>>& instructions);
 
     std::unique_ptr<Value> emit_tacky_and_convert(parser::Expression& expr, std::vector<std::unique_ptr<Instruction>>& instructions);
 

@@ -41,6 +41,7 @@ class LoadInstruction;
 class StoreInstruction;
 class AddPointerInstruction;
 class CopyToOffsetInstruction;
+class StaticConstant;
 
 // TackyVisitor interface
 class TackyVisitor {
@@ -71,6 +72,7 @@ public:
     virtual void visit(FunctionCallInstruction& node) = 0;
     virtual void visit(FunctionDefinition& node) = 0;
     virtual void visit(StaticVariable& node) = 0;
+    virtual void visit(StaticConstant& node) = 0;
     virtual void visit(Program& node) = 0;
     virtual ~TackyVisitor() = default;
 };
@@ -565,6 +567,25 @@ public:
     bool global;
     std::unique_ptr<Type> type;
     StaticInitialValue init;
+};
+
+class StaticConstant : public TopLevel {
+public:
+    StaticConstant(const std::string& name, std::unique_ptr<Type> type, const StaticInitialValueType& init)
+        : name { name }
+        , type { std::move(type) }
+        , init { init }
+    {
+    }
+
+    void accept(TackyVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    Identifier name;
+    std::unique_ptr<Type> type;
+    StaticInitialValueType init;
 };
 
 class Program : public TackyAST {

@@ -39,6 +39,7 @@ public:
     void visit(FunctionCallInstruction& node) override;
     void visit(FunctionDefinition& node) override;
     void visit(StaticVariable& node) override;
+    void visit(StaticConstant& node) override;
     void visit(Program& node) override;
 
 private:

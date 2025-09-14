@@ -165,7 +165,7 @@ public:
         return "unsigned char";
     }
 
-    bool is_signed() const override { return true; }
+    bool is_signed() const override { return false; }
     bool is_arithmetic() const override { return true; }
     size_t alignment() const override { return 1; }
     size_t size() const override { return TypeSizes::CHAR_SIZE; }

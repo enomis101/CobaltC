@@ -5,6 +5,7 @@
 #include "parser/parser_ast.h"
 #include "tacky/tacky_ast.h"
 #include <cassert>
+#include <cstring>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -49,6 +50,10 @@ void TackyGenerator::transform_symbols_to_tacky(std::shared_ptr<TackyAST> tacky_
             } else if (std::holds_alternative<NoInit>(static_attr.init)) {
                 continue;
             }
+        } else if(std::holds_alternative<ConstantAttribute>(entry.attribute)){
+            const auto& constant_attr = std::get<ConstantAttribute>(entry.attribute);
+            const std::string& variable_name = p.first;
+            top_levels.emplace_back(std::make_unique<StaticConstant>(variable_name, entry.type->clone(), constant_attr.init));
         }
     }
 }
@@ -130,6 +135,8 @@ std::unique_ptr<ExpressionResult> TackyGenerator::emit_tacky(parser::Expression&
         return transform_address_of_expression(*addr_of_expr, instructions);
     } else if (auto subscript_expression = dynamic_cast<parser::SubscriptExpression*>(&expression)) {
         return transform_subscript_expression(*subscript_expression, instructions);
+    } else if (auto string_expression = dynamic_cast<parser::StringExpression*>(&expression)) {
+        return transform_string_expression(*string_expression, instructions);
     } else {
         throw TackyGeneratorError("TackyGenerator: Invalid or Unsupported Expression");
     }
@@ -364,23 +371,23 @@ std::unique_ptr<ExpressionResult> TackyGenerator::transform_cast_expression(pars
     std::unique_ptr<Value> dst_copy = std::make_unique<TemporaryVariable>(tmp_name);
 
     if (is_type<DoubleType>(*expr_type)) {
-        if (is_type<IntType>(*target_type) || is_type<LongType>(*target_type)) {
+        if (is_type<IntType>(*target_type) || is_type<LongType>(*target_type) || is_type<CharType>(*target_type) || is_type<SignedCharType>(*target_type)) {
             instructions.emplace_back(std::make_unique<DoubleToIntIntruction>(std::move(expr_res), std::move(dst)));
-        } else if (is_type<UnsignedIntType>(*target_type) || is_type<UnsignedLongType>(*target_type)) {
+        } else if (is_type<UnsignedIntType>(*target_type) || is_type<UnsignedLongType>(*target_type) || is_type<UnsignedCharType>(*target_type)) {
             instructions.emplace_back(std::make_unique<DoubleToUIntIntruction>(std::move(expr_res), std::move(dst)));
         } else {
             throw InternalCompilerError("Unsupported type");
         }
     } else if (is_type<DoubleType>(*target_type)) {
-        if (is_type<IntType>(*expr_type) || is_type<LongType>(*expr_type)) {
+        if (is_type<IntType>(*expr_type) || is_type<LongType>(*expr_type) || is_type<CharType>(*expr_type) || is_type<SignedCharType>(*expr_type)) {
             instructions.emplace_back(std::make_unique<IntToDoubleIntruction>(std::move(expr_res), std::move(dst)));
-        } else if (is_type<UnsignedIntType>(*expr_type) || is_type<UnsignedLongType>(*expr_type)) {
+        } else if (is_type<UnsignedIntType>(*expr_type) || is_type<UnsignedLongType>(*expr_type) || is_type<UnsignedCharType>(*expr_type)) {
             instructions.emplace_back(std::make_unique<UIntToDoubleIntruction>(std::move(expr_res), std::move(dst)));
         } else {
             throw InternalCompilerError("Unsupported type");
         }
     } else if (is_type<PointerType>(*expr_type)) {
-        if (is_type<IntType>(*target_type) || is_type<UnsignedIntType>(*target_type)) {
+        if (is_type<IntType>(*target_type) || is_type<UnsignedIntType>(*target_type) || target_type->is_char()) {
             instructions.emplace_back(std::make_unique<TruncateInstruction>(std::move(expr_res), std::move(dst)));
         } else if (is_type<LongType>(*target_type) || is_type<UnsignedLongType>(*target_type) || is_type<PointerType>(*target_type)) {
             instructions.emplace_back(std::make_unique<CopyInstruction>(std::move(expr_res), std::move(dst)));
@@ -388,9 +395,9 @@ std::unique_ptr<ExpressionResult> TackyGenerator::transform_cast_expression(pars
             throw InternalCompilerError("Unsupported type");
         }
     } else if (is_type<PointerType>(*target_type)) {
-        if (is_type<IntType>(*expr_type)) {
+        if (is_type<IntType>(*expr_type) || is_type<CharType>(*expr_type) || is_type<SignedCharType>(*expr_type)) {
             instructions.emplace_back(std::make_unique<SignExtendInstruction>(std::move(expr_res), std::move(dst)));
-        } else if (is_type<UnsignedIntType>(*expr_type)) {
+        } else if (is_type<UnsignedIntType>(*expr_type) || is_type<UnsignedCharType>(*expr_type)) {
             instructions.emplace_back(std::make_unique<ZeroExtendInstruction>(std::move(expr_res), std::move(dst)));
         } else if (is_type<LongType>(*expr_type) || is_type<UnsignedLongType>(*expr_type) || is_type<PointerType>(*expr_type)) {
             instructions.emplace_back(std::make_unique<CopyInstruction>(std::move(expr_res), std::move(dst)));
@@ -458,6 +465,12 @@ std::unique_ptr<ExpressionResult> TackyGenerator::transform_subscript_expression
     // auto scale = get_pointer_scale(*(*ptr_expr)->type);
     instructions.emplace_back(std::make_unique<AddPointerInstruction>(std::move(ptr_res), std::move(int_res), scale, dst->clone()));
     return std::make_unique<DereferencedPointer>(std::move(dst));
+}
+
+std::unique_ptr<ExpressionResult> TackyGenerator::transform_string_expression(parser::StringExpression& string_expression, std::vector<std::unique_ptr<Instruction>>& instructions)
+{
+    auto label = m_symbol_table->add_constant_string(string_expression.value);
+    return std::make_unique<PlainOperand>(std::make_unique<TemporaryVariable>(label));
 }
 
 std::unique_ptr<Value> TackyGenerator::emit_tacky_and_convert(parser::Expression& expr, std::vector<std::unique_ptr<Instruction>>& instructions)
@@ -645,8 +658,45 @@ void TackyGenerator::transform_declaration(parser::Declaration& declaration, std
         // We do not generate any code for local variable declarations with static or external specifiers
         if (variable_declaration->storage_class == parser::StorageClass::NONE && variable_declaration->expression.has_value()) {
             if (auto single_init = dynamic_cast<const parser::SingleInitializer*>(variable_declaration->expression.value().get())) {
-                std::unique_ptr<Value> value = emit_tacky_and_convert(*single_init->expression, instructions);
-                instructions.emplace_back(std::make_unique<CopyInstruction>(std::move(value), std::make_unique<TemporaryVariable>(variable_declaration->identifier.name)));
+                auto string_expr = dynamic_cast<const parser::StringExpression*>(single_init->expression.get());
+                if(string_expr && is_type<ArrayType>(*variable_declaration->type)){
+                    auto arr_type = dynamic_cast<ArrayType*>(variable_declaration->type.get());
+                    //we do not call emit_tacky_and_convert on string_expr when initializing an array
+                    std::string str = string_expr->value;
+                    if(str.size() < arr_type->array_size){
+                        str.append(arr_type->array_size - str.size(), '\0');
+                    }
+                    //str.size() can't be greater than array size as we typecked it
+                    //it can be only smaller or same size
+                    size_t S = str.size();
+                    size_t i = 0;
+                    while(i < S){
+                        size_t remaining = S - i;
+                        std::unique_ptr<Value> constant_value = nullptr;
+                        size_t offset = 1;
+                        if(remaining >= 8){
+                            long int value;
+                            std::memcpy(&value, str.data() + i, 8);
+                            constant_value = std::make_unique<Constant>(value);
+                            offset = 8;
+                        } else if(remaining >= 4){
+                            int value;
+                            std::memcpy(&value, str.data() + i, 4);
+                            constant_value = std::make_unique<Constant>(value);
+                            offset = 4;
+                        } else{
+                            char value = str[i];
+                            constant_value = std::make_unique<Constant>(value);
+                            offset = 1;
+                        }
+                        instructions.emplace_back(std::make_unique<CopyToOffsetInstruction>(std::move(constant_value), variable_declaration->identifier.name, i));
+                        i += offset;
+                    }
+                }else{
+                    std::unique_ptr<Value> value = emit_tacky_and_convert(*single_init->expression, instructions);
+                    instructions.emplace_back(std::make_unique<CopyInstruction>(std::move(value), std::make_unique<TemporaryVariable>(variable_declaration->identifier.name)));
+
+                }
             } else if (dynamic_cast<const parser::CompoundInitializer*>(variable_declaration->expression.value().get())) {
                 size_t index = 0;
                 transform_compound_initializer(variable_declaration->identifier, *variable_declaration->expression.value(), index, instructions);

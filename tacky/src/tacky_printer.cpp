@@ -498,6 +498,17 @@ void PrinterVisitor::visit(StaticVariable& node)
                   << " [label=\"name\"];\n";
 }
 
+void PrinterVisitor::visit(StaticConstant& node)
+{
+    int id = get_node_id(&node);
+    m_dot_content << "  node" << id << " [label=\"StaticConstant\"];\n";
+
+    // Process the name identifier
+    node.name.accept(*this);
+    m_dot_content << "  node" << id << " -> node" << get_node_id(&node.name)
+                  << " [label=\"name\"];\n";
+}
+
 void PrinterVisitor::visit(Program& node)
 {
     int id = get_node_id(&node);

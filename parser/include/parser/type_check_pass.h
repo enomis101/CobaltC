@@ -4,16 +4,15 @@
 #include "common/data/type.h"
 #include "common/data/warning_manager.h"
 #include "common/error/internal_compiler_error.h"
+#include "parser/context_stack_provider.h"
 #include "parser/parser_ast.h"
 #include <memory>
 #include <string>
-#include "parser/context_stack_provider.h"
 
 namespace parser {
 
-
-
-class TypeCheckPass : public ParserVisitor, public ContextStackProvider {
+class TypeCheckPass : public ParserVisitor
+    , public ContextStackProvider {
 public:
     TypeCheckPass(std::shared_ptr<ParserAST> ast, std::shared_ptr<SymbolTable> symbol_table, std::shared_ptr<SourceManager> source_manager, std::shared_ptr<WarningManager> warning_manager)
         : m_ast { ast }

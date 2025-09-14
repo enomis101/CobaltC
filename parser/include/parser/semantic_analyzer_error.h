@@ -3,7 +3,6 @@
 
 namespace parser {
 
-
 class SemanticAnalyzerError : public ContextStackError {
 public:
     explicit SemanticAnalyzerError(ContextStackProvider* context_provider, const std::string& message)

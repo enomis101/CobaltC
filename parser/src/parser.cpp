@@ -947,8 +947,6 @@ Parser::ContextGuard::~ContextGuard()
     m_context_stack.pop_back();
 }
 
-
-
 std::tuple<std::string, std::unique_ptr<Type>, std::vector<Identifier>> Parser::process_declarator(const Declarator& declarator, const Type& type)
 {
     if (auto id_decl = dynamic_cast<const IdentifierDeclarator*>(&declarator)) {

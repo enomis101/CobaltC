@@ -107,12 +107,12 @@ public:
 
 class Parser : public ContextStackProvider {
 public:
-    class ParserError : public ContextStackError{
+    class ParserError : public ContextStackError {
     public:
         explicit ParserError(ContextStackProvider* context_provider, const std::string& message)
             : ContextStackError(context_provider, message)
         {
-        }  
+        }
     };
 
     Parser(const std::vector<Token>& tokens, std::shared_ptr<SourceManager> source_manager)
@@ -185,7 +185,5 @@ private:
     bool has_tokens();
     size_t i = 0;
     DeclarationScope m_current_declaration_scope;
-
-
 };
 }

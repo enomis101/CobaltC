@@ -179,7 +179,7 @@ void CompilerApplication::run(const std::string& input_file, const std::string& 
         }
     } catch (const parser::SemanticAnalyzerError& e) {
         throw CompilerError(std::format("Semantic Analysis error: {}", e.what()));
-    }catch (const std::exception& e) {
+    } catch (const std::exception& e) {
         throw CompilerError(std::format(
             "Unexpected error during Semantic Analysis stage: {}\n"
             "This may indicate a bug in the compiler - please report this issue",

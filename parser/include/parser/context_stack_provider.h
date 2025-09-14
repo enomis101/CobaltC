@@ -8,11 +8,11 @@
 #define ENTER_CONTEXT_WITH_SOURCE(name) ContextGuard context_guard(m_context_stack, name, (has_tokens() ? std::optional<SourceLocation>(peek().source_location()) : std::nullopt))
 
 namespace parser {
-class ContextStackProvider
-{
+class ContextStackProvider {
 public:
     virtual std::string context_stack_to_string() const;
     virtual ~ContextStackProvider() = default;
+
 protected:
     using ContextStack = std::vector<std::string>;
 
@@ -35,7 +35,6 @@ public:
         : std::runtime_error(message + context_provider->context_stack_to_string())
     {
     }
-
 };
 
-}//namespace parser
+} // namespace parser

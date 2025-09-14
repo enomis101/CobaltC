@@ -69,7 +69,7 @@ void TypeCheckPass::typecheck_expression(Expression& expr)
         typecheck_address_of_expression(*addr_of);
     } else if (auto* subscript = dynamic_cast<SubscriptExpression*>(&expr)) {
         typecheck_subscript_expression(*subscript);
-    }else if (auto* string_expression = dynamic_cast<StringExpression*>(&expr)) {
+    } else if (auto* string_expression = dynamic_cast<StringExpression*>(&expr)) {
         typecheck_string_expression(*string_expression);
     } else {
         throw InternalCompilerError("Unknown expression type in typecheck_expression");
@@ -384,16 +384,16 @@ void TypeCheckPass::typecheck_initializer(const Type& target_type, Initializer& 
     ENTER_CONTEXT("typecheck_initializer");
 
     if (auto single_init = dynamic_cast<SingleInitializer*>(&init)) {
-        //Handle SingleInitializers containing string expression initializing an array differently
-        if(is_type<ArrayType>(target_type) && dynamic_cast<StringExpression*>(single_init->expression.get())){
+        // Handle SingleInitializers containing string expression initializing an array differently
+        if (is_type<ArrayType>(target_type) && dynamic_cast<StringExpression*>(single_init->expression.get())) {
             auto arr_type = dynamic_cast<const ArrayType*>(&target_type);
             auto string_expr = dynamic_cast<StringExpression*>(single_init->expression.get());
-            //We call typecheck_expression to at least assign a type to the inner expression
+            // We call typecheck_expression to at least assign a type to the inner expression
             typecheck_expression(*single_init->expression);
-            if(!arr_type->element_type->is_char()){
+            if (!arr_type->element_type->is_char()) {
                 throw SemanticAnalyzerError(this, std::format("Cannot initialize a non character with a string literal:\n{}", m_source_manager->get_source_line(init.source_location)));
             }
-            if(string_expr->value.size() > arr_type->size()){
+            if (string_expr->value.size() > arr_type->size()) {
                 throw SemanticAnalyzerError(this, std::format("Too many characters in string literal:\n{}", m_source_manager->get_source_line(single_init->expression->source_location)));
             }
             single_init->type = target_type.clone();
@@ -458,54 +458,52 @@ StaticInitialValue TypeCheckPass::convert_static_initializer(const Type& target_
 {
     ENTER_CONTEXT("convert_static_initializer");
     if (auto single_init = dynamic_cast<SingleInitializer*>(&init)) {
-        if(auto string_expr = dynamic_cast<StringExpression*>(single_init->expression.get())){
-            if(auto arr_type = dynamic_cast<const ArrayType*>(&target_type)){
-                //We call typecheck_expression to at least assign a type to the inner expression
+        if (auto string_expr = dynamic_cast<StringExpression*>(single_init->expression.get())) {
+            if (auto arr_type = dynamic_cast<const ArrayType*>(&target_type)) {
+                // We call typecheck_expression to at least assign a type to the inner expression
                 typecheck_expression(*single_init->expression);
-                if(!arr_type->element_type->is_char()){
+                if (!arr_type->element_type->is_char()) {
                     throw SemanticAnalyzerError(this, std::format("Cannot initialize a non character with a string literal:\n{}", m_source_manager->get_source_line(init.source_location)));
                 }
-                if(string_expr->value.size() > arr_type->size()){
+                if (string_expr->value.size() > arr_type->size()) {
                     throw SemanticAnalyzerError(this, std::format("Too many characters in string literal:\n{}", m_source_manager->get_source_line(single_init->expression->source_location)));
                 }
                 int diff = arr_type->size() - string_expr->value.size();
-                //diff can't be < 0
+                // diff can't be < 0
                 bool is_null_terminated = diff > 0;
                 StaticInitialValue res;
                 res.values.push_back(StaticInitialValueType(StringInit(string_expr->value, is_null_terminated)));
-                //one space is consumed for the null terminated character
-                if(diff > 1){
+                // one space is consumed for the null terminated character
+                if (diff > 1) {
                     res.values.push_back(StaticInitialValueType(ZeroInit(diff - 1)));
                 }
                 single_init->type = target_type.clone();
                 return res;
-            } else if(auto ptr_type = dynamic_cast<const PointerType*>(&target_type)){
-                //Initializing a Static Pointer with a String Literal
+            } else if (auto ptr_type = dynamic_cast<const PointerType*>(&target_type)) {
+                // Initializing a Static Pointer with a String Literal
                 typecheck_expression(*single_init->expression);
-                if(!is_type<CharType>(*ptr_type->referenced_type)){
-                    //this is consistent with pointer conversion
+                if (!is_type<CharType>(*ptr_type->referenced_type)) {
+                    // this is consistent with pointer conversion
                     throw SemanticAnalyzerError(this, std::format("A string literal can only initialize a char pointer:\n{}", m_source_manager->get_source_line(init.source_location)));
                 }
                 auto label = m_symbol_table->add_constant_string(string_expr->value);
                 single_init->type = target_type.clone();
                 StaticInitialValue res;
-                res.values.push_back(StaticInitialValueType{PointerInit(label)});
+                res.values.push_back(StaticInitialValueType { PointerInit(label) });
                 return res;
             }
-
-        } 
+        }
 
         typecheck_expression_and_convert(single_init->expression);
 
         auto const_expr = dynamic_cast<ConstantExpression*>(single_init->expression.get());
         if (!const_expr) {
-            throw SemanticAnalyzerError(this, std::format("Static variable declaration has non-constant initializer! at:\n{}",
-                m_source_manager->get_source_line(init.source_location)));
+            throw SemanticAnalyzerError(this, std::format("Static variable declaration has non-constant initializer! at:\n{}", m_source_manager->get_source_line(init.source_location)));
         }
         single_init->type = target_type.clone();
         return convert_constant_type_by_assignment(const_expr->value, target_type, init.source_location, warning_callback);
-    } 
-    
+    }
+
     if (auto compound_init = dynamic_cast<CompoundInitializer*>(&init)) {
         if (auto arr_type = dynamic_cast<const ArrayType*>(&target_type)) {
             if (compound_init->initializer_list.size() > arr_type->array_size) {
@@ -538,11 +536,11 @@ StaticInitialValue TypeCheckPass::convert_static_initializer(const Type& target_
             compound_init->type = target_type.clone();
             return res;
         }
-            
+
         throw SemanticAnalyzerError(this, std::format("Can't initialize scalar object with a compound initializer at:\n{}", m_source_manager->get_source_line(init.source_location)));
     }
 
-    throw InternalCompilerError("Unsupported type in typecheck_initializer"); 
+    throw InternalCompilerError("Unsupported type in typecheck_initializer");
 }
 
 size_t TypeCheckPass::get_static_zero_initializer(const Type& type)
@@ -550,7 +548,7 @@ size_t TypeCheckPass::get_static_zero_initializer(const Type& type)
     ENTER_CONTEXT("get_static_zero_initializer");
     if (auto arr_type = dynamic_cast<const ArrayType*>(&type)) {
         return get_static_zero_initializer(*arr_type->element_type) * arr_type->array_size;
-    } 
+    }
 
     if (type.is_scalar()) {
         return type.size();
@@ -705,7 +703,7 @@ void TypeCheckPass::visit(CompoundStatement& node)
 void TypeCheckPass::visit(WhileStatement& node)
 {
     ENTER_CONTEXT("visit(WhileStatement& node)");
-    
+
     typecheck_expression_and_convert(node.condition);
     node.body->accept(*this);
 }
@@ -956,8 +954,7 @@ StaticInitialValue TypeCheckPass::convert_constant_type_by_assignment(const Cons
     StaticInitialValue static_init;
     auto res = SymbolTable::convert_constant_type(value, target_type, warning_callback);
     if (!res) {
-        throw SemanticAnalyzerError(this, std::format("Failed convert_constant_type {}  at:\n{}",
-            res.error(), m_source_manager->get_source_line(loc)));
+        throw SemanticAnalyzerError(this, std::format("Failed convert_constant_type {}  at:\n{}", res.error(), m_source_manager->get_source_line(loc)));
     }
 
     static_init.values = { StaticInitialValueType(res.value()) };
@@ -967,9 +964,9 @@ StaticInitialValue TypeCheckPass::convert_constant_type_by_assignment(const Cons
 bool TypeCheckPass::is_lvalue(const Expression& expr)
 {
     ENTER_CONTEXT("is_lvalue");
-    return dynamic_cast<const VariableExpression*>(&expr) 
-    || dynamic_cast<const DereferenceExpression*>(&expr) 
-    || dynamic_cast<const SubscriptExpression*>(&expr)
-    // string literals are lvalues
-    || dynamic_cast<const StringExpression*>(&expr);
+    return dynamic_cast<const VariableExpression*>(&expr)
+        || dynamic_cast<const DereferenceExpression*>(&expr)
+        || dynamic_cast<const SubscriptExpression*>(&expr)
+        // string literals are lvalues
+        || dynamic_cast<const StringExpression*>(&expr);
 }

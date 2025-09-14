@@ -50,7 +50,7 @@ void TackyGenerator::transform_symbols_to_tacky(std::shared_ptr<TackyAST> tacky_
             } else if (std::holds_alternative<NoInit>(static_attr.init)) {
                 continue;
             }
-        } else if(std::holds_alternative<ConstantAttribute>(entry.attribute)){
+        } else if (std::holds_alternative<ConstantAttribute>(entry.attribute)) {
             const auto& constant_attr = std::get<ConstantAttribute>(entry.attribute);
             const std::string& variable_name = p.first;
             top_levels.emplace_back(std::make_unique<StaticConstant>(variable_name, entry.type->clone(), constant_attr.init));
@@ -659,32 +659,32 @@ void TackyGenerator::transform_declaration(parser::Declaration& declaration, std
         if (variable_declaration->storage_class == parser::StorageClass::NONE && variable_declaration->expression.has_value()) {
             if (auto single_init = dynamic_cast<const parser::SingleInitializer*>(variable_declaration->expression.value().get())) {
                 auto string_expr = dynamic_cast<const parser::StringExpression*>(single_init->expression.get());
-                if(string_expr && is_type<ArrayType>(*variable_declaration->type)){
+                if (string_expr && is_type<ArrayType>(*variable_declaration->type)) {
                     auto arr_type = dynamic_cast<ArrayType*>(variable_declaration->type.get());
-                    //we do not call emit_tacky_and_convert on string_expr when initializing an array
+                    // we do not call emit_tacky_and_convert on string_expr when initializing an array
                     std::string str = string_expr->value;
-                    if(str.size() < arr_type->array_size){
+                    if (str.size() < arr_type->array_size) {
                         str.append(arr_type->array_size - str.size(), '\0');
                     }
-                    //str.size() can't be greater than array size as we typecked it
-                    //it can be only smaller or same size
+                    // str.size() can't be greater than array size as we typecked it
+                    // it can be only smaller or same size
                     size_t S = str.size();
                     size_t i = 0;
-                    while(i < S){
+                    while (i < S) {
                         size_t remaining = S - i;
                         std::unique_ptr<Value> constant_value = nullptr;
                         size_t offset = 1;
-                        if(remaining >= 8){
+                        if (remaining >= 8) {
                             long int value;
                             std::memcpy(&value, str.data() + i, 8);
                             constant_value = std::make_unique<Constant>(value);
                             offset = 8;
-                        } else if(remaining >= 4){
+                        } else if (remaining >= 4) {
                             int value;
                             std::memcpy(&value, str.data() + i, 4);
                             constant_value = std::make_unique<Constant>(value);
                             offset = 4;
-                        } else{
+                        } else {
                             char value = str[i];
                             constant_value = std::make_unique<Constant>(value);
                             offset = 1;
@@ -692,10 +692,9 @@ void TackyGenerator::transform_declaration(parser::Declaration& declaration, std
                         instructions.emplace_back(std::make_unique<CopyToOffsetInstruction>(std::move(constant_value), variable_declaration->identifier.name, i));
                         i += offset;
                     }
-                }else{
+                } else {
                     std::unique_ptr<Value> value = emit_tacky_and_convert(*single_init->expression, instructions);
                     instructions.emplace_back(std::make_unique<CopyInstruction>(std::move(value), std::make_unique<TemporaryVariable>(variable_declaration->identifier.name)));
-
                 }
             } else if (dynamic_cast<const parser::CompoundInitializer*>(variable_declaration->expression.value().get())) {
                 size_t index = 0;

@@ -8,8 +8,8 @@
 
 namespace parser {
 
-
-class LoopLabelingPass : public ParserVisitor, public ContextStackProvider {
+class LoopLabelingPass : public ParserVisitor
+    , public ContextStackProvider {
 public:
     LoopLabelingPass(std::shared_ptr<ParserAST> ast, std::shared_ptr<NameGenerator> name_generator)
         : m_ast { ast }

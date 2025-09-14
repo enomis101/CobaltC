@@ -1,7 +1,7 @@
 #include "parser/identifier_resolution_pass.h"
 #include "parser/parser_ast.h"
-#include <format>
 #include "parser/semantic_analyzer_error.h"
+#include <format>
 
 using namespace parser;
 

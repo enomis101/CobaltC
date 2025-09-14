@@ -150,7 +150,7 @@ public:
     size_t size() const override { return TypeSizes::CHAR_SIZE; }
     bool is_scalar() const override { return true; }
     bool is_char() const override { return true; }
-    bool is_integer() const override {return true;}
+    bool is_integer() const override { return true; }
 };
 
 class UnsignedCharType : public Type {
@@ -171,7 +171,7 @@ public:
     size_t size() const override { return TypeSizes::CHAR_SIZE; }
     bool is_scalar() const override { return true; }
     bool is_char() const override { return true; }
-    bool is_integer() const override {return true;}
+    bool is_integer() const override { return true; }
 };
 
 class SignedCharType : public Type {
@@ -192,7 +192,7 @@ public:
     size_t size() const override { return TypeSizes::CHAR_SIZE; }
     bool is_scalar() const override { return true; }
     bool is_char() const override { return true; }
-    bool is_integer() const override {return true;}
+    bool is_integer() const override { return true; }
 };
 
 class DoubleType : public Type {

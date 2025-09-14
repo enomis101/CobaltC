@@ -7,7 +7,8 @@
 
 namespace parser {
 
-class IdentifierResolutionPass : public ParserVisitor, public ContextStackProvider {
+class IdentifierResolutionPass : public ParserVisitor
+    , public ContextStackProvider {
 public:
     IdentifierResolutionPass(std::shared_ptr<ParserAST> ast, std::shared_ptr<NameGenerator> name_generator)
         : m_ast { ast }

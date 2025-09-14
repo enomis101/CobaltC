@@ -17,15 +17,13 @@ public:
     size_t size;
 };
 
-class StringInit
-{
+class StringInit {
 public:
     std::string value;
     bool null_terminated;
 };
 
-class PointerInit
-{
+class PointerInit {
 public:
     std::string name;
 };
@@ -108,7 +106,6 @@ private:
     std::variant<ConstantType, ZeroInit, StringInit, PointerInit> m_value;
 };
 
-
 struct TentativeInit { };
 
 struct StaticInitialValue {
@@ -129,8 +126,8 @@ struct StaticAttribute {
     bool global = false;
 };
 
-//A constant is initialized with a single value
-struct ConstantAttribute{
+// A constant is initialized with a single value
+struct ConstantAttribute {
     StaticInitialValueType init;
 };
 
@@ -189,11 +186,12 @@ public:
         return m_symbols.contains(name);
     }
 
-    std::string add_constant_string(const std::string& constant_string){
-        if(!m_constant_string_labels.contains(constant_string)){
+    std::string add_constant_string(const std::string& constant_string)
+    {
+        if (!m_constant_string_labels.contains(constant_string)) {
             std::string new_label = "consatnt.string." + std::to_string(m_constant_string_labels.size());
-            m_constant_string_labels.insert({constant_string,new_label});
-            //account for null termination
+            m_constant_string_labels.insert({ constant_string, new_label });
+            // account for null termination
             auto type = std::make_unique<ArrayType>(std::make_unique<CharType>(), constant_string.size() + 1);
             IdentifierAttribute attr = ConstantAttribute(StaticInitialValueType(StringInit(constant_string, true)));
             insert_symbol(new_label, std::move(type), attr);

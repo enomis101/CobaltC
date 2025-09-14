@@ -1,8 +1,7 @@
 #include "parser/context_stack_provider.h"
 #include <format>
 
-namespace parser{
-
+namespace parser {
 
 std::string ContextStackProvider::context_stack_to_string() const
 {

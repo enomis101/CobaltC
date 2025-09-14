@@ -56,7 +56,8 @@ private:
 
     bool is_relational_operator(tacky::BinaryOperator op);
     ConditionCode to_condition_code(tacky::BinaryOperator op, bool is_signed);
-    std::pair<AssemblyType, bool> get_operand_type(tacky::Value& operand);
+    std::pair<AssemblyType, bool> get_converted_operand_type(tacky::Value& operand);
+    std::unique_ptr<Type> get_operand_type(tacky::Value& operand);
     std::pair<AssemblyType, bool> convert_type(const Type& type);
     std::shared_ptr<tacky::TackyAST> m_ast;
     std::shared_ptr<SymbolTable> m_symbol_table;

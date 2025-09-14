@@ -162,7 +162,9 @@ void PseudoRegisterReplaceStep::check_and_replace(std::unique_ptr<Operand>& op)
 size_t PseudoRegisterReplaceStep::get_offset(AssemblyType type, const std::string& name)
 {
     if (!m_stack_offsets.contains(name)) {
-        if (type == AssemblyType::LONG_WORD) {
+        if (type == AssemblyType::BYTE) {
+            m_curr_offset++;
+        }else if (type == AssemblyType::LONG_WORD) {
             m_curr_offset += 4;
         } else if (type == AssemblyType::QUAD_WORD || type == AssemblyType::DOUBLE) {
             m_curr_offset = round_up(m_curr_offset + 8, 8);

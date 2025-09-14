@@ -108,6 +108,9 @@ void FixUpInstructionsStep::fixup_mov_instruction(std::unique_ptr<Instruction>& 
                     // For movl instructions, truncate 8-byte immediates to avoid assembler warnings
                     // The assembler would do this automatically, but we do it explicitly
                     imm_val->value = static_cast<int>(value);
+                } else if(original_type == AssemblyType::BYTE){
+                    // For movb instructions, truncate to avoid assembler warnings
+                    imm_val->value = static_cast<char>(value);
                 } else if (dynamic_cast<MemoryAddress*>(mov_instruction->destination.get()) || dynamic_cast<DataOperand*>(mov_instruction->destination.get())) {
                     // movq can move large immediates to registers but not directly to memory
                     // Use two-step process: immediate -> R10 -> memory
@@ -125,6 +128,9 @@ void FixUpInstructionsStep::fixup_mov_instruction(std::unique_ptr<Instruction>& 
                     // For movl instructions, truncate 8-byte immediates to avoid assembler warnings
                     // The assembler would do this automatically, but we do it explicitly
                     imm_val->value = static_cast<int>(value);
+                }else if(original_type == AssemblyType::BYTE){
+                    // For movb instructions, truncate to avoid assembler warnings
+                    imm_val->value = static_cast<char>(value);
                 } else if (dynamic_cast<MemoryAddress*>(mov_instruction->destination.get()) || dynamic_cast<DataOperand*>(mov_instruction->destination.get())) {
                     // movq can move large immediates to registers but not directly to memory
                     // Use two-step process: immediate -> R10 -> memory
@@ -141,6 +147,9 @@ void FixUpInstructionsStep::fixup_mov_instruction(std::unique_ptr<Instruction>& 
                 if (original_type == AssemblyType::LONG_WORD) {
                     // For movl instructions, truncate to avoid assembler warnings
                     imm_val->value = static_cast<int>(value);
+                }else if(original_type == AssemblyType::BYTE){
+                    // For movb instructions, truncate to avoid assembler warnings
+                    imm_val->value = static_cast<char>(value);
                 } else if (dynamic_cast<MemoryAddress*>(mov_instruction->destination.get()) || dynamic_cast<DataOperand*>(mov_instruction->destination.get())) {
                     // movq can move large immediates to registers but not directly to memory
                     // Use two-step process: immediate -> R10 -> memory
@@ -497,19 +506,62 @@ void FixUpInstructionsStep::fixup_movsx_instruction(std::unique_ptr<Instruction>
 
 void FixUpInstructionsStep::fixup_mov_zero_extend_instruction(std::unique_ptr<Instruction>& instruction, std::vector<std::unique_ptr<Instruction>>& instructions)
 {
-
     auto mov_zero_extend_instruction = dynamic_cast<MovZeroExtendInstruction*>(instruction.get());
     bool dest_is_memory = mov_zero_extend_instruction->destination->is_memory();
+    bool source_is_immediate = dynamic_cast<ImmediateValue*>(mov_zero_extend_instruction->source.get());
 
-    if (dest_is_memory) {
-        auto mov_instr1 = std::make_unique<MovInstruction>(AssemblyType::LONG_WORD, std::move(mov_zero_extend_instruction->source), std::make_unique<Register>(RegisterName::R11));
-        instructions.emplace_back(std::move(mov_instr1));
+    if(mov_zero_extend_instruction->source_type == AssemblyType::LONG_WORD){
+        // If source operand is longword, replace with mov instructions
+        if (dest_is_memory) {
+            auto mov_instr1 = std::make_unique<MovInstruction>(AssemblyType::LONG_WORD, std::move(mov_zero_extend_instruction->source), std::make_unique<Register>(RegisterName::R11));
+            instructions.emplace_back(std::move(mov_instr1));
 
-        auto mov_instr2 = std::make_unique<MovInstruction>(AssemblyType::QUAD_WORD, std::make_unique<Register>(RegisterName::R11), std::move(mov_zero_extend_instruction->destination));
-        instructions.emplace_back(std::move(mov_instr2));
+            auto mov_instr2 = std::make_unique<MovInstruction>(AssemblyType::QUAD_WORD, std::make_unique<Register>(RegisterName::R11), std::move(mov_zero_extend_instruction->destination));
+            instructions.emplace_back(std::move(mov_instr2));
+        } else {
+            auto mov_instr = std::make_unique<MovInstruction>(AssemblyType::LONG_WORD, std::move(mov_zero_extend_instruction->source), std::move(mov_zero_extend_instruction->destination));
+            instructions.emplace_back(std::move(mov_instr));
+        }
+    } else if (mov_zero_extend_instruction->source_type == AssemblyType::BYTE) {
+        // movz constraints: destination must be register, source must not be immediate
+        bool needs_fixup = source_is_immediate || dest_is_memory;
+        
+        if (needs_fixup) {
+            // Step 1: Handle immediate source by moving to R10 (byte register)
+            if (source_is_immediate) {
+                // movb immediate, %r10b
+                instructions.emplace_back(std::make_unique<MovInstruction>(
+                    AssemblyType::BYTE,
+                    std::move(mov_zero_extend_instruction->source),
+                    std::make_unique<Register>(RegisterName::R10, AssemblyType::BYTE)));
+                mov_zero_extend_instruction->source = std::make_unique<Register>(RegisterName::R10, AssemblyType::BYTE);
+            }
+            
+            // Step 2: Change destination to R11 if it's memory
+            std::unique_ptr<MovInstruction> final_move = nullptr;
+            if (dest_is_memory) {
+                // Store the original destination for the final move
+                final_move = std::make_unique<MovInstruction>(
+                    AssemblyType::LONG_WORD,  // movzbl produces a 32-bit result
+                    std::make_unique<Register>(RegisterName::R11, AssemblyType::LONG_WORD),
+                    std::move(mov_zero_extend_instruction->destination));
+                mov_zero_extend_instruction->destination = std::make_unique<Register>(RegisterName::R11, AssemblyType::LONG_WORD);
+            }
+            
+            // Step 3: Add the fixed movzbl instruction
+            instructions.emplace_back(std::move(instruction));
+            
+            // Step 4: Add final move if destination was memory
+            if (final_move) {
+                instructions.emplace_back(std::move(final_move));
+            }
+        } else {
+            // No fixup needed - source is register/memory and destination is register
+            instructions.emplace_back(std::move(instruction));
+        }
     } else {
-        auto mov_instr = std::make_unique<MovInstruction>(AssemblyType::LONG_WORD, std::move(mov_zero_extend_instruction->source), std::move(mov_zero_extend_instruction->destination));
-        instructions.emplace_back(std::move(mov_instr));
+        // Handle other source types (if any) - just pass through
+        instructions.emplace_back(std::move(instruction));
     }
 }
 

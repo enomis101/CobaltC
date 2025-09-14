@@ -493,10 +493,10 @@ public:
         , destination(std::move(dst))
     {
         switch (type) {
+        case AssemblyType::BYTE:
         case AssemblyType::LONG_WORD:
         case AssemblyType::QUAD_WORD:
         case AssemblyType::DOUBLE:
-            break;
         case AssemblyType::BYTE_ARRAY:
             break;
         default:
@@ -525,8 +525,10 @@ public:
 
 class MovsxInstruction : public Instruction {
 public:
-    MovsxInstruction(std::unique_ptr<Operand> src, std::unique_ptr<Operand> dst)
-        : source(std::move(src))
+    MovsxInstruction(AssemblyType source_type, AssemblyType destination_type, std::unique_ptr<Operand> src, std::unique_ptr<Operand> dst)
+        : source_type(source_type)
+        , destination_type(destination_type)
+        , source(std::move(src))
         , destination(std::move(dst))
     {
     }
@@ -538,18 +540,20 @@ public:
 
     std::unique_ptr<Instruction> clone() const override
     {
-        return std::make_unique<MovsxInstruction>(
+        return std::make_unique<MovsxInstruction>(source_type, destination_type,
             source->clone(),
             destination->clone());
     }
 
+    AssemblyType source_type;
+    AssemblyType destination_type;
     std::unique_ptr<Operand> source;
     std::unique_ptr<Operand> destination;
 };
 
 class MovZeroExtendInstruction : public Instruction {
 public:
-    MovZeroExtendInstruction(std::unique_ptr<Operand> src, std::unique_ptr<Operand> dst)
+    MovZeroExtendInstruction(AssemblyType source_type, AssemblyType destination_type, std::unique_ptr<Operand> src, std::unique_ptr<Operand> dst)
         : source(std::move(src))
         , destination(std::move(dst))
     {
@@ -562,11 +566,12 @@ public:
 
     std::unique_ptr<Instruction> clone() const override
     {
-        return std::make_unique<MovZeroExtendInstruction>(
+        return std::make_unique<MovZeroExtendInstruction>(source_type, destination_type,
             source->clone(),
             destination->clone());
     }
-
+    AssemblyType source_type;
+    AssemblyType destination_type;
     std::unique_ptr<Operand> source;
     std::unique_ptr<Operand> destination;
 };

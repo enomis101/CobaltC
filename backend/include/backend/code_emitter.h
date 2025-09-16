@@ -35,7 +35,7 @@ private:
     void visit(ReturnInstruction& node) override;
     void visit(MovInstruction& node) override;
     void visit(MovsxInstruction& node) override;
-    void visit(MovZeroExtendInstruction& node) override { throw InternalCompilerError("Found MovZeroExtendInstruction node during CodeEmission"); }
+    void visit(MovZeroExtendInstruction& node) override;
     void visit(LeaInstruction& node) override;
     void visit(Cvttsd2siInstruction& node) override;
     void visit(Cvtsi2sdInstruction& node) override;
@@ -61,6 +61,7 @@ private:
     std::string to_instruction_suffix(ConditionCode cc);
     std::string to_instruction_suffix(AssemblyType type);
     std::string get_function_name(const std::string& in_name);
+    std::string escape_string(const std::string& str);
     const std::string m_output_file;
     std::shared_ptr<AssemblyAST> m_ast;
     std::shared_ptr<BackendSymbolTable> m_symbol_table;

@@ -315,7 +315,16 @@ void CodeEmitter::visit(MovInstruction& node)
 
 void CodeEmitter::visit(MovsxInstruction& node)
 {
-    *m_file_stream << std::format("\tmovslq ");
+    *m_file_stream << std::format("\tmovs{}{} ", to_instruction_suffix(node.source_type), to_instruction_suffix(node.destination_type));
+    node.source->accept(*this);
+    *m_file_stream << ", ";
+    node.destination->accept(*this);
+    *m_file_stream << "\n";
+}
+
+void CodeEmitter::visit(MovZeroExtendInstruction& node)
+{
+    *m_file_stream << std::format("\tmovz{}{} ", to_instruction_suffix(node.source_type), to_instruction_suffix(node.destination_type));
     node.source->accept(*this);
     *m_file_stream << ", ";
     node.destination->accept(*this);
@@ -476,7 +485,7 @@ void CodeEmitter::visit(StaticVariable& node)
         for (auto& static_init : node.static_init.values) {
             if (static_init.is_zero()) {
                 *m_file_stream << std::format("\t.zero {}\n", static_init.zero_size());
-            } else {
+            } else if (static_init.is_constant()) {
                 ConstantType const_static_init = static_init.constant_value();
 
                 if (std::holds_alternative<int>(const_static_init)) {
@@ -494,7 +503,26 @@ void CodeEmitter::visit(StaticVariable& node)
                 } else if (std::holds_alternative<double>(const_static_init)) {
                     auto init_value = std::get<double>(const_static_init);
                     *m_file_stream << std::format("\t.double {}\n", init_value);
+                } else if (std::holds_alternative<char>(const_static_init)) {
+                    auto init_value = std::get<char>(const_static_init);
+                    if (init_value == 0) {
+                        *m_file_stream << std::format("\t.zero 1\n");
+                    } else {
+                        *m_file_stream << std::format("\t.byte {}\n", init_value);
+                    }
+                } else if (std::holds_alternative<unsigned char>(const_static_init)) {
+                    auto init_value = std::get<unsigned char>(const_static_init);
+                    if (init_value == 0) {
+                        *m_file_stream << std::format("\t.zero 1\n");
+                    } else {
+                        *m_file_stream << std::format("\t.byte {}\n", init_value);
+                    }
                 }
+            } else if (static_init.is_pointer()) {
+                *m_file_stream << std::format("\t.quad {}\n", static_init.pointer_init().name);
+            } else if (static_init.is_string()) {
+                bool null_terminated = static_init.string_init().null_terminated;
+                *m_file_stream << std::format("\t.{} \"{}\"\n", (null_terminated ? "asciiz" : "ascii"), escape_string(static_init.string_init().value));
             }
         }
     }
@@ -515,8 +543,13 @@ void CodeEmitter::visit(StaticConstant& node)
     if (node.static_init.values.size() != 1) {
         throw InternalCompilerError("CodeEmitter: StaticConstant must be single");
     }
+
+    auto& static_init = node.static_init.values[0];
     if (node.static_init.values[0].is_zero()) {
         *m_file_stream << std::format("\t{} {}\n", (".double"), 0.0);
+    } else if (static_init.is_string()) {
+        bool null_terminated = static_init.string_init().null_terminated;
+        *m_file_stream << std::format("\t.{} \"{}\"\n", (null_terminated ? "asciiz" : "ascii"), escape_string(static_init.string_init().value));
     } else {
         ConstantType const_static_init = node.static_init.values[0].constant_value();
         if (std::holds_alternative<double>(const_static_init)) {
@@ -601,6 +634,8 @@ std::string CodeEmitter::to_instruction_suffix(ConditionCode cc)
 std::string CodeEmitter::to_instruction_suffix(AssemblyType type)
 {
     switch (type) {
+    case AssemblyType::BYTE:
+        return "b";
     case AssemblyType::LONG_WORD:
         return "l";
     case AssemblyType::QUAD_WORD:
@@ -619,4 +654,37 @@ std::string CodeEmitter::get_function_name(const std::string& in_name)
     const auto& fun_attr = std::get<FunctionEntry>(m_symbol_table->symbol_at(in_name));
     std::string suffix = fun_attr.defined ? "" : "@PLT";
     return in_name + suffix;
+}
+
+std::string CodeEmitter::escape_string(const std::string& str)
+{
+    std::string escaped;
+    for (char c : str) {
+        switch (c) {
+        case '"':
+            escaped += "\\\"";
+            break;
+        case '\\':
+            escaped += "\\\\";
+            break;
+        case '\n':
+            escaped += "\\n";
+            break;
+        case '\t':
+            escaped += "\\t";
+            break;
+        case '\r':
+            escaped += "\\r";
+            break;
+        default:
+            // For other special characters, use octal escape sequences
+            if (c < 32 || c > 126) {
+                escaped += std::format("\\{:03o}", static_cast<unsigned char>(c));
+            } else {
+                escaped += c;
+            }
+            break;
+        }
+    }
+    return escaped;
 }

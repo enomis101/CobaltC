@@ -164,7 +164,7 @@ size_t PseudoRegisterReplaceStep::get_offset(AssemblyType type, const std::strin
     if (!m_stack_offsets.contains(name)) {
         if (type == AssemblyType::BYTE) {
             m_curr_offset++;
-        }else if (type == AssemblyType::LONG_WORD) {
+        } else if (type == AssemblyType::LONG_WORD) {
             m_curr_offset += 4;
         } else if (type == AssemblyType::QUAD_WORD || type == AssemblyType::DOUBLE) {
             m_curr_offset = round_up(m_curr_offset + 8, 8);

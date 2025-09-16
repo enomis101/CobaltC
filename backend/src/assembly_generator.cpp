@@ -306,7 +306,7 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_sign_exte
 {
     std::vector<std::unique_ptr<Instruction>> instructions;
     auto [src_type, is_src_signed] = get_converted_operand_type(*sign_extend_instruction.source);
-    auto [dst_type, is_dst_signed]  = get_converted_operand_type(*sign_extend_instruction.destination);
+    auto [dst_type, is_dst_signed] = get_converted_operand_type(*sign_extend_instruction.destination);
     std::unique_ptr<Operand> src = transform_operand(*sign_extend_instruction.source);
     std::unique_ptr<Operand> dst = transform_operand(*sign_extend_instruction.destination);
     add_comment_instruction("sign_extend_instruction", instructions);
@@ -319,7 +319,7 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_truncate_
     std::vector<std::unique_ptr<Instruction>> instructions;
     std::unique_ptr<Operand> src = transform_operand(*truncate_instruction.source);
     std::unique_ptr<Operand> dst = transform_operand(*truncate_instruction.destination);
-    auto [dst_type, is_dst_signed]  = get_converted_operand_type(*truncate_instruction.destination);
+    auto [dst_type, is_dst_signed] = get_converted_operand_type(*truncate_instruction.destination);
     add_comment_instruction("truncate_instruction", instructions);
     instructions.emplace_back(std::make_unique<MovInstruction>(dst_type, std::move(src), std::move(dst)));
     return instructions;
@@ -329,7 +329,7 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_zero_exte
 {
     std::vector<std::unique_ptr<Instruction>> instructions;
     auto [src_type, is_src_signed] = get_converted_operand_type(*zero_extend_instruction.source);
-    auto [dst_type, is_dst_signed]  = get_converted_operand_type(*zero_extend_instruction.destination);
+    auto [dst_type, is_dst_signed] = get_converted_operand_type(*zero_extend_instruction.destination);
     std::unique_ptr<Operand> src = transform_operand(*zero_extend_instruction.source);
     std::unique_ptr<Operand> dst = transform_operand(*zero_extend_instruction.destination);
     add_comment_instruction("zero_extend_instruction", instructions);
@@ -348,12 +348,12 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_int_to_do
     std::unique_ptr<Operand> dst = transform_operand(*int_to_double_instruction.destination);
     RegisterName reg1_name = RegisterName::AX;
     auto reg1 = std::make_unique<Register>(reg1_name);
-    if(is_type<CharType>(*original_src_type) || is_type<SignedCharType>(*original_src_type)){
+    if (is_type<CharType>(*original_src_type) || is_type<SignedCharType>(*original_src_type)) {
         instructions.emplace_back(std::make_unique<MovsxInstruction>(AssemblyType::BYTE, AssemblyType::LONG_WORD, std::move(src), reg1->clone()));
         instructions.emplace_back(std::make_unique<Cvtsi2sdInstruction>(AssemblyType::LONG_WORD, reg1->clone(), std::move(dst)));
-    } else if(is_type<IntType>(*original_src_type) || is_type<LongType>(*original_src_type)){
+    } else if (is_type<IntType>(*original_src_type) || is_type<LongType>(*original_src_type)) {
         instructions.emplace_back(std::make_unique<Cvtsi2sdInstruction>(src_type, std::move(src), std::move(dst)));
-    } else{
+    } else {
         throw InternalCompilerError("AssemblyGenerator::transform_int_to_double_instruction: Invalid source type");
     }
     return instructions;
@@ -372,12 +372,12 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_double_to
     RegisterName reg1_name = RegisterName::AX;
     auto reg1 = std::make_unique<Register>(reg1_name);
 
-    if(is_type<CharType>(*original_dst_type) || is_type<SignedCharType>(*original_dst_type)){
+    if (is_type<CharType>(*original_dst_type) || is_type<SignedCharType>(*original_dst_type)) {
         instructions.emplace_back(std::make_unique<Cvttsd2siInstruction>(AssemblyType::LONG_WORD, std::move(src), reg1->clone()));
         instructions.emplace_back(std::make_unique<MovInstruction>(AssemblyType::BYTE, reg1->clone(), std::move(dst)));
-    } else if(is_type<IntType>(*original_dst_type) || is_type<LongType>(*original_dst_type)){
+    } else if (is_type<IntType>(*original_dst_type) || is_type<LongType>(*original_dst_type)) {
         instructions.emplace_back(std::make_unique<Cvttsd2siInstruction>(dst_type, std::move(src), std::move(dst)));
-    } else{
+    } else {
         throw InternalCompilerError("AssemblyGenerator::transform_double_to_int_instruction: Invalid source type");
     }
     return instructions;
@@ -391,15 +391,15 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_uint_to_d
     auto [src_type, _] = get_converted_operand_type(*uint_to_double_instruction.source);
     std::unique_ptr<Operand> src = transform_operand(*uint_to_double_instruction.source);
     std::unique_ptr<Operand> dst = transform_operand(*uint_to_double_instruction.destination);
-    
+
     RegisterName reg1_name = RegisterName::AX;
     auto reg1 = std::make_unique<Register>(reg1_name);
     RegisterName reg2_name = RegisterName::DX;
     auto reg2 = std::make_unique<Register>(reg2_name);
-    if(is_type<UnsignedCharType>(*original_src_type)){
+    if (is_type<UnsignedCharType>(*original_src_type)) {
         instructions.emplace_back(std::make_unique<MovZeroExtendInstruction>(AssemblyType::BYTE, AssemblyType::LONG_WORD, src->clone(), reg1->clone()));
         instructions.emplace_back(std::make_unique<Cvtsi2sdInstruction>(AssemblyType::LONG_WORD, reg1->clone(), dst->clone()));
-    }else if (src_type == AssemblyType::LONG_WORD) {
+    } else if (src_type == AssemblyType::LONG_WORD) {
         instructions.emplace_back(std::make_unique<MovZeroExtendInstruction>(AssemblyType::LONG_WORD, AssemblyType::QUAD_WORD, src->clone(), reg1->clone()));
         instructions.emplace_back(std::make_unique<Cvtsi2sdInstruction>(AssemblyType::QUAD_WORD, reg1->clone(), dst->clone()));
     } else {
@@ -435,7 +435,7 @@ std::vector<std::unique_ptr<Instruction>> AssemblyGenerator::transform_double_to
     auto regr = std::make_unique<Register>(regr_name);
     RegisterName regx_name = RegisterName::XMM0;
     auto regx = std::make_unique<Register>(regx_name);
-    if(is_type<UnsignedCharType>(*original_dst_type)){
+    if (is_type<UnsignedCharType>(*original_dst_type)) {
         instructions.emplace_back(std::make_unique<Cvttsd2siInstruction>(AssemblyType::LONG_WORD, src->clone(), regr->clone()));
         instructions.emplace_back(std::make_unique<MovInstruction>(AssemblyType::BYTE, regr->clone(), dst->clone()));
     } else if (dst_type == AssemblyType::LONG_WORD) {
@@ -795,7 +795,7 @@ std::unique_ptr<TopLevel> AssemblyGenerator::transform_top_level(tacky::TopLevel
         return transform_function(*fun);
     } else if (auto static_var = dynamic_cast<tacky::StaticVariable*>(&top_level)) {
         return std::make_unique<StaticVariable>(static_var->name.name, static_var->global, static_var->type->alignment(), static_var->init);
-    }else if (auto static_constant = dynamic_cast<tacky::StaticConstant*>(&top_level)) {
+    } else if (auto static_constant = dynamic_cast<tacky::StaticConstant*>(&top_level)) {
         StaticInitialValue init;
         init.values.push_back(static_constant->init);
         return std::make_unique<StaticConstant>(static_constant->name.name, static_constant->type->alignment(), init);
@@ -872,7 +872,7 @@ std::unique_ptr<Type> AssemblyGenerator::get_operand_type(tacky::Value& operand)
             return std::make_unique<DoubleType>();
         } else if (std::holds_alternative<char>(tacky_constant->value)) {
             return std::make_unique<CharType>();
-        }else if (std::holds_alternative<unsigned char>(tacky_constant->value)) {
+        } else if (std::holds_alternative<unsigned char>(tacky_constant->value)) {
             return std::make_unique<UnsignedCharType>();
         }
     } else if (tacky::TemporaryVariable* tacky_var = dynamic_cast<tacky::TemporaryVariable*>(&operand)) {
@@ -908,7 +908,7 @@ std::pair<AssemblyType, bool> AssemblyGenerator::convert_type(const Type& type)
         // for variables less than 16 bytes use same alignement as element
         size_t alignment = (arr_type->size() >= 16) ? 16 : arr_type->alignment();
         assembly_type = AssemblyType(AssemblyType::BYTE_ARRAY, arr_type->size(), alignment);
-    } else if(dynamic_cast<const CharType*>(&type) || dynamic_cast<const SignedCharType*>(&type) || dynamic_cast<const UnsignedCharType*>(&type)){
+    } else if (dynamic_cast<const CharType*>(&type) || dynamic_cast<const SignedCharType*>(&type) || dynamic_cast<const UnsignedCharType*>(&type)) {
         assembly_type = AssemblyType::BYTE;
     }
     return { assembly_type, is_signed };

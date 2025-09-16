@@ -796,7 +796,9 @@ std::unique_ptr<TopLevel> AssemblyGenerator::transform_top_level(tacky::TopLevel
     } else if (auto static_var = dynamic_cast<tacky::StaticVariable*>(&top_level)) {
         return std::make_unique<StaticVariable>(static_var->name.name, static_var->global, static_var->type->alignment(), static_var->init);
     }else if (auto static_constant = dynamic_cast<tacky::StaticConstant*>(&top_level)) {
-        return std::make_unique<StaticConstant>(static_constant->name.name, static_var->type->alignment(), static_var->init);
+        StaticInitialValue init;
+        init.values.push_back(static_constant->init);
+        return std::make_unique<StaticConstant>(static_constant->name.name, static_constant->type->alignment(), init);
     } else {
         assert(false && "In transform_top_level: invalid top level class");
         return nullptr;
@@ -906,6 +908,8 @@ std::pair<AssemblyType, bool> AssemblyGenerator::convert_type(const Type& type)
         // for variables less than 16 bytes use same alignement as element
         size_t alignment = (arr_type->size() >= 16) ? 16 : arr_type->alignment();
         assembly_type = AssemblyType(AssemblyType::BYTE_ARRAY, arr_type->size(), alignment);
+    } else if(dynamic_cast<const CharType*>(&type) || dynamic_cast<const SignedCharType*>(&type) || dynamic_cast<const UnsignedCharType*>(&type)){
+        assembly_type = AssemblyType::BYTE;
     }
     return { assembly_type, is_signed };
 }

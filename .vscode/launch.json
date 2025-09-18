@@ -6,7 +6,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/compiler/cobaltc-compiler",
-            "args": ["/home/simone/compiler/writing-a-c-compiler-tests/tests/chapter_16/valid/strings_as_lvalues/strings_in_function_calls.c", "--codegen"],
+            "args": ["/home/simone/compiler/writing-a-c-compiler-tests/tests/chapter_16/valid/chars/access_through_char_pointer.c", "-S"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/",
             "environment": [],

@@ -531,6 +531,8 @@ public:
         , source(std::move(src))
         , destination(std::move(dst))
     {
+        check_and_replace_register_type(source_type, this->source.get());
+        check_and_replace_register_type(destination_type, this->destination.get());
     }
 
     void accept(AssemblyVisitor& visitor) override
@@ -554,9 +556,13 @@ public:
 class MovZeroExtendInstruction : public Instruction {
 public:
     MovZeroExtendInstruction(AssemblyType source_type, AssemblyType destination_type, std::unique_ptr<Operand> src, std::unique_ptr<Operand> dst)
-        : source(std::move(src))
+        : source_type(source_type)
+        , destination_type(destination_type)
+        , source(std::move(src))
         , destination(std::move(dst))
     {
+        check_and_replace_register_type(source_type, this->source.get());
+        check_and_replace_register_type(destination_type, this->destination.get());
     }
 
     void accept(AssemblyVisitor& visitor) override

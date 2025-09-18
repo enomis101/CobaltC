@@ -52,21 +52,15 @@ void CodeEmitter::emit_code()
 
 void CodeEmitter::visit(ImmediateValue& node)
 {
-    if (std::holds_alternative<int>(node.value)) {
-        auto imm_value = std::get<int>(node.value);
-        *m_file_stream << std::format("${}", imm_value);
-    } else if (std::holds_alternative<long>(node.value)) {
-        auto imm_value = std::get<long>(node.value);
-        *m_file_stream << std::format("${}", imm_value);
-    } else if (std::holds_alternative<unsigned int>(node.value)) {
-        auto imm_value = std::get<unsigned int>(node.value);
-        *m_file_stream << std::format("${}", imm_value);
-    } else if (std::holds_alternative<unsigned long>(node.value)) {
-        auto imm_value = std::get<unsigned long>(node.value);
-        *m_file_stream << std::format("${}", imm_value);
+std::visit([this](auto&& value) {
+    using T = std::decay_t<decltype(value)>;
+    if constexpr (std::is_same_v<T, std::monostate>) {
+        // Handle the "no value" case - maybe throw or use default
+        *m_file_stream << "$0";  // or whatever default makes sense
     } else {
-        assert(false);
+        *m_file_stream << std::format("${}", value);
     }
+}, node.value);
 }
 
 void CodeEmitter::visit(Register& node)

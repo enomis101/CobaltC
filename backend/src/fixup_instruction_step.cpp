@@ -479,7 +479,7 @@ void FixUpInstructionsStep::fixup_movsx_instruction(std::unique_ptr<Instruction>
             AssemblyType::LONG_WORD,
             std::move(movsx_instruction->source),
             std::make_unique<Register>(RegisterName::R10)));
-        movsx_instruction->source = std::make_unique<Register>(RegisterName::R10, AssemblyType::LONG_WORD);
+        movsx_instruction->source = std::make_unique<Register>(RegisterName::R10, movsx_instruction->source_type);
     }
 
     // Handle memory address as destination (not allowed)
@@ -492,7 +492,7 @@ void FixUpInstructionsStep::fixup_movsx_instruction(std::unique_ptr<Instruction>
             AssemblyType::QUAD_WORD,
             std::make_unique<Register>(RegisterName::R11),
             std::move(movsx_instruction->destination));
-        movsx_instruction->destination = std::make_unique<Register>(RegisterName::R11, AssemblyType::QUAD_WORD);
+        movsx_instruction->destination = std::make_unique<Register>(RegisterName::R11, movsx_instruction->destination_type);
     }
 
     // Add the fixed MOVSX instruction
